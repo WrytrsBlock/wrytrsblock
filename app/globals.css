@@ -1,0 +1,212 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Light — warm editorial */
+    --bg: 252 252 248;
+    --surface: 255 255 255;
+    --surface-2: 247 246 240;
+    --surface-3: 238 236 228;
+    --border: 226 222 212;
+    --border-strong: 196 192 180;
+    --text: 18 18 22;
+    --muted: 100 104 118;
+    --accent: 158 108 56;
+    --accent-2: 88 106 156;
+    --success: 24 142 92;
+    --warning: 184 124 32;
+    --danger: 196 56 76;
+
+    --noise-opacity: 0.025;
+    --grain-opacity: 0.04;
+  }
+
+  .dark {
+    /* Dark — cinematic near-black with cool tint */
+    --bg: 9 9 12;
+    --surface: 16 16 20;
+    --surface-2: 22 22 28;
+    --surface-3: 30 30 38;
+    --border: 38 40 48;
+    --border-strong: 60 62 72;
+    --text: 240 242 247;
+    --muted: 132 136 150;
+    --accent: 220 184 142;
+    --accent-2: 140 158 200;
+    --success: 96 200 144;
+    --warning: 232 168 92;
+    --danger: 232 96 112;
+
+    --noise-opacity: 0.04;
+    --grain-opacity: 0.05;
+  }
+
+  * {
+    border-color: rgb(var(--border));
+  }
+
+  html,
+  body {
+    background: rgb(var(--bg));
+    color: rgb(var(--text));
+    font-family: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+    font-feature-settings: "ss01", "cv11", "cv02";
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+    letter-spacing: -0.005em;
+  }
+
+  /* Cinematic film grain on body */
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 100;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 0.6 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)' opacity='0.5'/></svg>");
+    opacity: var(--noise-opacity);
+    mix-blend-mode: overlay;
+  }
+
+  h1,
+  h2,
+  h3 {
+    letter-spacing: -0.02em;
+  }
+
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: rgb(var(--border));
+    border: 2px solid transparent;
+    background-clip: padding-box;
+    border-radius: 8px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: rgb(var(--border-strong));
+    background-clip: padding-box;
+  }
+
+  ::selection {
+    background: rgb(var(--accent) / 0.32);
+    color: rgb(var(--text));
+  }
+
+  :focus-visible {
+    outline: 2px solid rgb(var(--accent) / 0.6);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+}
+
+@layer utilities {
+  .glass {
+    background: rgb(var(--bg) / 0.65);
+    backdrop-filter: blur(20px) saturate(140%);
+    -webkit-backdrop-filter: blur(20px) saturate(140%);
+  }
+  .glass-strong {
+    background: rgb(var(--bg) / 0.88);
+    backdrop-filter: blur(28px) saturate(160%);
+  }
+  .hairline-t {
+    box-shadow: inset 0 1px 0 rgb(var(--border));
+  }
+  .hairline-b {
+    box-shadow: inset 0 -1px 0 rgb(var(--border));
+  }
+  .text-gradient {
+    background: linear-gradient(
+      180deg,
+      rgb(var(--text)) 0%,
+      rgb(var(--text) / 0.7) 100%
+    );
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  .text-gradient-accent {
+    background: linear-gradient(
+      135deg,
+      rgb(var(--accent)) 0%,
+      rgb(var(--accent-2)) 100%
+    );
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  .ring-focus {
+    outline: 2px solid rgb(var(--accent) / 0.5);
+    outline-offset: 2px;
+  }
+  .grain::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%25' height='100%25' filter='url(%23n)' opacity='0.5'/></svg>");
+    opacity: var(--grain-opacity);
+    mix-blend-mode: overlay;
+  }
+  .vignette {
+    background-image: radial-gradient(
+      ellipse at center,
+      transparent 30%,
+      rgb(var(--bg) / 0.4) 80%,
+      rgb(var(--bg) / 0.85) 100%
+    );
+  }
+
+  @keyframes fade-up {
+    from {
+      opacity: 0;
+      transform: translateY(8px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  .animate-fade-up {
+    animation: fade-up 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+
+  @keyframes fade-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+  .animate-fade-in {
+    animation: fade-in 0.6s ease-out both;
+  }
+
+  @keyframes shimmer {
+    0% { background-position: -200% 0; }
+    100% { background-position: 200% 0; }
+  }
+  .animate-shimmer {
+    background: linear-gradient(
+      90deg,
+      transparent 0%,
+      rgb(var(--text) / 0.05) 50%,
+      transparent 100%
+    );
+    background-size: 200% 100%;
+    animation: shimmer 2.4s ease-in-out infinite;
+  }
+
+  @keyframes pulse-ring {
+    0%, 100% { opacity: 0.4; transform: scale(1); }
+    50% { opacity: 1; transform: scale(1.08); }
+  }
+  .animate-pulse-ring {
+    animation: pulse-ring 2.4s ease-in-out infinite;
+  }
+}
