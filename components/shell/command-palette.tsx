@@ -3,10 +3,10 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
+  Bell,
   CircleDot,
   CornerDownLeft,
   Home,
-  Image as ImageIcon,
   LayoutGrid,
   MessageSquare,
   Plus,
@@ -14,13 +14,11 @@ import {
   Settings,
   Sparkles,
   Store,
-  Users,
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { Kbd } from "@/components/ui/primitives";
 import { onUIEvent, openNewBlock } from "@/lib/ui-events";
-import { FEATURES } from "@/lib/flags";
 import type { Block } from "@/lib/mock";
 
 type Item = {
@@ -71,15 +69,8 @@ export function CommandPalette({ blocks }: { blocks: Block[] }) {
       { id: "home", label: "Home", icon: Home, href: "/home", group: "Navigate" },
       { id: "marketplace", label: "Marketplace", icon: Store, href: "/marketplace", group: "Navigate" },
       { id: "blocks", label: "Blocks", icon: LayoutGrid, href: "/blocks", group: "Navigate" },
-      ...(FEATURES.globalMessages
-        ? [{ id: "messages", label: "Messages", icon: MessageSquare, href: "/messages", group: "Navigate" as const }]
-        : []),
-      ...(FEATURES.globalMedia
-        ? [{ id: "media", label: "Media", icon: ImageIcon, href: "/media", group: "Navigate" as const }]
-        : []),
-      ...(FEATURES.community
-        ? [{ id: "community", label: "Community", icon: Users, href: "/community", group: "Navigate" as const }]
-        : []),
+      { id: "messages", label: "Messages", icon: MessageSquare, href: "/messages", group: "Navigate" },
+      { id: "notifications", label: "Notifications", icon: Bell, href: "/notifications", group: "Navigate" },
       { id: "settings", label: "Settings", icon: Settings, href: "/settings", group: "Navigate" },
     ];
     const blockItems: Item[] = blocks.map((b) => ({

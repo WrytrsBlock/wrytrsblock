@@ -4,20 +4,19 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
+  Bell,
   Home,
-  Image as ImageIcon,
   LayoutGrid,
   Menu,
   MessageSquare,
+  Settings,
   Store,
   User,
-  Users,
   X,
 } from "lucide-react";
 import { cn } from "@/lib/cn";
 import type { Block, Person, Workspace } from "@/lib/mock";
 import { Avatar, Badge } from "@/components/ui/primitives";
-import { FEATURES } from "@/lib/flags";
 
 export function MobileNav({
   profile,
@@ -34,18 +33,12 @@ export function MobileNav({
 
   const primary = [
     { href: "/home", label: "Home", icon: Home },
-    { href: profileHref, label: "My Profile", icon: User },
     { href: "/marketplace", label: "Marketplace", icon: Store },
     { href: "/blocks", label: "Blocks", icon: LayoutGrid },
-    ...(FEATURES.globalMessages
-      ? [{ href: "/messages", label: "Messages", icon: MessageSquare, badge: 4 }]
-      : []),
-    ...(FEATURES.globalMedia
-      ? [{ href: "/media", label: "Media", icon: ImageIcon }]
-      : []),
-    ...(FEATURES.community
-      ? [{ href: "/community", label: "Community", icon: Users }]
-      : []),
+    { href: "/messages", label: "Messages", icon: MessageSquare, badge: 4 },
+    { href: "/notifications", label: "Notifications", icon: Bell },
+    { href: profileHref, label: "Profile", icon: User },
+    { href: "/settings", label: "Settings", icon: Settings },
   ];
 
   // Close on route change.

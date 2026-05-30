@@ -10,6 +10,15 @@ export type ProfileInput = {
   handle: string;
   role: string;
   bio: string;
+  // Creator fields. Persisted as profile columns get added; accepted now so the
+  // settings form is complete and forward-compatible.
+  roles?: string[];
+  location?: string;
+  website?: string;
+  skills?: string[];
+  avatar_url?: string;
+  banner_url?: string;
+  socials?: Record<string, string>;
 };
 
 export type ProfileResult =
@@ -32,11 +41,15 @@ export async function updateProfileAction(
     } = await supabase.auth.getUser();
     if (!user) return { ok: false, error: "You need to be signed in." };
 
+    // Core profile columns that exist today. Extended creator fields
+    // (roles/location/website/skills/banner/socials) persist once their
+    // columns are added to the profiles table.
     await updateProfile(supabase, user.id, {
       display_name: input.display_name.trim(),
       handle: input.handle.trim() || null,
       role: input.role.trim() || null,
       bio: input.bio.trim() || null,
+      ...(input.avatar_url ? { avatar_url: input.avatar_url } : {}),
     });
 
     revalidatePath("/settings");

@@ -1,6 +1,7 @@
 import { MessageCircle, MoreHorizontal } from "lucide-react";
 import { Avatar } from "@/components/ui/primitives";
-import { getPerson } from "@/lib/mock";
+import { BlockScore } from "@/components/creator/block-score";
+import { creatorProfiles, getPerson } from "@/lib/mock";
 import { InviteButton } from "./invite-button";
 
 export function TeamRoster({
@@ -16,6 +17,7 @@ export function TeamRoster({
         {ids.map((id) => {
           const p = getPerson(id);
           if (!p) return null;
+          const score = creatorProfiles[id]?.blockScore;
           return (
             <li
               key={p.id}
@@ -30,7 +32,15 @@ export function TeamRoster({
                   {p.role} · @{p.handle}
                 </p>
               </div>
-              <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+              {score !== undefined && (
+                <BlockScore
+                  score={score}
+                  size="sm"
+                  showLevel={false}
+                  className="shrink-0 group-hover:hidden"
+                />
+              )}
+              <div className="hidden group-hover:flex items-center gap-0.5">
                 <button
                   className="p-1.5 rounded-md hover:bg-surface-2 text-muted hover:text-ink transition-colors"
                   title="Message"

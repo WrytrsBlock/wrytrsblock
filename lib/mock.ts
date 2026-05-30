@@ -354,28 +354,64 @@ export function getPerson(id: string) {
 
 export type Credit = { title: string; role: string; year: string };
 export type ServiceOffer = { title: string; price: string; slug?: string };
+export type PortfolioLink = { label: string; url: string };
+export type SocialLinks = {
+  instagram?: string;
+  youtube?: string;
+  spotify?: string;
+  linkedin?: string;
+  website?: string;
+};
+
+// The roles a creator can hold (used for filters + profile + settings).
+export const CREATOR_ROLES = [
+  "Producer",
+  "Songwriter",
+  "Artist",
+  "Engineer",
+  "Videographer",
+  "Photographer",
+  "Designer",
+  "Composer",
+  "Writer",
+  "Actor",
+  "Director",
+] as const;
+export type CreatorRole = (typeof CREATOR_ROLES)[number];
 
 export type CreatorProfile = {
   personId: string;
-  tagline: string;
+  banner: string;
+  tagline: string; // short headline / quick bio
+  bio: string; // longer bio
   location: string;
+  website?: string;
+  blockScore: number; // 0–1000 reputation score
   rating: number;
   reviews: number;
+  roles: string[]; // multiple roles
   skills: string[];
   credits: Credit[];
   services: ServiceOffer[];
   portfolio: string[]; // cover image urls
+  portfolioLinks: PortfolioLink[];
+  socials: SocialLinks;
   openTo: ("collaboration" | "service")[];
 };
 
 export const creatorProfiles: Record<string, CreatorProfile> = {
   p1: {
     personId: "p1",
-    tagline:
-      "Director & showrunner for audio drama and film. Noir, intimate, performance-first.",
+    banner:
+      "https://images.unsplash.com/photo-1490971588422-52f6262a237a?auto=format&fit=crop&w=1600&q=80",
+    tagline: "Director & showrunner for audio drama and film.",
+    bio: "I build serialized, performance-first stories — noir, intimate, score-forward. Ten years directing audio drama and short film. I care about pacing, casting, and the sound of a room.",
     location: "New York, NY",
+    website: "ariakade.com",
+    blockScore: 880,
     rating: 4.9,
     reviews: 38,
+    roles: ["Director", "Writer", "Producer"],
     skills: ["Directing", "Showrunning", "Story", "Casting", "Picture Edit"],
     credits: [
       { title: "Midnight Press", role: "Director", year: "2026" },
@@ -389,14 +425,30 @@ export const creatorProfiles: Record<string, CreatorProfile> = {
       "https://images.unsplash.com/photo-1478720568477-152d9b164e26?auto=format&fit=crop&w=600&q=80",
       "https://images.unsplash.com/photo-1485846234645-a62644f84728?auto=format&fit=crop&w=600&q=80",
     ],
+    portfolioLinks: [
+      { label: "Midnight Press — trailer", url: "https://example.com/midnight-press" },
+      { label: "Director reel 2026", url: "https://example.com/reel" },
+    ],
+    socials: {
+      instagram: "ariakade",
+      youtube: "@ariakade",
+      website: "ariakade.com",
+      linkedin: "aria-kade",
+    },
     openTo: ["collaboration", "service"],
   },
   p6: {
     personId: "p6",
-    tagline: "Composer & mix engineer. Warm, cinematic, score-forward.",
+    banner:
+      "https://images.unsplash.com/photo-1558584673-650f1a52f5bd?auto=format&fit=crop&w=1600&q=80",
+    tagline: "Producer, engineer & composer. Warm, cinematic, loud.",
+    bio: "Mix and master engineer and composer. Analog-modeled chain, reference-matched. I make singles radio-ready and write strings + ambient score for film and games.",
     location: "Los Angeles, CA",
+    website: "theolin.audio",
+    blockScore: 945,
     rating: 5.0,
     reviews: 64,
+    roles: ["Producer", "Engineer", "Composer"],
     skills: ["Mixing", "Mastering", "Original Score", "Sound Design", "Ambient"],
     credits: [
       { title: "Midnight Press", role: "Composer", year: "2026" },
@@ -412,14 +464,30 @@ export const creatorProfiles: Record<string, CreatorProfile> = {
       "https://images.unsplash.com/photo-1558584673-650f1a52f5bd?auto=format&fit=crop&w=600&q=80",
       "https://images.unsplash.com/photo-1470225620780-dba8ba36b745?auto=format&fit=crop&w=600&q=80",
     ],
+    portfolioLinks: [
+      { label: "Neon Rain — master", url: "https://example.com/neon-rain" },
+      { label: "Score reel", url: "https://example.com/score" },
+    ],
+    socials: {
+      spotify: "Theo Lin",
+      youtube: "@theolin",
+      instagram: "theolin.audio",
+      website: "theolin.audio",
+    },
     openTo: ["collaboration", "service"],
   },
   p2: {
     personId: "p2",
-    tagline: "Writer for serialized audio & screen. Noir, intimate, character-first.",
+    banner:
+      "https://images.unsplash.com/photo-1455390582262-044cdead277a?auto=format&fit=crop&w=1600&q=80",
+    tagline: "Writer for serialized audio & screen.",
+    bio: "Character-first writing for serialized audio and screen. Noir, intimate, dialogue-driven. I also do story editing and punch-up passes on tight deadlines.",
     location: "Brooklyn, NY",
+    website: "milotran.ink",
+    blockScore: 640,
     rating: 4.7,
     reviews: 54,
+    roles: ["Writer", "Songwriter"],
     skills: ["Screenwriting", "Story Editing", "Punch-up", "Series Bibles"],
     credits: [
       { title: "Midnight Press", role: "Writer", year: "2026" },
@@ -430,14 +498,22 @@ export const creatorProfiles: Record<string, CreatorProfile> = {
       "https://images.unsplash.com/photo-1455390582262-044cdead277a?auto=format&fit=crop&w=600&q=80",
       "https://images.unsplash.com/photo-1519682337058-a94d519337bc?auto=format&fit=crop&w=600&q=80",
     ],
+    portfolioLinks: [{ label: "Selected scripts", url: "https://example.com/scripts" }],
+    socials: { instagram: "milo.writes", website: "milotran.ink", linkedin: "milo-tran" },
     openTo: ["collaboration"],
   },
   p3: {
     personId: "p3",
+    banner:
+      "https://images.unsplash.com/photo-1485846234645-a62644f84728?auto=format&fit=crop&w=1600&q=80",
     tagline: "Editor & foley artist for narrative podcasts and film.",
+    bio: "Picture and dialogue editing, foley, and sound design for narrative work. I cut for rhythm and make the world feel lived-in.",
     location: "Austin, TX",
+    website: "sashareyes.tv",
+    blockScore: 905,
     rating: 4.9,
     reviews: 127,
+    roles: ["Engineer", "Videographer", "Designer"],
     skills: ["Picture Editing", "Foley", "Sound Design", "Dialogue Edit"],
     credits: [
       { title: "Midnight Press", role: "Editor", year: "2026" },
@@ -447,28 +523,44 @@ export const creatorProfiles: Record<string, CreatorProfile> = {
     portfolio: [
       "https://images.unsplash.com/photo-1485846234645-a62644f84728?auto=format&fit=crop&w=600&q=80",
     ],
+    portfolioLinks: [{ label: "Editing reel", url: "https://example.com/edit-reel" }],
+    socials: { youtube: "@sashacuts", instagram: "sasha.cuts", website: "sashareyes.tv" },
     openTo: ["collaboration", "service"],
   },
   p7: {
     personId: "p7",
-    tagline: "Vocalist & voice actor. Narrative, character, and topline.",
+    banner:
+      "https://images.unsplash.com/photo-1605722243979-fe0be8158232?auto=format&fit=crop&w=1600&q=80",
+    tagline: "Vocalist & voice actor. Narrative, character, topline.",
+    bio: "Voice for narrative and character work, plus topline and session vocals. Warm low end, wide range, fast turnaround from a treated home booth.",
     location: "Atlanta, GA",
+    website: "imaniross.com",
+    blockScore: 920,
     rating: 4.9,
     reviews: 212,
+    roles: ["Artist", "Actor"],
     skills: ["Vocals", "Topline", "Voiceover", "Narration"],
     credits: [{ title: "Midnight Press", role: "Vocalist", year: "2026" }],
     services: [{ title: "Voiceover — narrative & character", price: "from $300/hr" }],
     portfolio: [
       "https://images.unsplash.com/photo-1605722243979-fe0be8158232?auto=format&fit=crop&w=600&q=80",
     ],
+    portfolioLinks: [{ label: "Voice demo reel", url: "https://example.com/voice" }],
+    socials: { spotify: "Imani Ross", instagram: "imani.sings", youtube: "@imaniross" },
     openTo: ["collaboration", "service"],
   },
   p5: {
     personId: "p5",
+    banner:
+      "https://images.unsplash.com/photo-1547891654-e66ed7ebb968?auto=format&fit=crop&w=1600&q=80",
     tagline: "Designer & illustrator. Quiet, editorial, type-driven.",
+    bio: "Cover art, key art, and editorial design with a calm, type-forward sensibility. I make work that ages well.",
     location: "Portland, OR",
+    website: "noorhalabi.design",
+    blockScore: 720,
     rating: 4.8,
     reviews: 89,
+    roles: ["Designer", "Photographer"],
     skills: ["Cover Art", "Illustration", "Editorial Design", "Type"],
     credits: [{ title: "Lantern · Issue 04", role: "Designer", year: "2026" }],
     services: [{ title: "Cover & key art — editorial", price: "from $950/set" }],
@@ -476,6 +568,8 @@ export const creatorProfiles: Record<string, CreatorProfile> = {
       "https://images.unsplash.com/photo-1547891654-e66ed7ebb968?auto=format&fit=crop&w=600&q=80",
       "https://images.unsplash.com/photo-1519682337058-a94d519337bc?auto=format&fit=crop&w=600&q=80",
     ],
+    portfolioLinks: [{ label: "Behance", url: "https://example.com/behance" }],
+    socials: { instagram: "noor.makes", website: "noorhalabi.design", linkedin: "noor-halabi" },
     openTo: ["service"],
   },
 };
@@ -488,14 +582,21 @@ export function getCreatorByHandle(handle: string): {
   if (!person) return null;
   const profile = creatorProfiles[person.id] ?? {
     personId: person.id,
+    banner:
+      "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?auto=format&fit=crop&w=1600&q=80",
     tagline: `${person.role} on WrytrsBlock.`,
+    bio: "",
     location: "Remote",
+    blockScore: 320,
     rating: 4.8,
     reviews: 0,
+    roles: [person.role],
     skills: [person.role],
     credits: [],
     services: [],
     portfolio: [],
+    portfolioLinks: [],
+    socials: {},
     openTo: ["collaboration"],
   };
   return { person, profile };
