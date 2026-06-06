@@ -256,13 +256,15 @@ export function EditProfileForm({
         </Field>
 
         {/* Featured Content — the curated showcase shown high on the profile */}
-        <Field label="Featured Content">
-          <FeaturedContentEditor value={featured} onChange={setFeatured} />
-          <p className="mt-2 text-[11px] text-muted/70">
-            Add videos, reels, audio, images, or portfolio links. Choose one
-            ⭐ Featured item — it shows first and larger on your profile.
-          </p>
-        </Field>
+        <div id="featured" className="scroll-mt-20">
+          <Field label="Featured Content">
+            <FeaturedContentEditor value={featured} onChange={setFeatured} />
+            <p className="mt-2 text-[11px] text-muted/70">
+              Add videos, reels, audio, images, or portfolio links. Choose one
+              ⭐ Featured item — it shows first and larger on your profile.
+            </p>
+          </Field>
+        </div>
 
         {error && (
           <p className="text-[12px] text-danger bg-danger/10 border border-danger/30 rounded-md px-3 py-2">

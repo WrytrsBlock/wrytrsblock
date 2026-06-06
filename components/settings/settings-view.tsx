@@ -107,19 +107,19 @@ export function SettingsView({ email }: { email: string }) {
         desc="The showcase that answers 'why start a Block with me?'"
       >
         <LinkRow
-          href="/profile/edit"
+          href="/profile/edit#featured"
           icon={ImageIcon}
           label="Manage Featured Content"
           desc="Add, edit, or remove your showcase pieces"
         />
         <LinkRow
-          href="/profile/edit"
+          href="/profile/edit#featured"
           icon={Upload}
           label="Upload Content"
           desc="Add a video, reel, audio, image, or portfolio link"
         />
         <LinkRow
-          href="/profile/edit"
+          href="/profile/edit#featured"
           icon={ArrowUpDown}
           label="Reorder Content"
           desc="Choose your ⭐ Featured item and the order"

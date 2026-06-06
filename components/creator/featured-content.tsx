@@ -39,7 +39,7 @@ export function FeaturedContent({
             Show visitors why they should Start a Block with you.
           </p>
           <Link
-            href="/profile/edit"
+            href="/profile/edit#featured"
             className="mt-4 inline-flex items-center gap-1.5 h-9 px-4 rounded-full bg-accent text-[12.5px] font-semibold text-white hover:bg-accent/90 transition-colors"
             style={{ color: "#FFFFFF" }}
           >
@@ -60,7 +60,7 @@ export function FeaturedContent({
         </h2>
         {isOwner && (
           <Link
-            href="/profile/edit"
+            href="/profile/edit#featured"
             className="inline-flex items-center gap-1 text-[12.5px] font-medium text-accent hover:underline"
           >
             Manage <ArrowUpRight size={12} />
