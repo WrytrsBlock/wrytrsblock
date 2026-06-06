@@ -563,7 +563,7 @@ function CreatorCard({
       {/* Frosted glass gradient band across the lower portion — a translucent
           gradient (lighter at top → frosted-dark at bottom) with a subtle top
           highlight, like a premium artist card. */}
-      <div className="absolute inset-x-0 bottom-0 z-10 bg-gradient-to-t from-black/65 via-black/40 to-black/15 backdrop-blur-md border-t border-white/15 shadow-[inset_0_1px_0_rgb(255_255_255/0.12)]">
+      <div className="absolute inset-x-0 bottom-0 z-10 bg-gradient-to-t from-black/[0.52] via-black/[0.32] to-black/[0.12] backdrop-blur-md border-t border-white/15 shadow-[inset_0_1px_0_rgb(255_255_255/0.12)]">
         <div className="relative px-3.5 pt-3.5 pb-3.5">
           {/* Creator name — the primary visual element */}
           <Link href={href} className="block">
