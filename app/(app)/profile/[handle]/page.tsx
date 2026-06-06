@@ -340,12 +340,14 @@ export default async function ProfilePage({
             ) : (
               <div className="absolute inset-0 bg-grad-accent" />
             )}
-            <div className="absolute inset-0 bg-gradient-to-t from-bg via-bg/40 to-transparent" />
+            <div className="absolute inset-0 bg-gradient-to-t from-bg via-bg/55 to-bg/5" />
           </div>
 
           {/* Identity glass card overlapping the banner */}
           <div className="px-4 md:px-8 max-w-[1100px]">
             <div className="glass-card glass-glow relative -mt-16 md:-mt-20 rounded-3xl px-5 md:px-8 pb-6 md:pb-7">
+              {/* Top-edge glass highlight — matches the Block Market cards */}
+              <div className="pointer-events-none absolute inset-0 rounded-3xl shadow-[inset_0_1px_0_rgb(255_255_255/0.12)]" />
               {/* Profile photo — overlaps the banner edge */}
               <Avatar
                 src={person.avatar}
