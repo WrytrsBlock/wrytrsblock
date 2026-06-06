@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, ImagePlus } from "lucide-react";
 import { Button, Input } from "@/components/ui/primitives";
@@ -52,6 +52,21 @@ export function EditProfileForm({
   );
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Arriving via "Add Featured Content" (/profile/edit#featured): scroll
+  // straight to the Featured Content section. The form lives inside a nested
+  // overflow-y-auto container, so the browser's default hash scroll can't reach
+  // it — we bring it into view explicitly.
+  useEffect(() => {
+    if (typeof window === "undefined" || window.location.hash !== "#featured")
+      return;
+    const t = setTimeout(() => {
+      document
+        .getElementById("featured")
+        ?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 80);
+    return () => clearTimeout(t);
+  }, []);
 
   const toggle = (
     list: string[],
