@@ -159,7 +159,25 @@ export function SignUpForm() {
       </Button>
 
       <p className="text-[11px] text-muted text-center leading-relaxed">
-        By creating an account, you agree to our Terms and Privacy Policy.
+        By creating an account, you agree to our{" "}
+        <a
+          href="/terms"
+          target="_blank"
+          rel="noreferrer"
+          className="text-accent hover:underline"
+        >
+          Terms of Service
+        </a>{" "}
+        and{" "}
+        <a
+          href="/privacy"
+          target="_blank"
+          rel="noreferrer"
+          className="text-accent hover:underline"
+        >
+          Privacy Policy
+        </a>
+        .
       </p>
     </form>
   );

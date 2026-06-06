@@ -121,6 +121,14 @@ export default function TermsPage() {
             "You are responsible for any taxes arising from your activity on the platform.",
           ]}
         />
+        <P>
+          <Term>Future monetization.</Term> Paid features — such as paid Service
+          Blocks, ticketed Block Parties, tips, or other monetization — are being
+          developed and may not be fully available yet, may change, and may not
+          be offered in every region. We will make any applicable fees and terms
+          clear before you use a paid feature. Nothing here is a promise of
+          future earnings.
+        </P>
       </Section>
 
       <Section n={6} title="Ownership, credit, and Split Sheets">

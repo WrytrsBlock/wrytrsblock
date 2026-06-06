@@ -325,15 +325,24 @@ export default async function LandingPage() {
           <p className="text-[11.5px] text-muted">
             © {new Date().getFullYear()} WrytrsBlock — THE CR8TV COLLECTV.
           </p>
-          <div className="flex items-center gap-5 text-[12px] text-muted">
+          <div className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-[12px] text-muted">
             <a href="#features" className="hover:text-ink transition-colors">
               Features
             </a>
+            <Link href="/terms" className="hover:text-ink transition-colors">
+              Terms
+            </Link>
+            <Link href="/privacy" className="hover:text-ink transition-colors">
+              Privacy
+            </Link>
+            <Link
+              href="/community-guidelines"
+              className="hover:text-ink transition-colors"
+            >
+              Community
+            </Link>
             <Link href="/sign-in" className="hover:text-ink transition-colors">
               Sign in
-            </Link>
-            <Link href="/sign-up" className="hover:text-ink transition-colors">
-              Get started
             </Link>
           </div>
         </div>
