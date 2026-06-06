@@ -153,7 +153,7 @@ function Group({
 }) {
   return (
     <section className="rounded-2xl border border-line bg-surface overflow-hidden">
-      <div className="px-5 pt-4 pb-3 border-b border-line">
+      <div className="px-5 sm:px-6 pt-4 pb-3 border-b border-line">
         <h2 className="text-[12px] font-bold uppercase tracking-[0.14em] text-muted">
           {title}
         </h2>
@@ -164,7 +164,7 @@ function Group({
   );
 }
 
-const ROW = "flex items-center gap-3 px-5 py-3.5";
+const ROW = "flex items-center gap-3 px-5 sm:px-6 py-3.5";
 
 function RowIcon({ icon: Icon }: { icon: LucideIcon }) {
   return (
@@ -256,16 +256,14 @@ function ToggleRow({
         aria-label={label}
         onClick={toggle}
         className={cn(
-          "relative h-6 w-11 shrink-0 rounded-full border transition-colors",
-          on
-            ? "bg-accent border-accent"
-            : "bg-surface-3 border-line-strong"
+          "relative ml-1 h-6 w-11 shrink-0 rounded-full border transition-colors",
+          on ? "bg-accent border-accent" : "bg-surface-3 border-line-strong"
         )}
       >
         <span
           className={cn(
-            "absolute top-0.5 h-4 w-4 rounded-full bg-white shadow-sm transition-transform",
-            on ? "translate-x-[22px]" : "translate-x-0.5"
+            "absolute left-0.5 top-1/2 h-5 w-5 -translate-y-1/2 rounded-full bg-white shadow-sm transition-transform",
+            on && "translate-x-[18px]"
           )}
         />
       </button>
@@ -326,7 +324,7 @@ function ChangeEmailRow({ currentEmail }: { currentEmail: string }) {
   }
 
   return (
-    <div className="px-5 py-3.5">
+    <div className="px-5 sm:px-6 py-3.5">
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
@@ -411,7 +409,7 @@ function ChangePasswordRow() {
   }
 
   return (
-    <div className="px-5 py-3.5">
+    <div className="px-5 sm:px-6 py-3.5">
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
@@ -463,7 +461,7 @@ function ChangePasswordRow() {
 function DeleteAccountRow() {
   const [open, setOpen] = useState(false);
   return (
-    <div className="px-5 py-3.5">
+    <div className="px-5 sm:px-6 py-3.5">
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}

@@ -30,7 +30,7 @@ export default async function SettingsPage() {
     <>
       <TopBar crumbs={[{ label: "The CR8TV Collectv" }, { label: "Settings" }]} />
       <div className="flex-1 overflow-y-auto">
-        <div className="px-6 md:px-8 py-8 max-w-[760px] w-full animate-fade-up">
+        <div className="px-5 sm:px-6 md:px-8 py-8 max-w-[880px] w-full animate-fade-up">
           <div className="mb-7">
             <SectionLabel>Account</SectionLabel>
             <h1 className="mt-2 font-display text-4xl text-ink tracking-tight">
