@@ -6,7 +6,6 @@ import {
   Bell,
   CircleDot,
   CornerDownLeft,
-  Home,
   LayoutGrid,
   MessageSquare,
   Plus,
@@ -66,9 +65,8 @@ export function CommandPalette({ blocks }: { blocks: Block[] }) {
 
   const items = useMemo<Item[]>(() => {
     const nav: Item[] = [
-      { id: "home", label: "Home", icon: Home, href: "/home", group: "Navigate" },
-      { id: "marketplace", label: "Marketplace", icon: Store, href: "/marketplace", group: "Navigate" },
-      { id: "blocks", label: "Blocks", icon: LayoutGrid, href: "/blocks", group: "Navigate" },
+      { id: "marketplace", label: "Block Market", icon: Store, href: "/marketplace", group: "Navigate" },
+      { id: "blocks", label: "My Blocks", icon: LayoutGrid, href: "/blocks", group: "Navigate" },
       { id: "messages", label: "Messages", icon: MessageSquare, href: "/messages", group: "Navigate" },
       { id: "notifications", label: "Notifications", icon: Bell, href: "/notifications", group: "Navigate" },
       { id: "settings", label: "Settings", icon: Settings, href: "/settings", group: "Navigate" },
@@ -84,7 +82,7 @@ export function CommandPalette({ blocks }: { blocks: Block[] }) {
     }));
     const actions: Item[] = [
       { id: "new-block", label: "Create new Block", icon: Plus, action: () => openNewBlock(), group: "Actions" },
-      { id: "ask-blocky", label: "Ask Blocky", sub: "AI sidekick", icon: Sparkles, action: () => {}, group: "Actions" },
+      { id: "ask-wizee", label: "Ask WiZee AI", sub: "Your creative AI", icon: Sparkles, action: () => {}, group: "Actions" },
     ];
     return [...nav, ...blockItems, ...actions];
   }, [blocks]);
@@ -231,7 +229,7 @@ export function CommandPalette({ blocks }: { blocks: Block[] }) {
           </span>
           <div className="flex-1" />
           <span className="inline-flex items-center gap-1.5">
-            <Sparkles size={10} className="text-accent" /> Ask Blocky{" "}
+            <Sparkles size={10} className="text-accent" /> Ask WiZee{" "}
             <Kbd>⌘J</Kbd>
           </span>
         </div>

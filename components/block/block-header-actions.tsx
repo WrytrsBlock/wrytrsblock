@@ -16,6 +16,21 @@ export function BlockHeaderActions({
   slug: string;
   blockType: BlockType;
 }) {
+  if (blockType === "block_party") {
+    return (
+      <div className="flex items-center gap-2 flex-wrap">
+        <Link href={`/blocks/${slug}?tab=messages`}>
+          <Button variant="outline" size="md">
+            <MessageSquare size={13} /> Chat
+          </Button>
+        </Link>
+        <Button variant="primary" size="md" onClick={() => openInvite(slug)}>
+          <UserPlus size={13} /> Invite Guests
+        </Button>
+      </div>
+    );
+  }
+
   if (blockType === "service") {
     return (
       <div className="flex items-center gap-2 flex-wrap">

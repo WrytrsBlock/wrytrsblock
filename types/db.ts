@@ -7,8 +7,31 @@ export type ISODate = string;
 
 export type WorkspaceRole = "owner" | "admin" | "member" | "guest";
 export type BlockRole = "lead" | "collaborator" | "reviewer" | "guest";
-// The two product Block types.
-export type BlockType = "collaboration" | "service";
+// The product Block types.
+export type BlockType = "collaboration" | "service" | "block_party";
+// Block Party event categories + lifecycle status.
+export type BlockPartyCategory =
+  | "Livestream"
+  | "Listening Session"
+  | "Q&A"
+  | "Networking"
+  | "Release Party"
+  | "Open Room"
+  | "Workshop"
+  | "Other";
+export type BlockPartyStatus = "live" | "upcoming" | "ended";
+// Event payload stored on a Block Party (blocks.party jsonb). Entry price reuses
+// blocks.price (null = free); public/invite reuses blocks.visibility.
+export interface BlockPartyData {
+  category: BlockPartyCategory;
+  startsAt: ISODate;
+  status: BlockPartyStatus;
+  access: "public" | "invite";
+  capacity?: number;
+  chatEnabled: boolean;
+  livestreamUrl?: string;
+  interested: number;
+}
 export type CompletionStatus = "open" | "active" | "in_review" | "completed";
 export type BlockStatus =
   | "Drafting"
@@ -24,6 +47,32 @@ export type BlockKind =
   | "Series"
   | "Music"
   | "Other";
+// What a Collaboration Block is — the prototype's collaboration categories.
+export type BlockCategory =
+  | "Song"
+  | "Beat"
+  | "Project"
+  | "Open Block"
+  | "Community";
+export const BLOCK_CATEGORIES: BlockCategory[] = [
+  "Song",
+  "Beat",
+  "Project",
+  "Open Block",
+  "Community",
+];
+// Who can see/access a Block (from the prototype's New Block visibility).
+export type BlockVisibility =
+  | "Public"
+  | "Followers Only"
+  | "Paid Subscribers"
+  | "By Invite";
+export const BLOCK_VISIBILITIES: BlockVisibility[] = [
+  "Public",
+  "Followers Only",
+  "Paid Subscribers",
+  "By Invite",
+];
 export type ProjectStatus =
   | "todo"
   | "in_progress"
@@ -49,6 +98,64 @@ export interface Profile {
   bio: string | null;
   created_at: ISODate;
   updated_at: ISODate;
+}
+
+// Marketplace source of truth — structured creator data (see 0006 migration).
+// ── Featured Content — creator-selected showcase pieces on the profile. Not a
+// social feed: a small, curated set with one "featured" item shown larger. ───
+export type ContentType =
+  | "youtube"
+  | "youtube_short"
+  | "instagram"
+  | "tiktok"
+  | "audio"
+  | "image"
+  | "portfolio";
+
+export interface FeaturedContentItem {
+  id: string;
+  type: ContentType;
+  url: string;
+  title?: string;
+  // Exactly one item should be flagged featured (shown first + larger). When
+  // none is flagged the first item is treated as featured.
+  featured?: boolean;
+}
+
+export interface CreatorProfileRow {
+  id: UUID;
+  handle: string | null;
+  display_name: string | null;
+  tagline: string | null;
+  bio: string | null;
+  avatar_url: string | null;
+  banner_url: string | null;
+  country: string | null;
+  city: string | null;
+  creator_types: string[];
+  genres: string[];
+  looking_for: string[];
+  availability: string[];
+  experience: string | null;
+  gender: string | null;
+  age_group: string | null;
+  socials: Record<string, string>;
+  portfolio: string[];
+  featured_content: FeaturedContentItem[];
+  website: string | null;
+  block_score: number;
+  block_match: number;
+  rating: number;
+  reviews: number;
+  is_published: boolean;
+  created_at: ISODate;
+  updated_at: ISODate;
+}
+
+export interface SavedCreatorRow {
+  user_id: UUID;
+  creator_id: UUID;
+  created_at: ISODate;
 }
 
 export interface Workspace {
@@ -79,6 +186,12 @@ export interface BlockRow {
   status: BlockStatus;
   completion_status: CompletionStatus;
   kind: BlockKind;
+  category: BlockCategory | null;
+  // Monetization (one-time price in whole currency units) + visibility.
+  price: number | null;
+  visibility: BlockVisibility | null;
+  // Block Party event payload (null for collaboration / service Blocks).
+  party: BlockPartyData | null;
   progress: number;
   deadline: ISODate | null;
   cover_url: string | null;

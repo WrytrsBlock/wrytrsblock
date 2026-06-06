@@ -10,6 +10,10 @@ import { TopBar } from "@/components/shell/topbar";
 import { Avatar, Badge, Card, SectionLabel } from "@/components/ui/primitives";
 import { cn } from "@/lib/cn";
 import { getPerson } from "@/lib/mock";
+import { BlockRequestInbox } from "@/components/block/block-request-inbox";
+import { getIncomingBlockRequests } from "@/lib/data";
+
+export const dynamic = "force-dynamic";
 
 type Notif = {
   id: string;
@@ -31,13 +35,14 @@ const NOTIFS: Notif[] = [
   { id: "n5", icon: UserPlus, tone: "text-accent-2 bg-accent-2/10 border-accent-2/30", actorId: "p7", title: "Imani Ross joined Midnight Press", body: "as Talent", at: "Yesterday", unread: false, href: "/blocks/midnight-press?tab=team" },
 ];
 
-export default function NotificationsPage() {
+export default async function NotificationsPage() {
   const unread = NOTIFS.filter((n) => n.unread).length;
+  const blockRequests = await getIncomingBlockRequests();
 
   return (
     <>
       <TopBar
-        crumbs={[{ label: "Inkwell Studio" }, { label: "Notifications" }]}
+        crumbs={[{ label: "The CR8TV Collectv" }, { label: "Notifications" }]}
       />
       <div className="flex-1 overflow-y-auto">
         <div className="px-6 md:px-8 py-8 max-w-[820px] w-full animate-fade-up">
@@ -50,6 +55,9 @@ export default function NotificationsPage() {
             </div>
             {unread > 0 && <Badge tone="accent">{unread} new</Badge>}
           </div>
+
+          {/* Incoming Block Requests — accept to create the Block + unlock chat */}
+          <BlockRequestInbox requests={blockRequests} />
 
           <Card className="overflow-hidden p-0">
             <ul className="divide-y divide-line">

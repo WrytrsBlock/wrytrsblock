@@ -4,47 +4,57 @@
 
 @layer base {
   :root {
-    /* Light — warm editorial */
-    --bg: 252 252 248;
+    /* Light — neutral, royal-blue accent (WRYTRS BLOCK / CR8TV COLLECTV) */
+    --bg: 250 250 251;
     --surface: 255 255 255;
-    --surface-2: 247 246 240;
-    --surface-3: 238 236 228;
-    --border: 226 222 212;
-    --border-strong: 196 192 180;
-    --text: 18 18 22;
-    --muted: 100 104 118;
-    --accent: 158 108 56;
-    --accent-2: 88 106 156;
-    --success: 24 142 92;
+    --surface-2: 244 245 248;
+    --surface-3: 234 236 241;
+    --border: 224 226 232;
+    --border-strong: 192 196 206;
+    --text: 16 17 22;
+    --muted: 98 102 114;
+    --accent: 31 98 242;
+    --accent-2: 124 58 237;
+    --success: 22 142 92;
     --warning: 184 124 32;
-    --danger: 196 56 76;
+    --danger: 225 60 70;
 
-    --noise-opacity: 0.025;
-    --grain-opacity: 0.04;
+    --noise-opacity: 0.02;
+    --grain-opacity: 0.03;
   }
 
   .dark {
-    /* Dark — cinematic near-black with cool tint */
-    --bg: 9 9 12;
-    --surface: 16 16 20;
-    --surface-2: 22 22 28;
-    --surface-3: 30 30 38;
-    --border: 38 40 48;
-    --border-strong: 60 62 72;
-    --text: 240 242 247;
-    --muted: 132 136 150;
-    --accent: 220 184 142;
-    --accent-2: 140 158 200;
-    --success: 96 200 144;
+    /* Dark — sampled directly from the Figma PDF frames:
+       true-black OLED canvas (#000), royal-blue #1F62F2 primary,
+       blue→purple (#1F62F2 → #8D70F3) gradient CTAs, neutral surfaces. */
+    --bg: 0 0 0;
+    --surface: 13 13 15;
+    --surface-2: 20 20 24;
+    --surface-3: 28 28 33;
+    --border: 33 33 39;
+    --border-strong: 52 52 62;
+    --text: 245 246 250;
+    --muted: 146 148 159;
+    --accent: 31 98 242;
+    --accent-2: 141 112 243;
+    --success: 74 222 128;
     --warning: 232 168 92;
-    --danger: 232 96 112;
+    --danger: 239 68 68;
 
-    --noise-opacity: 0.04;
-    --grain-opacity: 0.05;
+    --noise-opacity: 0.025;
+    --grain-opacity: 0.03;
   }
 
   * {
     border-color: rgb(var(--border));
+  }
+
+  /* Headings — Plus Jakarta Sans renders light by default; the Figma uses
+     bold geometric sans, so display text defaults to 700 + tight tracking.
+     Explicit font-weight utilities (font-semibold, etc.) still win. */
+  .font-display {
+    font-weight: 700;
+    letter-spacing: -0.02em;
   }
 
   html,
@@ -116,6 +126,84 @@
   .glass-strong {
     background: rgb(var(--bg) / 0.88);
     backdrop-filter: blur(28px) saturate(160%);
+  }
+
+  /* ── Liquid glass (Apple-inspired) ──────────────────────────────────
+     Translucent dark panel: blurred backdrop, soft hairline border, a
+     top light-reflection sheen, and layered depth shadow. Tuned for the
+     true-black canvas so text stays high-contrast. Compose with
+     .glass-glow (accent edge, for heroes) or .glass-hover (interactive lift). */
+  .glass-card {
+    background-color: rgb(var(--surface) / 0.55);
+    background-image: linear-gradient(
+      180deg,
+      rgb(255 255 255 / 0.07) 0%,
+      rgb(255 255 255 / 0.02) 36%,
+      rgb(255 255 255 / 0) 100%
+    );
+    backdrop-filter: blur(20px) saturate(150%);
+    -webkit-backdrop-filter: blur(20px) saturate(150%);
+    border: 1px solid rgb(255 255 255 / 0.08);
+    box-shadow:
+      inset 0 1px 0 rgb(255 255 255 / 0.08),
+      0 18px 44px -24px rgb(0 0 0 / 0.7);
+  }
+  /* A denser glass for floating overlays (modals, popovers). */
+  .glass-overlay {
+    background-color: rgb(var(--surface) / 0.78);
+    background-image: linear-gradient(
+      180deg,
+      rgb(255 255 255 / 0.08) 0%,
+      rgb(255 255 255 / 0.02) 32%,
+      rgb(255 255 255 / 0) 100%
+    );
+    backdrop-filter: blur(28px) saturate(160%);
+    -webkit-backdrop-filter: blur(28px) saturate(160%);
+    border: 1px solid rgb(255 255 255 / 0.1);
+    box-shadow:
+      inset 0 1px 0 rgb(255 255 255 / 0.1),
+      0 32px 80px -28px rgb(0 0 0 / 0.85);
+  }
+  /* Accent gradient-glow edge — reserve for hero / featured surfaces. */
+  .glass-glow {
+    border-color: rgb(255 255 255 / 0.1);
+    box-shadow:
+      inset 0 1px 0 rgb(255 255 255 / 0.12),
+      0 0 0 1px rgb(var(--accent) / 0.12),
+      0 30px 70px -28px rgb(var(--accent) / 0.28),
+      0 18px 44px -24px rgb(0 0 0 / 0.72);
+  }
+  /* Lightweight glass frame for dense grids — premium border, top sheen, and
+     depth shadow with NO backdrop blur, so it stays cheap across many cards
+     (the card imagery covers the surface anyway). Pair with .glass-hover. */
+  .glass-tile {
+    background-color: rgb(var(--surface) / 0.6);
+    background-image: linear-gradient(
+      180deg,
+      rgb(255 255 255 / 0.06) 0%,
+      rgb(255 255 255 / 0) 42%
+    );
+    border: 1px solid rgb(255 255 255 / 0.08);
+    box-shadow:
+      inset 0 1px 0 rgb(255 255 255 / 0.06),
+      0 14px 34px -22px rgb(0 0 0 / 0.7);
+  }
+  /* Interactive lift — for clickable glass cards. */
+  .glass-hover {
+    transition:
+      transform 220ms cubic-bezier(0.16, 1, 0.3, 1),
+      border-color 220ms ease,
+      box-shadow 220ms ease,
+      background-color 220ms ease;
+  }
+  .glass-hover:hover {
+    transform: translateY(-2px);
+    border-color: rgb(255 255 255 / 0.16);
+    background-color: rgb(var(--surface) / 0.68);
+    box-shadow:
+      inset 0 1px 0 rgb(255 255 255 / 0.14),
+      0 0 0 1px rgb(var(--accent) / 0.16),
+      0 30px 64px -26px rgb(0 0 0 / 0.8);
   }
   .hairline-t {
     box-shadow: inset 0 1px 0 rgb(var(--border));

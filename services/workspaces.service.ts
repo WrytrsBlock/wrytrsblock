@@ -45,7 +45,7 @@ export async function getWorkspaceBySlug(
 
 export async function createWorkspace(
   supabase: DB,
-  input: { name: string; slug: string; description?: string }
+  input: { name: string; slug: string; description?: string; created_by?: UUID }
 ): Promise<Workspace> {
   const { data, error } = await supabase
     .from("workspaces")

@@ -50,6 +50,17 @@ const SERVICE_TABS: Tab[] = [
   { id: "settings", label: "Settings", icon: Settings2 },
 ];
 
+// Block Party — event-style set (reuses existing panels with party labels).
+const PARTY_TABS: Tab[] = [
+  { id: "overview", label: "Overview", icon: LayoutDashboard },
+  { id: "team", label: "Guests", icon: Users },
+  { id: "messages", label: "Chat", icon: MessagesSquare },
+  { id: "files", label: "Media", icon: Folder },
+  { id: "settings", label: "Settings", icon: Settings2 },
+];
+
 export function tabsForType(t: BlockType): Tab[] {
-  return t === "service" ? SERVICE_TABS : COLLAB_TABS;
+  if (t === "service") return SERVICE_TABS;
+  if (t === "block_party") return PARTY_TABS;
+  return COLLAB_TABS;
 }

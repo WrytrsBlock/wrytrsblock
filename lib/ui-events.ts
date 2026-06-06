@@ -6,7 +6,11 @@
 // trigger button.
 
 type UIEventMap = {
-  "wb:new-block": { type?: "collaboration" | "service" } | undefined;
+  "wb:new-block":
+    | { type?: "collaboration" | "service"; handle?: string }
+    | undefined;
+  // Send a Block Request to a specific creator (replaces pre-collab messaging).
+  "wb:block-request": { handle: string; name: string };
   "wb:open-command": undefined;
   "wb:invite": { blockSlug: string; handle?: string };
   "wb:edit-service": undefined;
@@ -30,8 +34,16 @@ export function onUIEvent<K extends keyof UIEventMap>(
   return () => window.removeEventListener(type, listener);
 }
 
-export const openNewBlock = (type?: "collaboration" | "service") =>
-  emitUIEvent("wb:new-block", type ? { type } : undefined);
+export const openNewBlock = (
+  type?: "collaboration" | "service",
+  handle?: string
+) =>
+  emitUIEvent(
+    "wb:new-block",
+    type || handle ? { type, handle } : undefined
+  );
+export const openBlockRequest = (handle: string, name: string) =>
+  emitUIEvent("wb:block-request", { handle, name });
 export const openCommandPalette = () => emitUIEvent("wb:open-command");
 export const openInvite = (blockSlug: string, handle?: string) =>
   emitUIEvent("wb:invite", { blockSlug, handle });

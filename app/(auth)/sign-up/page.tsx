@@ -9,10 +9,10 @@ export default function SignUpPage() {
           Get started
         </p>
         <h1 className="mt-2 font-display text-4xl text-ink tracking-tighter">
-          Build your first Block.
+          Join WrytrsBlock
         </h1>
         <p className="mt-2 text-[13.5px] text-muted">
-          Free to start. No card needed.
+          Create your creator profile and start building Blocks.
         </p>
       </div>
 

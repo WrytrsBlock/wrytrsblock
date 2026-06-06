@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { supabaseConfigured } from "@/lib/env";
 import { getBlockBySlug, addBlockMember } from "@/services/blocks.service";
+import { getCreatorIdByHandle } from "@/services/creator-profiles.service";
 import type { BlockRole } from "@/types";
 
 export type InviteResult =
@@ -28,25 +29,26 @@ export async function inviteCollaboratorAction(
 
   try {
     const supabase = createSupabaseServerClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
     const block = await getBlockBySlug(supabase, blockSlug);
     if (!block) return { ok: false, error: "Block not found." };
 
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("id")
-      .eq("handle", h)
-      .maybeSingle();
-
-    if (!profile) {
+    const inviteeId = await getCreatorIdByHandle(supabase, h);
+    if (!inviteeId) {
       return {
         ok: true,
-        message: `No member @${h} yet — they'll get access when they join.`,
+        message: `No creator @${h} yet — they'll get access when they join.`,
       };
     }
 
-    await addBlockMember(supabase, block.id, profile.id, role);
+    await addBlockMember(supabase, block.id, inviteeId, role, {
+      status: "invited",
+      invitedBy: user?.id,
+    });
     revalidatePath(`/blocks/${blockSlug}`);
-    return { ok: true, message: `Added @${h} as ${role}.` };
+    return { ok: true, message: `Invited @${h} as ${role}.` };
   } catch (e) {
     return {
       ok: false,

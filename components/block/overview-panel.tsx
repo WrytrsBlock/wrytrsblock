@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import { Badge, Card, SectionLabel } from "@/components/ui/primitives";
 import { TeamRoster } from "./team-roster";
+import { BlockJourney } from "./block-journey";
 import { getPerson, type Block } from "@/lib/mock";
 
 // Clean, calm Overview. Answers: who's involved, and where everything lives.
@@ -23,7 +24,10 @@ export function OverviewPanel({ block }: { block: Block }) {
   ];
 
   return (
-    <div className="px-6 md:px-8 py-8 max-w-[900px] space-y-6 animate-fade-up">
+    <div className="px-5 md:px-8 py-6 md:py-8 max-w-[900px] space-y-6 animate-fade-up">
+      {/* Connect → Collaborate → Complete */}
+      <BlockJourney block={block} />
+
       {/* Who's involved */}
       <Card className="p-6">
         <div className="flex items-center justify-between">

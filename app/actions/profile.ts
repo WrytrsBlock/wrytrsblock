@@ -53,7 +53,7 @@ export async function updateProfileAction(
     });
 
     revalidatePath("/settings");
-    revalidatePath("/home");
+    revalidatePath("/marketplace");
     return { ok: true };
   } catch (e) {
     return {

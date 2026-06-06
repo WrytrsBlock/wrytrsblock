@@ -8,7 +8,7 @@ export const metadata: Metadata = {
     template: "%s · WrytrsBlock",
   },
   description:
-    "A studio for creators. Blocks for projects, threads with your team, a marketplace when you need to hire — all in one room.",
+    "WrytrsBlock — THE CR8TV COLLECTV. Discover creators, collaborate on Blocks, and monetize the work you make together.",
   metadataBase: new URL(
     process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000"
   ),
@@ -45,7 +45,7 @@ export default function RootLayout({
           crossOrigin=""
         />
         <link
-          href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500&display=swap"
+          href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap"
           rel="stylesheet"
         />
       </head>

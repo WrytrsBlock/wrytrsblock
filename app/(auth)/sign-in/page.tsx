@@ -15,7 +15,7 @@ export default function SignInPage() {
           Welcome back.
         </h1>
         <p className="mt-2 text-[13.5px] text-muted">
-          Continue to your studio.
+          Continue to the Collectv.
         </p>
       </div>
 

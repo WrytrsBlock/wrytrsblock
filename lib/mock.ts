@@ -1,6 +1,8 @@
 // Mock data — used as fallback when Supabase env vars are not configured,
 // and as the seed source for the SQL migration.
 
+import type { FeaturedContentItem } from "@/types";
+
 export type Role =
   | "Director"
   | "Writer"
@@ -96,7 +98,40 @@ export type Thread = {
 };
 
 // The two product Block types. This is the central distinction in WrytrsBlock.
-export type BlockType = "collaboration" | "service";
+export type BlockType = "collaboration" | "service" | "block_party";
+
+// Block Party — an event-style Block (livestreams, listening sessions, Q&As,
+// release parties, networking, open rooms). Distinct from collaboration/service.
+export type BlockPartyCategory =
+  | "Livestream"
+  | "Listening Session"
+  | "Q&A"
+  | "Networking"
+  | "Release Party"
+  | "Open Room"
+  | "Workshop"
+  | "Other";
+export const BLOCK_PARTY_CATEGORIES: BlockPartyCategory[] = [
+  "Livestream",
+  "Listening Session",
+  "Q&A",
+  "Networking",
+  "Release Party",
+  "Open Room",
+  "Workshop",
+  "Other",
+];
+export type BlockPartyStatus = "live" | "upcoming" | "ended";
+export type BlockParty = {
+  category: BlockPartyCategory;
+  startsAt: string; // ISO datetime
+  status: BlockPartyStatus;
+  access: "public" | "invite";
+  capacity?: number;
+  chatEnabled: boolean;
+  livestreamUrl?: string;
+  interested: number; // people interested / attending
+};
 
 export type CompletionStatus = "open" | "active" | "in_review" | "completed";
 
@@ -151,6 +186,13 @@ export type Block = {
   tags: string[];
   budget?: string;
   kind: "Audio Drama" | "Film" | "Editorial" | "Album" | "Series" | "Music" | "Other";
+  // Collaboration category — Song/Beat/Project/Open Block/Community.
+  category?: "Song" | "Beat" | "Project" | "Open Block" | "Community";
+  // Monetization — one-time price (whole currency units) + visibility.
+  price?: number;
+  visibility?: "Public" | "Followers Only" | "Paid Subscribers" | "By Invite";
+  // Block Party (event) details. price = entry price (null = free entry).
+  party?: BlockParty;
   // What the creator is looking for (Collaboration) — drives marketplace cards.
   seeking?: string[];
   board: KanbanColumn[];
@@ -170,6 +212,7 @@ export const blocks: Block[] = [
     tagline:
       "A six-part audio drama about an underground newsroom in 1973. Noir, intimate, score-forward.",
     blockType: "collaboration",
+    category: "Project",
     status: "Producing",
     completion: { status: "active", percent: 64 },
     progress: 64,
@@ -257,6 +300,7 @@ export const blocks: Block[] = [
     slug: "lantern-zine",
     tagline: "Quarterly print + web zine on quiet design. Seeking a cover illustrator.",
     blockType: "collaboration",
+    category: "Open Block",
     status: "Drafting",
     completion: { status: "open", percent: 22 },
     progress: 22,
@@ -279,6 +323,9 @@ export const blocks: Block[] = [
     slug: "halftone",
     tagline: "Short film. 12 minutes. Coming-of-age in a print shop. Need a composer.",
     blockType: "collaboration",
+    category: "Project",
+    price: 15,
+    visibility: "Paid Subscribers",
     status: "In Review",
     completion: { status: "in_review", percent: 81 },
     progress: 81,
@@ -301,6 +348,8 @@ export const blocks: Block[] = [
     slug: "mix-master-neon",
     tagline: "Radio-ready mixes and masters for indie singles and EPs. Fast, warm, loud.",
     blockType: "service",
+    price: 650,
+    visibility: "Public",
     status: "Producing",
     completion: { status: "active", percent: 45 },
     progress: 45,
@@ -344,6 +393,102 @@ export const blocks: Block[] = [
       { id: "st1", title: "Delivery thread", lastMessage: "Theo: rough mix is up, take a listen", lastActorId: "p6", unread: 1, at: "1h" },
     ],
   },
+  {
+    id: "neon-rain-listening",
+    title: "Neon Rain — Listening Party",
+    slug: "neon-rain-listening",
+    tagline: "First listen of the new single, live with the whole room. Pull up.",
+    blockType: "block_party",
+    visibility: "Public",
+    status: "Producing",
+    completion: { status: "active", percent: 100 },
+    progress: 100,
+    deadline: "Live now",
+    cover:
+      "https://images.unsplash.com/photo-1501386761578-eac5c94b800a?auto=format&fit=crop&w=2400&q=80",
+    leadId: "p6",
+    team: ["p6", "p1", "p2"],
+    tags: ["Listening Session", "Live"],
+    kind: "Music",
+    party: {
+      category: "Listening Session",
+      startsAt: "2026-06-02T20:00:00",
+      status: "live",
+      access: "public",
+      capacity: 500,
+      chatEnabled: true,
+      livestreamUrl: "https://live.wrytrsblock.com/neon-rain",
+      interested: 482,
+    },
+    board: [],
+    activity: [],
+    files: [],
+    threads: [],
+  },
+  {
+    id: "block-builders-qa",
+    title: "Block Builders Q&A",
+    slug: "block-builders-qa",
+    tagline:
+      "Ask me anything — producing, splits, and getting paid on WrytrsBlock.",
+    blockType: "block_party",
+    price: 8,
+    visibility: "Public",
+    status: "Drafting",
+    completion: { status: "open", percent: 0 },
+    progress: 0,
+    deadline: "Jun 10, 2026",
+    cover:
+      "https://images.unsplash.com/photo-1598488035139-bdbb2231ce04?auto=format&fit=crop&w=2400&q=80",
+    leadId: "p1",
+    team: ["p1"],
+    tags: ["Q&A"],
+    kind: "Other",
+    party: {
+      category: "Q&A",
+      startsAt: "2026-06-10T18:00:00",
+      status: "upcoming",
+      access: "public",
+      capacity: 200,
+      chatEnabled: true,
+      interested: 213,
+    },
+    board: [],
+    activity: [],
+    files: [],
+    threads: [],
+  },
+  {
+    id: "midnight-press-release",
+    title: "Midnight Press — Release Party",
+    slug: "midnight-press-release",
+    tagline: "The serial drops. Cast, crew, and the first 500 fans in the room.",
+    blockType: "block_party",
+    visibility: "By Invite",
+    status: "Drafting",
+    completion: { status: "open", percent: 0 },
+    progress: 0,
+    deadline: "Jun 14, 2026",
+    cover:
+      "https://images.unsplash.com/photo-1478720568477-152d9b164e26?auto=format&fit=crop&w=2400&q=80",
+    leadId: "p1",
+    team: ["p1", "p2", "p3", "p6"],
+    tags: ["Release Party"],
+    kind: "Audio Drama",
+    party: {
+      category: "Release Party",
+      startsAt: "2026-06-14T21:00:00",
+      status: "upcoming",
+      access: "invite",
+      capacity: 1000,
+      chatEnabled: true,
+      interested: 1280,
+    },
+    board: [],
+    activity: [],
+    files: [],
+    threads: [],
+  },
 ];
 
 export function getPerson(id: string) {
@@ -355,6 +500,8 @@ export function getPerson(id: string) {
 export type Credit = { title: string; role: string; year: string };
 export type ServiceOffer = { title: string; price: string; slug?: string };
 export type PortfolioLink = { label: string; url: string };
+// A demo/track shown in the creator's MediaPlayer.
+export type Track = { name: string; source?: string; length?: string };
 export type SocialLinks = {
   instagram?: string;
   youtube?: string;
@@ -387,17 +534,38 @@ export type CreatorProfile = {
   location: string;
   website?: string;
   blockScore: number; // 0–1000 reputation score
+  blockMatch?: number; // 0–100 match strength (derived from signals if omitted)
   rating: number;
   reviews: number;
   roles: string[]; // multiple roles
   skills: string[];
+  // Structured discovery facets (populated from creator_profiles in real mode;
+  // used by the marketplace filter groups).
+  availability?: string[]; // labels: Open To Collaborate / Paid Work / …
+  experienceLevel?: string; // label: Beginner / Intermediate / Professional / …
+  country?: string;
   credits: Credit[];
   services: ServiceOffer[];
   portfolio: string[]; // cover image urls
   portfolioLinks: PortfolioLink[];
   socials: SocialLinks;
   openTo: ("collaboration" | "service")[];
+  tracks?: Track[]; // demos/work shown in the MediaPlayer
+  featuredContent?: FeaturedContentItem[]; // creator-curated showcase items
 };
+
+// Demo tracks for the creator's MediaPlayer. Uses explicit `tracks` when set,
+// otherwise derives a sensible demo reel from the creator's credits so every
+// profile has something to play.
+export function tracksForCreator(profile: CreatorProfile): Track[] {
+  if (profile.tracks && profile.tracks.length) return profile.tracks;
+  const lengths = ["3:24", "2:58", "4:11", "3:46", "2:39", "3:02"];
+  return profile.credits.slice(0, 4).map((c, i) => ({
+    name: c.title,
+    source: `${c.role} · ${c.year}`,
+    length: lengths[i % lengths.length],
+  }));
+}
 
 export const creatorProfiles: Record<string, CreatorProfile> = {
   p1: {

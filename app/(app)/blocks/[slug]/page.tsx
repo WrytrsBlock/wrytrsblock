@@ -7,6 +7,7 @@ import {
   type BlockTabId,
 } from "@/components/block/block-tabs.config";
 import { OverviewPanel } from "@/components/block/overview-panel";
+import { PartyOverviewPanel } from "@/components/block/party-overview-panel";
 import { ServiceDetailsPanel } from "@/components/block/service-details-panel";
 import { RequestsPanel } from "@/components/block/requests-panel";
 import { BoardPanel } from "@/components/block/board-panel";
@@ -15,19 +16,29 @@ import { MediaPanel } from "@/components/block/media-panel";
 import { ThreadsPanel } from "@/components/block/threads-panel";
 import { TeamPanel } from "@/components/block/team-panel";
 import { SettingsPanel } from "@/components/block/settings-panel";
+import { InvitationBanner } from "@/components/block/invitation-banner";
 import { cn } from "@/lib/cn";
-import { getBlock, getBlocks } from "@/lib/data";
+import {
+  getBlock,
+  getBlockMembers,
+  getMyBlockMembership,
+  type BlockMemberView,
+} from "@/lib/data";
 import type { Block, BlockType } from "@/lib/mock";
 
-export async function generateStaticParams() {
-  const all = await getBlocks();
-  return all.map((b) => ({ slug: b.slug }));
-}
+// Block workspaces are per-user and auth-gated — render per request. (A previous
+// generateStaticParams here called the Supabase server client at build time,
+// which uses cookies() outside a request scope and broke `next build`.)
+export const dynamic = "force-dynamic";
 
-function renderPanel(tab: BlockTabId, block: Block) {
+function renderPanel(
+  tab: BlockTabId,
+  block: Block,
+  members: BlockMemberView[]
+) {
   switch (tab) {
     case "team":
-      return <TeamPanel block={block} />;
+      return <TeamPanel block={block} members={members} />;
     case "files":
       return (
         <MediaPanel
@@ -52,11 +63,11 @@ function renderPanel(tab: BlockTabId, block: Block) {
       return <SettingsPanel block={block} />;
     case "overview":
     default:
-      return block.blockType === "service" ? (
-        <ServiceDetailsPanel block={block} />
-      ) : (
-        <OverviewPanel block={block} />
-      );
+      if (block.blockType === "service")
+        return <ServiceDetailsPanel block={block} />;
+      if (block.blockType === "block_party")
+        return <PartyOverviewPanel block={block} />;
+      return <OverviewPanel block={block} />;
   }
 }
 
@@ -68,12 +79,20 @@ export default async function BlockPage({
   searchParams: { tab?: string; type?: string };
 }) {
   const typeHint =
-    searchParams.type === "service" || searchParams.type === "collaboration"
+    searchParams.type === "service" ||
+    searchParams.type === "collaboration" ||
+    searchParams.type === "block_party"
       ? (searchParams.type as BlockType)
       : undefined;
 
   const block = await getBlock(params.slug, typeHint);
   if (!block) notFound();
+
+  // Real membership roster + the viewer's own invitation status.
+  const [members, myMembership] = await Promise.all([
+    getBlockMembers(params.slug),
+    getMyBlockMembership(params.slug),
+  ]);
 
   const validTabs: string[] = tabsForType(block.blockType).map((t) => t.id);
   const tab: BlockTabId = validTabs.includes(searchParams.tab ?? "")
@@ -87,12 +106,15 @@ export default async function BlockPage({
     <>
       <TopBar
         crumbs={[
-          { label: "Inkwell Studio" },
+          { label: "The CR8TV Collectv" },
           { label: "Blocks", href: "/blocks" },
           { label: block.title },
         ]}
       />
       <BlockHeader block={block} />
+      {myMembership?.status === "invited" && (
+        <InvitationBanner slug={block.slug} />
+      )}
       <BlockTabs active={tab} blockType={block.blockType} />
       <div
         className={cn(
@@ -100,7 +122,7 @@ export default async function BlockPage({
           fullHeight ? "overflow-hidden" : "overflow-y-auto"
         )}
       >
-        {renderPanel(tab, block)}
+        {renderPanel(tab, block, members)}
       </div>
     </>
   );

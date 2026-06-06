@@ -28,7 +28,8 @@ const config: Config = {
       },
       fontFamily: {
         sans: ["Inter", "system-ui", "sans-serif"],
-        display: ['"Instrument Serif"', "Georgia", "serif"],
+        // Headings — bold geometric sans to match the Figma source (was serif).
+        display: ['"Plus Jakarta Sans"', "Inter", "system-ui", "sans-serif"],
         mono: ['"JetBrains Mono"', "ui-monospace", "monospace"],
       },
       fontSize: {
@@ -86,9 +87,22 @@ const config: Config = {
           "0%, 100%": { opacity: "0.5" },
           "50%": { opacity: "1" },
         },
+        // 3D transforms (translate3d) force a GPU layer so the marquee keeps
+        // running on mobile Safari / Chrome (2D translateY animations get
+        // frozen/throttled there, especially in Low Power Mode).
+        "collage-up": {
+          "0%": { transform: "translate3d(0, 0, 0)" },
+          "100%": { transform: "translate3d(0, -50%, 0)" },
+        },
+        "collage-down": {
+          "0%": { transform: "translate3d(0, -50%, 0)" },
+          "100%": { transform: "translate3d(0, 0, 0)" },
+        },
       },
       animation: {
         "slow-pulse": "slow-pulse 2.6s ease-in-out infinite",
+        "collage-up": "collage-up 44s linear infinite",
+        "collage-down": "collage-down 52s linear infinite",
       },
     },
   },

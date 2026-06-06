@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowLeft, Home } from "lucide-react";
+import { ArrowLeft, Store } from "lucide-react";
 import { Wordmark } from "@/components/marketing/wordmark";
 
 export default function NotFound() {
@@ -7,7 +7,7 @@ export default function NotFound() {
     <div className="min-h-screen flex flex-col items-center justify-center relative overflow-hidden px-6">
       <div className="pointer-events-none absolute inset-0 bg-grad-mesh opacity-50" />
       <div className="absolute top-6 left-6">
-        <Wordmark />
+        <Wordmark variant="horizontal" />
       </div>
 
       <div className="relative text-center max-w-md">
@@ -19,14 +19,14 @@ export default function NotFound() {
         </h1>
         <p className="mt-2 text-[13.5px] text-muted leading-relaxed">
           The page you're after has moved, been archived, or never existed.
-          Let's get you back to the studio.
+          Let's get you back to the Collectv.
         </p>
         <div className="mt-7 flex items-center justify-center gap-2.5">
           <Link
-            href="/home"
+            href="/marketplace"
             className="inline-flex items-center gap-2 h-10 px-4 rounded-xl bg-ink text-bg text-[13px] font-medium shadow-soft hover:bg-ink/90 transition-colors"
           >
-            <Home size={14} /> Back to home
+            <Store size={14} /> Explore Block Market
           </Link>
           <Link
             href="/blocks"

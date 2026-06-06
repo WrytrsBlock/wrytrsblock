@@ -151,7 +151,7 @@ export function DocumentsPanel({ block }: { block: Block }) {
               </span>
               <div className="flex-1 min-w-0">
                 <p className="text-[13px] font-semibold text-ink">
-                  Blocky · Doc summary
+                  WiZee · Doc summary
                 </p>
                 <p className="text-[11.5px] text-muted mt-0.5">
                   Series bible v2.3 changed in 4 places this week. Episode 4

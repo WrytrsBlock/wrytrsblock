@@ -2,28 +2,226 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { ArrowUpRight, MapPin, Search } from "lucide-react";
-import { Avatar, Badge, Button, Card } from "@/components/ui/primitives";
-import { StartBlockButton } from "@/components/block/start-block-button";
-import { BlockScore } from "@/components/creator/block-score";
-import { cn } from "@/lib/cn";
+import { createPortal } from "react-dom";
 import {
-  CREATOR_ROLES,
-  type CreatorProfile,
-  type Person,
-} from "@/lib/mock";
+  ChevronDown,
+  Headphones,
+  MapPin,
+  Play,
+  Plus,
+  Search,
+  SlidersHorizontal,
+  X,
+} from "lucide-react";
+import { cn } from "@/lib/cn";
+import { type CreatorProfile, type Person } from "@/lib/mock";
+import { FeaturedCreator } from "@/components/marketplace/featured-creator";
+import {
+  isVideoType,
+  pickFeatured,
+  youtubeId,
+  youtubeThumb,
+} from "@/lib/featured-content";
+import { openBlockRequest } from "@/lib/ui-events";
+import { CREATOR_TYPES, INTERESTS } from "@/lib/onboarding";
 
 type Creator = { person: Person; profile: CreatorProfile };
 
-export function CreatorMarketplace({ creators }: { creators: Creator[] }) {
+// Unique, sorted, non-empty values for a filter group.
+const uniqSorted = (arr: string[]) =>
+  [...new Set(arr.filter(Boolean))].sort((a, b) => a.localeCompare(b));
+
+// ── Location — a curated hierarchy (city → province → country → remote) plus
+// distance tiers, instead of a long derived list. Matching is substring/region
+// based against the creator's location string. True radius search needs
+// geocoordinates (a future enhancement); the tiers below act as widening
+// catchments so the control is useful with the data we have today. ──────────
+const LOCATION_REGION = ["Remote", "Toronto", "Ontario", "Canada"];
+const LOCATION_NEARBY = ["Within 25 km", "Within 50 km", "Within 100 km"];
+
+const ON_CITIES = ["toronto", "ottawa", "mississauga", "hamilton", "brampton", "kitchener", "windsor"];
+const CA_CITIES = [...ON_CITIES, "vancouver", "montreal", "calgary", "edmonton", "winnipeg", "halifax", "quebec"];
+
+function matchLocation(
+  loc: string,
+  availability: string[] | undefined,
+  sel: string
+): boolean {
+  const l = loc.toLowerCase();
+  const remote =
+    l.includes("remote") ||
+    (availability ?? []).some((a) => a.toLowerCase().includes("remote"));
+  switch (sel) {
+    case "Remote":
+      return remote;
+    case "Toronto":
+    case "Within 25 km":
+      return l.includes("toronto");
+    case "Ontario":
+    case "Within 50 km":
+      return l.includes("ontario") || ON_CITIES.some((c) => l.includes(c));
+    case "Canada":
+    case "Within 100 km":
+      return l.includes("canada") || CA_CITIES.some((c) => l.includes(c));
+    default:
+      return true;
+  }
+}
+
+// The card's identity media — driven by the creator's pinned Featured Content,
+// falling back to a portfolio/banner image. Returns the background image and,
+// for video/audio, a small monochrome media indicator (no big play button).
+function cardMedia(
+  profile: CreatorProfile,
+  person: Person
+): { image: string | undefined; mediaIcon: "play" | "audio" | null } {
+  const featured = pickFeatured(profile.featuredContent ?? []);
+  let image: string | undefined;
+  let mediaIcon: "play" | "audio" | null = null;
+
+  if (featured) {
+    if (featured.type === "image") {
+      image = featured.url;
+    } else if (isVideoType(featured.type)) {
+      // YouTube / Shorts — use the real thumbnail.
+      const id = youtubeId(featured.url);
+      image = id ? youtubeThumb(id) : undefined;
+      mediaIcon = "play";
+    } else if (featured.type === "instagram" || featured.type === "tiktok") {
+      mediaIcon = "play"; // video, no derivable thumbnail
+    } else if (featured.type === "audio") {
+      mediaIcon = "audio";
+    }
+    // portfolio → no inline media; falls back to an image below.
+  }
+
+  // Fall back to a portfolio/banner image (then the generated avatar) so the
+  // card is always full-bleed — never an empty box.
+  if (!image) image = profile.portfolio[0] ?? profile.banner ?? person.avatar;
+
+  return { image, mediaIcon };
+}
+
+// One compact dropdown — reads as a pill; highlights when a value is set.
+function FilterSelect({
+  label,
+  value,
+  options,
+  groups,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  options?: string[];
+  groups?: { label: string; options: string[] }[];
+  onChange: (v: string) => void;
+}) {
+  const active = value !== "All";
+  return (
+    <div className="relative shrink-0">
+      <select
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        aria-label={label}
+        className={cn(
+          "appearance-none cursor-pointer h-9 pl-3.5 pr-8 rounded-full text-[12.5px] font-medium border backdrop-blur-sm transition-colors focus:outline-none focus:border-accent/50",
+          active
+            ? "bg-accent/15 border-accent/50 text-accent font-semibold"
+            : "bg-white/[0.04] border-white/10 text-muted hover:text-ink hover:border-white/20"
+        )}
+      >
+        <option value="All">{label}</option>
+        {options?.map((o) => (
+          <option key={o} value={o}>
+            {o}
+          </option>
+        ))}
+        {groups?.map((g) => (
+          <optgroup key={g.label} label={g.label}>
+            {g.options.map((o) => (
+              <option key={o} value={o}>
+                {o}
+              </option>
+            ))}
+          </optgroup>
+        ))}
+      </select>
+      <ChevronDown
+        size={13}
+        className={cn(
+          "absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none",
+          active ? "text-accent" : "text-muted"
+        )}
+      />
+    </div>
+  );
+}
+
+export function CreatorMarketplace({
+  creators,
+  featured,
+}: {
+  creators: Creator[];
+  featured?: Creator;
+}) {
   const [query, setQuery] = useState("");
-  const [role, setRole] = useState<string>("All");
+  // Primary filters (always visible).
+  const [type, setType] = useState("All");
+  const [location, setLocation] = useState("All");
+  const [genre, setGenre] = useState("All");
+  // Advanced filters (in the drawer).
+  const [availability, setAvailability] = useState("All");
+  const [experience, setExperience] = useState("All");
+  const [drawerOpen, setDrawerOpen] = useState(false);
+
+  // Creator Type + Genre use the canonical lists (every option always
+  // selectable). Availability + Experience are derived from the real data.
+  const opts = useMemo(
+    () => ({
+      types: CREATOR_TYPES.map((t) => t.label),
+      genres: INTERESTS.map((i) => i.label),
+      availability: uniqSorted(
+        creators.flatMap((c) => c.profile.availability ?? [])
+      ),
+      experience: uniqSorted(
+        creators.map((c) => c.profile.experienceLevel ?? "")
+      ),
+    }),
+    [creators]
+  );
+
+  const advancedCount =
+    (availability !== "All" ? 1 : 0) + (experience !== "All" ? 1 : 0);
+  const primaryActive =
+    type !== "All" || location !== "All" || genre !== "All";
+  const filtersActive = primaryActive || advancedCount > 0 || query.trim() !== "";
+
+  function clearAll() {
+    setType("All");
+    setLocation("All");
+    setGenre("All");
+    setAvailability("All");
+    setExperience("All");
+    setQuery("");
+  }
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    return creators.filter(({ person, profile }) => {
-      const roleMatch = role === "All" || profile.roles.includes(role);
-      if (!roleMatch) return false;
+    const list = creators.filter(({ person, profile }) => {
+      if (type !== "All" && !profile.roles.includes(type)) return false;
+      if (genre !== "All" && !profile.skills.includes(genre)) return false;
+      if (
+        location !== "All" &&
+        !matchLocation(profile.location, profile.availability, location)
+      )
+        return false;
+      if (
+        availability !== "All" &&
+        !(profile.availability ?? []).includes(availability)
+      )
+        return false;
+      if (experience !== "All" && profile.experienceLevel !== experience)
+        return false;
       if (!q) return true;
       const hay = [
         person.name,
@@ -37,117 +235,367 @@ export function CreatorMarketplace({ creators }: { creators: Creator[] }) {
         .toLowerCase();
       return hay.includes(q);
     });
-  }, [creators, query, role]);
+    // Available-now first, then Block Score — optimized for "I need a creator
+    // right now".
+    return [...list].sort(
+      (a, b) =>
+        Number(!!b.person.online) - Number(!!a.person.online) ||
+        b.profile.blockScore - a.profile.blockScore
+    );
+  }, [creators, query, type, genre, location, availability, experience]);
 
   return (
-    <div className="space-y-5">
-      {/* Search */}
-      <div className="relative max-w-2xl">
+    <div className="space-y-4">
+      {/* Search — the primary "find a creator now" tool */}
+      <div className="relative">
         <Search
-          size={16}
-          className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted pointer-events-none"
+          size={17}
+          className="absolute left-4 top-1/2 -translate-y-1/2 text-muted pointer-events-none"
         />
         <input
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="Find creators…"
-          className="w-full h-11 pl-10 pr-3 rounded-xl bg-surface-2 border border-line text-ink text-[14px] placeholder:text-muted/70 focus:outline-none focus:border-accent/50 focus:bg-surface transition-colors"
+          placeholder="Search creators by name, type, or skill…"
+          className="w-full h-12 pl-11 pr-3.5 rounded-2xl bg-white/[0.04] border border-white/10 backdrop-blur-sm text-ink text-[14.5px] placeholder:text-muted/70 focus:outline-none focus:border-accent/50 focus:bg-white/[0.06] transition-colors"
         />
       </div>
 
-      {/* Role filters */}
-      <div className="flex items-center gap-1.5 overflow-x-auto pb-1 -mb-1">
-        {["All", ...CREATOR_ROLES].map((r) => {
-          const active = role === r;
-          return (
-            <button
-              key={r}
-              onClick={() => setRole(r)}
-              className={cn(
-                "shrink-0 h-8 px-3.5 rounded-full text-[12.5px] border transition-all duration-200",
-                active
-                  ? "bg-ink text-bg border-ink font-medium"
-                  : "bg-surface border-line text-muted hover:text-ink hover:border-line-strong"
-              )}
-            >
-              {r}
-            </button>
-          );
-        })}
+      {/* Primary filter row — Creator Type · Location · Genre · Advanced */}
+      <div className="flex items-center gap-1.5 flex-wrap">
+        <FilterSelect
+          label="Creator Type"
+          value={type}
+          options={opts.types}
+          onChange={setType}
+        />
+        <FilterSelect
+          label="Location"
+          value={location}
+          groups={[
+            { label: "Region", options: LOCATION_REGION },
+            { label: "Nearby", options: LOCATION_NEARBY },
+          ]}
+          onChange={setLocation}
+        />
+        <FilterSelect
+          label="Genre"
+          value={genre}
+          options={opts.genres}
+          onChange={setGenre}
+        />
+
+        {/* Advanced filters — Availability + Experience live in the drawer */}
+        <button
+          type="button"
+          onClick={() => setDrawerOpen(true)}
+          className={cn(
+            "shrink-0 inline-flex items-center gap-1.5 h-9 pl-3 pr-3.5 rounded-full text-[12.5px] font-medium border backdrop-blur-sm transition-colors",
+            advancedCount > 0
+              ? "bg-accent/15 border-accent/50 text-accent font-semibold"
+              : "bg-white/[0.04] border-white/10 text-muted hover:text-ink hover:border-white/20"
+          )}
+        >
+          <SlidersHorizontal size={13} /> Filters
+          {advancedCount > 0 && (
+            <span className="inline-flex items-center justify-center min-w-[16px] h-[16px] px-1 rounded-full bg-accent text-white text-[10px] font-semibold tabular-nums">
+              {advancedCount}
+            </span>
+          )}
+        </button>
+
+        {filtersActive && (
+          <button
+            onClick={clearAll}
+            className="shrink-0 h-9 px-3 text-[12px] text-muted hover:text-ink transition-colors"
+          >
+            Clear
+          </button>
+        )}
       </div>
+
+      {/* Idle-only spotlight — small, never blocks active discovery. Once the
+          user searches or filters, the view becomes pure results. */}
+      {featured && !filtersActive && (
+        <FeaturedCreator person={featured.person} profile={featured.profile} />
+      )}
 
       {/* Count */}
       <p className="text-[12px] text-muted">
-        {filtered.length} creator{filtered.length === 1 ? "" : "s"}
-        {role !== "All" ? ` · ${role}` : ""}
+        <span className="text-ink font-semibold">{filtered.length}</span> creator
+        {filtered.length === 1 ? "" : "s"}
+        {filtersActive ? " match your search" : " available"}
       </p>
 
-      {/* Grid */}
+      {/* Grid — the primary focus. More columns = more creators per screen. */}
       {filtered.length === 0 ? (
         <div className="py-16 text-center">
           <p className="text-[14px] text-ink font-medium">No creators found</p>
           <p className="text-[12.5px] text-muted mt-1">
-            Try a different role or search term.
+            {filtersActive
+              ? "Try clearing a filter or adjusting your search."
+              : "Check back soon — new creators are joining."}
           </p>
+          {filtersActive && (
+            <button
+              onClick={clearAll}
+              className="mt-3 inline-flex h-9 px-4 items-center rounded-full bg-white/[0.06] border border-white/12 text-[12.5px] font-medium text-ink hover:bg-white/[0.1] transition-colors"
+            >
+              Clear filters
+            </button>
+          )}
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-          {filtered.map(({ person, profile }) => (
-            <Card key={person.id} hover className="p-6 flex flex-col">
-              {/* Identity */}
-              <div className="flex items-start gap-3.5">
-                <Avatar
-                  src={person.avatar}
-                  name={person.name}
-                  size={56}
-                  online={person.online}
-                />
-                <div className="flex-1 min-w-0">
-                  <Link
-                    href={`/profile/${person.handle}`}
-                    className="text-[16px] font-semibold text-ink tracking-tight hover:text-accent transition-colors"
-                  >
-                    {person.name}
-                  </Link>
-                  <p className="text-[11.5px] text-muted mt-0.5 truncate">
-                    {profile.roles.slice(0, 3).join(" · ")}
-                  </p>
-                  <div className="mt-2">
-                    <BlockScore score={profile.blockScore} size="sm" />
-                  </div>
-                  <p className="mt-1.5 inline-flex items-center gap-1 text-[11.5px] text-muted truncate">
-                    <MapPin size={11} /> {profile.location}
-                  </p>
-                </div>
-              </div>
-
-              {/* Quick bio */}
-              <p className="mt-4 text-[12.5px] text-muted leading-relaxed line-clamp-2 flex-1">
-                {profile.tagline}
-              </p>
-
-              {/* Primary skills */}
-              <div className="mt-3 flex flex-wrap gap-1.5">
-                {profile.skills.slice(0, 3).map((s) => (
-                  <Badge key={s} tone="soft">
-                    {s}
-                  </Badge>
-                ))}
-              </div>
-
-              {/* Actions */}
-              <div className="mt-5 pt-4 border-t border-line flex items-center gap-2">
-                <Link href={`/profile/${person.handle}`} className="flex-1">
-                  <Button variant="outline" size="sm" className="w-full">
-                    View Profile <ArrowUpRight size={12} />
-                  </Button>
-                </Link>
-                <StartBlockButton className="flex-1" />
-              </div>
-            </Card>
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 md:gap-4">
+          {filtered.map(({ person, profile }, i) => (
+            <CreatorCard key={person.id} person={person} profile={profile} index={i} />
           ))}
         </div>
       )}
+
+      {/* Advanced Filters drawer */}
+      {drawerOpen &&
+        typeof document !== "undefined" &&
+        createPortal(
+          <AdvancedDrawer
+            availability={availability}
+            experience={experience}
+            availabilityOptions={opts.availability}
+            experienceOptions={opts.experience}
+            onAvailability={setAvailability}
+            onExperience={setExperience}
+            onClear={() => {
+              setAvailability("All");
+              setExperience("All");
+            }}
+            onClose={() => setDrawerOpen(false)}
+          />,
+          document.body
+        )}
     </div>
+  );
+}
+
+// ── Advanced Filters drawer — bottom sheet on mobile, centered dialog on
+// desktop. Holds the secondary filters (Availability + Experience). ─────────
+function AdvancedDrawer({
+  availability,
+  experience,
+  availabilityOptions,
+  experienceOptions,
+  onAvailability,
+  onExperience,
+  onClear,
+  onClose,
+}: {
+  availability: string;
+  experience: string;
+  availabilityOptions: string[];
+  experienceOptions: string[];
+  onAvailability: (v: string) => void;
+  onExperience: (v: string) => void;
+  onClear: () => void;
+  onClose: () => void;
+}) {
+  const hasAny = availabilityOptions.length > 0 || experienceOptions.length > 0;
+  return (
+    <>
+      <button
+        type="button"
+        aria-label="Close filters"
+        onClick={onClose}
+        className="fixed inset-0 z-[60] bg-black/50 backdrop-blur-[2px]"
+      />
+      <div
+        role="dialog"
+        aria-label="Advanced filters"
+        className="fixed inset-x-0 bottom-0 z-[61] rounded-t-3xl border-t border-white/10 bg-surface p-5 pb-8 animate-fade-up md:inset-x-auto md:bottom-auto md:left-1/2 md:top-1/2 md:w-[420px] md:-translate-x-1/2 md:-translate-y-1/2 md:rounded-3xl md:border"
+      >
+        <div className="flex items-center justify-between">
+          <h3 className="font-display text-lg text-ink tracking-tight">
+            Advanced filters
+          </h3>
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Close"
+            className="h-8 w-8 inline-flex items-center justify-center rounded-lg text-muted hover:text-ink hover:bg-surface-2 transition-colors"
+          >
+            <X size={16} />
+          </button>
+        </div>
+
+        {hasAny ? (
+          <div className="mt-5 space-y-4">
+            {availabilityOptions.length > 0 && (
+              <DrawerField
+                label="Availability"
+                value={availability}
+                options={availabilityOptions}
+                onChange={onAvailability}
+              />
+            )}
+            {experienceOptions.length > 0 && (
+              <DrawerField
+                label="Experience"
+                value={experience}
+                options={experienceOptions}
+                onChange={onExperience}
+              />
+            )}
+          </div>
+        ) : (
+          <p className="mt-5 text-[13px] text-muted">
+            No advanced filters available yet.
+          </p>
+        )}
+
+        <div className="mt-7 flex items-center gap-2">
+          <button
+            type="button"
+            onClick={onClear}
+            className="flex-1 h-11 rounded-xl bg-white/[0.05] border border-white/12 text-[13px] font-medium text-ink hover:bg-white/[0.09] transition-colors"
+          >
+            Clear
+          </button>
+          <button
+            type="button"
+            onClick={onClose}
+            className="flex-1 h-11 rounded-xl bg-accent text-[13px] font-semibold text-white hover:bg-accent/90 transition-colors"
+            style={{ color: "#FFFFFF" }}
+          >
+            Show results
+          </button>
+        </div>
+      </div>
+    </>
+  );
+}
+
+function DrawerField({
+  label,
+  value,
+  options,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  options: string[];
+  onChange: (v: string) => void;
+}) {
+  return (
+    <div>
+      <label className="text-[11px] font-semibold uppercase tracking-[0.1em] text-muted">
+        {label}
+      </label>
+      <div className="relative mt-1.5">
+        <select
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          className="appearance-none w-full h-11 pl-3.5 pr-9 rounded-xl bg-surface-2 border border-line text-ink text-[13.5px] font-medium focus:outline-none focus:border-accent/50 transition-colors"
+        >
+          <option value="All">Any {label.toLowerCase()}</option>
+          {options.map((o) => (
+            <option key={o} value={o}>
+              {o}
+            </option>
+          ))}
+        </select>
+        <ChevronDown
+          size={15}
+          className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-muted"
+        />
+      </div>
+    </div>
+  );
+}
+
+// ── Compact, information-dense creator card ─────────────────────────────────
+// Photo · Name · Creator type · Location · Status badge · Start Block CTA.
+function CreatorCard({
+  person,
+  profile,
+  index,
+}: {
+  person: Person;
+  profile: CreatorProfile;
+  index: number;
+}) {
+  const href = `/profile/${person.handle}`;
+  const { image, mediaIcon } = cardMedia(profile, person);
+  const roles = profile.roles.slice(0, 2).join(" · ");
+
+  // Identity is the creator's pinned Featured Content (or photo) — a full-bleed
+  // background with a dark frosted-glass panel over the lower portion. No avatar
+  // circles, no secondary metadata; just name, role, location, and Start Block.
+  return (
+    <article
+      className="group relative aspect-[4/5] rounded-2xl overflow-hidden glass-tile glass-hover animate-fade-up"
+      style={{ animationDelay: `${Math.min(index, 10) * 30}ms` }}
+    >
+      {/* Full-bleed Featured Content / image */}
+      {image && (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={image}
+          alt=""
+          className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.05]"
+        />
+      )}
+
+      {/* Whole image taps through to the profile (sits beneath the glass panel) */}
+      <Link
+        href={href}
+        aria-label={`View ${person.name}'s profile`}
+        className="absolute inset-0 z-0"
+      />
+
+      {/* Small monochrome media indicator for video / audio Featured Content */}
+      {mediaIcon && (
+        <span className="absolute top-2 right-2 z-10 inline-flex h-7 w-7 items-center justify-center rounded-full bg-black/45 backdrop-blur-sm border border-white/20 text-white">
+          {mediaIcon === "audio" ? (
+            <Headphones size={13} />
+          ) : (
+            <Play size={13} className="fill-current ml-0.5" />
+          )}
+        </span>
+      )}
+
+      {/* Frosted glass overlay across the lower portion */}
+      <div className="absolute inset-x-0 bottom-0 z-10">
+        {/* Soft fade so the glass blends up into the image (no hard edge) */}
+        <div className="pointer-events-none absolute -top-20 inset-x-0 h-20 bg-gradient-to-t from-black/60 to-transparent" />
+
+        <div className="relative bg-black/35 backdrop-blur-md border-t border-white/10 px-3.5 pt-3 pb-3.5">
+          {/* Creator name — the primary visual element */}
+          <Link href={href} className="block">
+            <h3 className="font-display text-[18px] md:text-[21px] text-white leading-[1.1] tracking-tight truncate">
+              {person.name}
+            </h3>
+          </Link>
+
+          {/* Role(s) */}
+          <p className="mt-1 text-[12px] md:text-[12.5px] font-medium text-white/85 truncate">
+            {roles}
+          </p>
+
+          {/* Location — smaller, secondary */}
+          <p className="mt-0.5 flex items-center gap-1 text-[11px] text-white/55 leading-tight min-w-0">
+            <MapPin size={10} className="shrink-0" />
+            <span className="truncate">{profile.location}</span>
+          </p>
+
+          {/* Start Block — the single action */}
+          <button
+            type="button"
+            onClick={() => openBlockRequest(person.handle, person.name)}
+            aria-label={`Start a Block with ${person.name}`}
+            className="mt-3 w-full inline-flex items-center justify-center gap-1.5 h-9 rounded-lg text-[12.5px] font-semibold text-white bg-white/[0.16] border border-white/25 hover:bg-accent hover:border-accent transition-colors"
+            style={{ color: "#FFFFFF" }}
+          >
+            <Plus size={14} /> Start Block
+          </button>
+        </div>
+      </div>
+    </article>
   );
 }

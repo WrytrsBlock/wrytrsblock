@@ -30,7 +30,7 @@ export function BlockTabs({
 
   return (
     <div className="sticky top-0 z-20 glass-strong border-b border-line">
-      <div className="px-6 flex items-center gap-0 overflow-x-auto">
+      <div className="px-5 md:px-6 flex items-center gap-0 overflow-x-auto">
         {tabs.map((t) => {
           const Icon = t.icon;
           const isActive = active === t.id;

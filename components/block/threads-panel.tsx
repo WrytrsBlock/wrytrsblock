@@ -323,7 +323,7 @@ export function ThreadsPanel({ block }: { block: Block }) {
                 </button>
                 <button className="ml-2 inline-flex items-center gap-1 text-[11px] text-muted hover:text-ink transition-colors">
                   <Sparkles size={11} className="text-accent" />
-                  Draft with Blocky
+                  Draft with WiZee
                 </button>
               </div>
               <button

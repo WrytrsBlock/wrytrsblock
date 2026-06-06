@@ -1,13 +1,14 @@
 import { Sidebar } from "@/components/shell/sidebar";
-import { MobileNav } from "@/components/shell/mobile-nav";
+import { BottomTabBar } from "@/components/shell/bottom-tab-bar";
 import { CommandPalette } from "@/components/shell/command-palette";
 import { NewBlockDialog } from "@/components/block/new-block-dialog";
+import { BlockRequestDialog } from "@/components/block/block-request-dialog";
 import { InviteDialog } from "@/components/block/invite-dialog";
 import { ProfileProvider } from "@/components/shell/profile-context";
 import {
   getBlocks,
   getCurrentProfile,
-  getWorkspacesForSwitcher,
+  getUnreadMessageCount,
 } from "@/lib/data";
 import { redirect } from "next/navigation";
 
@@ -19,11 +20,10 @@ export default async function AppLayout({
   const profile = await getCurrentProfile();
   if (!profile) redirect("/sign-in");
 
-  const [workspaces, blocks] = await Promise.all([
-    getWorkspacesForSwitcher(),
+  const [blocks, unreadMessages] = await Promise.all([
     getBlocks(),
+    getUnreadMessageCount(),
   ]);
-  const workspace = workspaces[0];
 
   return (
     <ProfileProvider
@@ -35,13 +35,21 @@ export default async function AppLayout({
       }}
     >
       <div className="flex h-screen bg-bg overflow-hidden">
-        <Sidebar profile={profile} workspaces={workspaces} blocks={blocks} />
-        <MobileNav profile={profile} workspace={workspace} blocks={blocks} />
-        <main className="flex-1 min-w-0 flex flex-col">{children}</main>
+        {/* Desktop: left rail. Mobile: bottom tab bar (rendered in <main>). */}
+        <Sidebar
+          profile={profile}
+          blocks={blocks}
+          unreadMessages={unreadMessages}
+        />
+        <main className="flex-1 min-w-0 flex flex-col">
+          {children}
+          <BottomTabBar profileHref="/profile" />
+        </main>
 
         {/* Global overlays */}
         <CommandPalette blocks={blocks} />
         <NewBlockDialog />
+        <BlockRequestDialog />
         <InviteDialog />
       </div>
     </ProfileProvider>

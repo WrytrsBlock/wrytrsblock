@@ -61,7 +61,7 @@ export function RequestsPanel({ block }: { block: Block }) {
         <EmptyState
           icon={Inbox}
           title="No requests yet"
-          description="When clients request this service from the Marketplace, they'll show up here to accept or decline."
+          description="When clients request this service from the Block Market, they'll show up here to accept or decline."
         />
       ) : (
         <ul className="space-y-2.5">

@@ -75,7 +75,7 @@ export function HirePanel({ block }: { block: Block }) {
           </span>
           <div className="flex-1 min-w-0">
             <p className="text-[13.5px] font-semibold text-ink">
-              Blocky drafted a brief from this Block
+              WiZee drafted a brief from this Block
             </p>
             <p className="text-[11.5px] text-muted mt-0.5">
               Foley artist for Eps. 4–6 · est. 14 days · $4.5k–6k · noir tone,

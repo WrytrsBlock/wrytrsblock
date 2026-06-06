@@ -5,8 +5,15 @@ import { SUPABASE_ANON_KEY, SUPABASE_URL, supabaseConfigured } from "@/lib/env";
 const PUBLIC_PATHS = [
   "/sign-in",
   "/sign-up",
+  // Creator setup must be reachable right after signup even before email
+  // confirmation (no session yet) — it never blocks on auth.
+  "/onboarding",
   "/auth/callback",
   "/auth/sign-out",
+  // Legal pages are public so they can be shared anywhere, signed in or not.
+  "/terms",
+  "/privacy",
+  "/community-guidelines",
 ];
 
 function isPublic(pathname: string) {
@@ -54,7 +61,7 @@ export async function updateSession(request: NextRequest) {
 
   if (user && (pathname === "/sign-in" || pathname === "/sign-up")) {
     const url = request.nextUrl.clone();
-    url.pathname = "/home";
+    url.pathname = "/marketplace";
     return NextResponse.redirect(url);
   }
 

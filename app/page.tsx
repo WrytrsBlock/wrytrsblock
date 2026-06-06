@@ -3,22 +3,23 @@ import { redirect } from "next/navigation";
 import {
   ArrowRight,
   Boxes,
+  ChevronDown,
   Clapperboard,
-  Film,
-  Image as ImageIcon,
   Layers,
   MessagesSquare,
   Music,
+  PieChart,
   Radio,
   ShoppingBag,
-  Sparkles,
+  Star,
   Users,
+  Wallet,
   Zap,
 } from "lucide-react";
 import { Wordmark } from "@/components/marketing/wordmark";
-import { AppPreview } from "@/components/marketing/app-preview";
+import { CreatorWall } from "@/components/marketing/creator-wall";
+import { CreativeCollage } from "@/components/marketing/creative-collage";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
-import { Badge } from "@/components/ui/primitives";
 import { supabaseConfigured } from "@/lib/env";
 import { getCurrentProfile } from "@/lib/data";
 
@@ -26,49 +27,49 @@ export const dynamic = "force-dynamic";
 
 const features = [
   {
+    icon: ShoppingBag,
+    title: "Block Market",
+    body: "Discover creators across every craft — producers, writers, engineers, designers, and more — and start a Block with anyone.",
+  },
+  {
     icon: Layers,
-    title: "Blocks",
-    body: "One container per creative work — film, album, audio drama. Brief, board, files, threads, and team in a single room.",
+    title: "Start a Block",
+    body: "A Block is a creative collaboration you own. Spin one up, bring people in, and make the work together.",
   },
   {
     icon: MessagesSquare,
-    title: "Threads",
-    body: "Channels and DMs scoped to each Block. Real-time, with presence so you see who's editing what, right now.",
+    title: "Block Party",
+    body: "Create in real time — drop in, listen together, and move a Block forward without leaving the room.",
   },
   {
-    icon: ImageIcon,
-    title: "Media library",
-    body: "Drop stems, cuts, stills, and scripts. Auto-tagged, versioned, transcribed, and searchable across every Block.",
+    icon: PieChart,
+    title: "Split Sheet",
+    body: "Decide who owns what up front. Every Block carries its splits, so credit and pay stay clear.",
   },
   {
-    icon: ShoppingBag,
-    title: "Marketplace",
-    body: "Hire vetted collaborators — or get hired. Briefs drafted from your Block, paid by milestone with escrow.",
+    icon: Wallet,
+    title: "Monetize a Block",
+    body: "Sell it, gate it, or take tips. Set a price on any Block and get paid through Stripe or PayPal.",
   },
   {
-    icon: Zap,
-    title: "Built for real time",
-    body: "Live presence, streaming messages, and optimistic edits. Collaboration that feels like you're in the same studio.",
-  },
-  {
-    icon: Sparkles,
-    title: "Blocky, your sidekick",
-    body: "Summaries, drafts, and briefs from the context of your work — never a blank page.",
+    icon: Star,
+    title: "Block Score",
+    body: "Reputation you earn by completing Blocks — the trust signal that gets you discovered.",
   },
 ];
 
 const audiences = [
-  { icon: Radio, label: "Audio drama", note: "Serials, podcasts, fiction" },
-  { icon: Film, label: "Film & video", note: "Shorts, docs, series" },
-  { icon: Music, label: "Music", note: "Albums, scores, sound" },
-  { icon: Clapperboard, label: "Media production", note: "Editorial, studios" },
+  { icon: Music, label: "Producers", note: "Beats & production" },
+  { icon: Radio, label: "Vocalists & writers", note: "Toplines & lyrics" },
+  { icon: Zap, label: "Engineers", note: "Mixing & mastering" },
+  { icon: Clapperboard, label: "Artists & filmmakers", note: "Visuals & video" },
 ];
 
 export default async function LandingPage() {
   // Signed-in users skip the marketing page.
   if (supabaseConfigured) {
     const profile = await getCurrentProfile();
-    if (profile) redirect("/home");
+    if (profile) redirect("/marketplace");
   }
 
   return (
@@ -79,82 +80,110 @@ export default async function LandingPage() {
         <div className="absolute inset-x-0 top-0 h-[60vh] bg-grad-fade-b opacity-40" />
       </div>
 
-      {/* Nav */}
-      <header className="sticky top-0 z-40 glass border-b border-line">
-        <div className="max-w-[1180px] mx-auto px-6 h-14 flex items-center justify-between">
-          <Wordmark />
-          <nav className="hidden md:flex items-center gap-6 text-[13px] text-muted">
-            <a href="#features" className="hover:text-ink transition-colors">
-              Features
-            </a>
-            <a href="#concept" className="hover:text-ink transition-colors">
-              The Block
-            </a>
-            <a href="#who" className="hover:text-ink transition-colors">
-              Who it's for
-            </a>
-          </nav>
-          <div className="flex items-center gap-2">
-            <ThemeToggle />
-            <Link
-              href="/sign-in"
-              className="hidden sm:inline-flex items-center h-8 px-3 rounded-lg text-[12.5px] text-ink hover:bg-surface-2 transition-colors"
-            >
-              Sign in
-            </Link>
+      {/* HERO — a full-screen creative world */}
+      <section className="relative min-h-screen flex flex-col overflow-hidden">
+        {/* Living, multi-discipline creator collage behind everything */}
+        <CreativeCollage columns={5} />
+        {/* Depth + legibility scrims (fades to bg at the bottom for scroll) */}
+        <div className="absolute inset-0 bg-black/45" />
+        <div className="absolute inset-0 bg-gradient-to-b from-bg/40 via-transparent to-bg" />
+        <div className="absolute inset-0 bg-grad-mesh opacity-25" />
+
+        {/* Nav — floats over the hero */}
+        <header className="relative z-30">
+          <div className="max-w-[1180px] mx-auto px-6 h-16 flex items-center justify-between">
+            <Wordmark variant="horizontal" />
+            <nav className="hidden md:flex items-center gap-6 text-[13px] text-white/70">
+              <a href="#creators" className="hover:text-white transition-colors">
+                Creators
+              </a>
+              <a href="#concept" className="hover:text-white transition-colors">
+                The Block
+              </a>
+              <a href="#features" className="hover:text-white transition-colors">
+                Features
+              </a>
+            </nav>
+            <div className="flex items-center gap-2">
+              <ThemeToggle />
+              <Link
+                href="/sign-in"
+                className="hidden sm:inline-flex items-center h-8 px-3 rounded-lg text-[12.5px] text-white/90 hover:bg-white/10 transition-colors"
+              >
+                Sign in
+              </Link>
+              <Link
+                href="/sign-up"
+                className="inline-flex items-center gap-1.5 h-8 px-3.5 rounded-lg bg-white text-black text-[12.5px] font-semibold hover:bg-white/90 transition-colors shadow-soft"
+              >
+                Get started <ArrowRight size={13} />
+              </Link>
+            </div>
+          </div>
+        </header>
+
+        {/* Brand — large, centered, on top of the collage */}
+        <div className="relative z-20 flex-1 flex flex-col items-center justify-center text-center px-6 pb-12">
+          {/* Official WrytrsBlock logo — the primary hero element, as designed */}
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/brand/wrytrsblock-white.svg"
+            alt="WrytrsBlock — The CR8TV Collectv"
+            draggable={false}
+            className="w-[168px] md:w-[248px] h-auto drop-shadow-[0_10px_44px_rgba(0,0,0,0.6)]"
+          />
+          <p className="mt-5 text-[15px] md:text-[18px] text-white/85 max-w-xl leading-relaxed">
+            Where creators discover each other, collaborate on{" "}
+            <strong className="text-white font-semibold">Blocks</strong>, and get
+            paid for the work they make together.
+          </p>
+          <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
             <Link
               href="/sign-up"
-              className="inline-flex items-center gap-1.5 h-8 px-3.5 rounded-lg bg-ink text-bg text-[12.5px] font-medium hover:bg-ink/90 transition-colors shadow-soft"
+              className="inline-flex items-center gap-2 h-12 px-6 rounded-xl bg-grad-accent text-white text-[15px] font-semibold shadow-glow hover:opacity-95 transition-opacity"
             >
-              Get started <ArrowRight size={13} />
+              Join the Collectv <ArrowRight size={16} />
+            </Link>
+            <Link
+              href="/marketplace"
+              className="inline-flex items-center gap-2 h-12 px-6 rounded-xl border border-white/30 bg-white/5 backdrop-blur-sm text-white text-[15px] font-medium hover:bg-white/10 transition-colors"
+            >
+              Explore the Block Market
             </Link>
           </div>
         </div>
-      </header>
 
-      {/* Hero */}
-      <section className="max-w-[1180px] mx-auto px-6 pt-16 pb-10 md:pt-24 md:pb-16">
-        <div className="max-w-3xl">
-          <Badge tone="soft" className="!h-6 !px-2.5">
-            <Sparkles size={11} className="text-accent" /> A creative
-            collaboration OS
-          </Badge>
-          <h1 className="mt-5 font-display text-5xl md:text-6xl tracking-tighter leading-[1.02]">
-            The studio you wish
-            <br />
-            you <span className="text-gradient-accent">worked at</span>.
-          </h1>
-          <p className="mt-5 text-[15px] md:text-[16px] text-muted leading-relaxed max-w-xl">
-            WrytrsBlock is where music, film, and media get made together.
-            Organize every project into a <strong className="text-ink font-medium">Block</strong>,
-            collaborate in real time, hire the right people, and keep every
-            file in one cinematic workspace.
-          </p>
-          <div className="mt-7 flex flex-wrap items-center gap-3">
-            <Link
-              href="/sign-up"
-              className="inline-flex items-center gap-2 h-11 px-5 rounded-xl bg-grad-accent text-bg text-[14px] font-medium shadow-glow hover:opacity-95 transition-opacity"
-            >
-              Start free <ArrowRight size={15} />
-            </Link>
-            <Link
-              href="/home"
-              className="inline-flex items-center gap-2 h-11 px-5 rounded-xl border border-line text-[14px] font-medium hover:bg-surface-2 hover:border-line-strong transition-all"
-            >
-              Explore the demo
-            </Link>
+        {/* Scroll cue */}
+        <div className="relative z-20 pb-8 flex flex-col items-center gap-1.5">
+          <span className="text-[10.5px] uppercase tracking-[0.2em] text-white/50">
+            Scroll to explore
+          </span>
+          <ChevronDown size={18} className="text-white/60 animate-bounce" />
+        </div>
+      </section>
+
+      {/* Creators — the wall, revealed after the hero */}
+      <section
+        id="creators"
+        className="max-w-[1180px] mx-auto px-6 py-16 md:py-24"
+      >
+        <div className="mb-6 flex items-end justify-between gap-4">
+          <div>
+            <p className="text-[10.5px] uppercase tracking-[0.18em] text-muted font-semibold">
+              The CR8TV Collectv
+            </p>
+            <h2 className="mt-2 font-display text-4xl md:text-5xl tracking-tight">
+              Meet the creators.
+            </h2>
           </div>
-          <p className="mt-3 text-[11.5px] text-muted">
-            No credit card. Dark mode by default — because that's where the work
-            happens.
-          </p>
+          <Link
+            href="/marketplace"
+            className="shrink-0 text-[12.5px] text-accent hover:text-accent-2 transition-colors inline-flex items-center gap-1"
+          >
+            Explore the Block Market <ArrowRight size={13} />
+          </Link>
         </div>
-
-        {/* App preview */}
-        <div className="mt-14 relative">
-          <div className="absolute -inset-x-8 -top-8 bottom-0 bg-grad-mesh opacity-40 blur-2xl -z-10" />
-          <AppPreview />
-        </div>
+        <CreatorWall />
       </section>
 
       {/* Concept */}
@@ -171,16 +200,16 @@ export default async function LandingPage() {
               Everything you make is a Block.
             </h2>
             <p className="mt-4 text-[14.5px] text-muted leading-relaxed">
-              Not folders. Not a dozen disconnected apps. A Block is a living
-              container for one creative work — its brief, its board, its
-              files, its conversations, and the people making it.
+              A Block is a creative collaboration you own — a song, a beat, a
+              project, an open call. Bring in collaborators, agree the splits,
+              and turn it into something you can sell.
             </p>
             <ul className="mt-6 space-y-3">
               {[
-                "Plan with a board that moves from brief to shipped",
-                "Keep media, docs, and versions where the work lives",
-                "Talk in threads scoped to the project, not your whole life",
-                "Invite collaborators with the right level of access",
+                "Discover collaborators in the Block Market and start a Block together",
+                "Agree who owns what with a Split Sheet built into every Block",
+                "Monetize a Block — sell it, gate it, or take tips",
+                "Build your Block Score and get discovered as you complete work",
               ].map((line) => (
                 <li key={line} className="flex items-start gap-2.5 text-[13.5px]">
                   <span className="mt-1 h-1.5 w-1.5 rounded-full bg-accent shrink-0" />
@@ -191,7 +220,7 @@ export default async function LandingPage() {
           </div>
           <div className="relative">
             <div className="absolute inset-0 bg-grad-mesh opacity-40 blur-xl -z-10" />
-            <AppPreview />
+            <CreatorWall />
           </div>
         </div>
       </section>
@@ -203,10 +232,10 @@ export default async function LandingPage() {
       >
         <div className="max-w-2xl">
           <div className="inline-flex items-center gap-2 text-[10.5px] uppercase tracking-[0.18em] text-muted">
-            Everything in one room
+            Built on Blocks
           </div>
           <h2 className="mt-4 font-display text-4xl tracking-tighter leading-tight">
-            A workspace tuned for serious creative work.
+            From discovery to payout — all on Blocks.
           </h2>
         </div>
         <div className="mt-10 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
@@ -266,18 +295,18 @@ export default async function LandingPage() {
         <div className="text-center max-w-2xl mx-auto">
           <Users size={22} className="text-accent mx-auto" strokeWidth={1.5} />
           <h2 className="mt-5 font-display text-4xl md:text-5xl tracking-tighter leading-[1.05]">
-            Build your first Block today.
+            Start your first Block today.
           </h2>
           <p className="mt-4 text-[14.5px] text-muted leading-relaxed">
-            Free to start. Bring your team, your files, and your next project
-            into one place.
+            Join THE CR8TV COLLECTV — discover creators, start a Block, and get
+            paid for what you make together.
           </p>
           <div className="mt-7 flex items-center justify-center gap-3">
             <Link
               href="/sign-up"
-              className="inline-flex items-center gap-2 h-11 px-6 rounded-xl bg-grad-accent text-bg text-[14px] font-medium shadow-glow hover:opacity-95 transition-opacity"
+              className="inline-flex items-center gap-2 h-11 px-6 rounded-xl bg-grad-accent text-white text-[14px] font-medium shadow-glow hover:opacity-95 transition-opacity"
             >
-              Get started <ArrowRight size={15} />
+              Join the Collectv <ArrowRight size={15} />
             </Link>
             <Link
               href="/sign-in"
@@ -292,10 +321,9 @@ export default async function LandingPage() {
       {/* Footer */}
       <footer className="border-t border-line">
         <div className="max-w-[1180px] mx-auto px-6 py-10 flex flex-col md:flex-row items-center justify-between gap-4">
-          <Wordmark />
+          <Wordmark variant="horizontal" />
           <p className="text-[11.5px] text-muted">
-            © {new Date().getFullYear()} WrytrsBlock. A creative collaboration
-            OS.
+            © {new Date().getFullYear()} WrytrsBlock — THE CR8TV COLLECTV.
           </p>
           <div className="flex items-center gap-5 text-[12px] text-muted">
             <a href="#features" className="hover:text-ink transition-colors">

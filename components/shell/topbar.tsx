@@ -1,12 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { ChevronRight, Plus, Search, Sparkles } from "lucide-react";
-import { Avatar, Button, Kbd } from "@/components/ui/primitives";
+import { ChevronRight, MessageSquare, Search } from "lucide-react";
+import { Avatar, Kbd } from "@/components/ui/primitives";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { NotificationsMenu } from "./notifications-menu";
 import { useCurrentProfile } from "./profile-context";
-import { openCommandPalette, openNewBlock } from "@/lib/ui-events";
+import { openCommandPalette } from "@/lib/ui-events";
 
 export function TopBar({
   crumbs,
@@ -17,7 +17,7 @@ export function TopBar({
 }) {
   const me = useCurrentProfile();
   return (
-    <header className="h-12 shrink-0 glass-strong border-b border-line flex items-center gap-2 pl-14 pr-3 md:px-5 z-30">
+    <header className="h-12 shrink-0 glass-strong border-b border-line flex items-center gap-2 px-4 md:px-5 z-30">
       {/* Breadcrumbs */}
       <nav className="flex items-center gap-1 text-[12px] min-w-0">
         {crumbs.map((c, i) => (
@@ -50,23 +50,19 @@ export function TopBar({
         className="hidden md:flex items-center gap-2 h-7 px-2.5 rounded-md bg-surface-2 border border-line text-muted hover:text-ink hover:border-line-strong transition-all duration-200"
       >
         <Search size={12} strokeWidth={1.75} />
-        <span className="text-[11.5px]">Search everything</span>
+        <span className="text-[11.5px]">Search creators…</span>
         <Kbd>⌘K</Kbd>
       </button>
 
-      {/* AI */}
-      <button className="hidden md:inline-flex items-center gap-1.5 h-7 px-2.5 rounded-md text-muted hover:text-ink transition-colors text-[11.5px]">
-        <Sparkles size={12} className="text-accent" strokeWidth={2} />
-        Ask Blocky
-        <Kbd>⌘J</Kbd>
-      </button>
-
-      <Button variant="primary" size="sm" onClick={() => openNewBlock()}>
-        <Plus size={12} />
-        New
-      </Button>
-
-      <div className="h-5 w-px bg-line mx-1" />
+      {/* Secondary: Messages (always reachable) */}
+      <Link
+        href="/messages"
+        aria-label="Messages"
+        title="Messages"
+        className="inline-flex items-center justify-center h-8 w-8 rounded-lg text-ink hover:bg-surface-2 transition-colors"
+      >
+        <MessageSquare size={15} strokeWidth={1.75} />
+      </Link>
 
       <NotificationsMenu />
 
@@ -75,7 +71,7 @@ export function TopBar({
       {/* My Profile — one click from anywhere */}
       {me && (
         <Link
-          href={`/profile/${me.handle}`}
+          href="/profile"
           title="My Profile"
           aria-label="My Profile"
           className="ml-1 rounded-full hover:ring-2 hover:ring-accent/40 transition-shadow"

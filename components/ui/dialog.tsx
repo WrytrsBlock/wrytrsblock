@@ -45,9 +45,9 @@ export function Dialog({
   };
 
   return (
-    <div className="fixed inset-0 z-[65] flex items-start justify-center pt-[12vh] px-4">
+    <div className="fixed inset-0 z-[65] flex items-end justify-center sm:items-start sm:pt-[12vh] px-0 sm:px-4">
       <div
-        className="absolute inset-0 bg-bg/70 backdrop-blur-sm animate-fade-in"
+        className="absolute inset-0 bg-bg/60 backdrop-blur-md animate-fade-in"
         onClick={onClose}
       />
       <div
@@ -55,15 +55,21 @@ export function Dialog({
         aria-modal="true"
         aria-label={title}
         className={cn(
-          "relative w-full rounded-2xl border border-line-strong bg-surface shadow-pop overflow-hidden animate-fade-up",
+          // Mobile: bottom sheet (full width, rounded top, grabber). Desktop: centered modal.
+          "glass-overlay relative w-full flex flex-col max-h-[92vh] sm:max-h-[80vh] overflow-hidden animate-fade-up rounded-t-2xl sm:rounded-2xl pb-[env(safe-area-inset-bottom)] sm:pb-0",
           widths[size]
         )}
       >
+        {/* Mobile grabber */}
+        <div className="sm:hidden flex justify-center pt-2.5 pb-1 shrink-0">
+          <span className="h-1 w-9 rounded-full bg-line-strong" />
+        </div>
+
         {(title || description) && (
-          <div className="flex items-start justify-between gap-4 px-6 pt-5 pb-4 border-b border-line">
+          <div className="flex items-start justify-between gap-4 px-5 sm:px-6 pt-4 sm:pt-5 pb-4 border-b border-line shrink-0">
             <div>
               {title && (
-                <h2 className="font-display text-2xl text-ink tracking-tight">
+                <h2 className="font-display text-xl sm:text-2xl text-ink tracking-tight">
                   {title}
                 </h2>
               )}
@@ -83,10 +89,10 @@ export function Dialog({
           </div>
         )}
 
-        <div className="px-6 py-5">{children}</div>
+        <div className="px-5 sm:px-6 py-5 overflow-y-auto flex-1">{children}</div>
 
         {footer && (
-          <div className="px-6 py-4 border-t border-line bg-surface-2/40 flex items-center justify-end gap-2">
+          <div className="px-5 sm:px-6 py-4 border-t border-line bg-surface-2/40 flex items-center justify-end gap-2 shrink-0">
             {footer}
           </div>
         )}

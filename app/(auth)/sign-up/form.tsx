@@ -12,6 +12,7 @@ export function SignUpForm() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
@@ -20,10 +21,21 @@ export function SignUpForm() {
     e.preventDefault();
     setError(null);
     setNotice(null);
+
+    // Validate the passwords match before we ever call Supabase.
+    if (password !== confirmPassword) {
+      setError("Passwords don't match.");
+      return;
+    }
+
     setLoading(true);
 
+    // New creators go straight into the guided onboarding to build their
+    // profile (the name carries over to step 1).
+    const onboardingPath = `/onboarding?name=${encodeURIComponent(name)}`;
+
     if (!supabaseConfigured) {
-      router.push("/home");
+      router.push(onboardingPath);
       return;
     }
 
@@ -33,23 +45,34 @@ export function SignUpForm() {
       password,
       options: {
         data: { display_name: name },
-        emailRedirectTo: `${window.location.origin}/auth/callback?next=/home`,
+        emailRedirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(
+          onboardingPath
+        )}`,
       },
     });
 
     if (error) {
-      setError(error.message);
+      const alreadyExists =
+        /already.*regist|already.*exist|registered/i.test(error.message);
+      setError(
+        alreadyExists
+          ? "Account already exists. Please sign in to continue your creator setup."
+          : error.message
+      );
       setLoading(false);
       return;
     }
 
+    // Account created — go straight to creator onboarding either way. If email
+    // confirmation is pending (no session yet), pass ?confirm=1 so onboarding
+    // shows a non-blocking "check your email" banner. Confirmation continues in
+    // the background and never blocks setup.
     if (data.session) {
-      router.push("/home");
-      router.refresh();
+      router.push(onboardingPath);
     } else {
-      setNotice("Almost there — check your inbox to confirm your email.");
-      setLoading(false);
+      router.push(`${onboardingPath}&confirm=1`);
     }
+    router.refresh();
   }
 
   return (
@@ -92,6 +115,25 @@ export function SignUpForm() {
           value={password}
           onChange={(e) => setPassword(e.target.value)}
         />
+      </div>
+
+      <div>
+        <Label htmlFor="confirm-password">Confirm password</Label>
+        <Input
+          id="confirm-password"
+          type="password"
+          autoComplete="new-password"
+          placeholder="Re-enter your password"
+          required
+          minLength={8}
+          value={confirmPassword}
+          onChange={(e) => setConfirmPassword(e.target.value)}
+        />
+        {confirmPassword.length > 0 && password !== confirmPassword && (
+          <p className="mt-1.5 text-[11px] text-warning">
+            Passwords don&apos;t match.
+          </p>
+        )}
       </div>
 
       {error && (

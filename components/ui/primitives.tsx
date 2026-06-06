@@ -14,10 +14,13 @@ export function Button({
   const base =
     "inline-flex items-center justify-center gap-1.5 font-medium rounded-lg transition-colors duration-200 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/50 focus-visible:ring-offset-2 focus-visible:ring-offset-bg disabled:opacity-50 disabled:pointer-events-none whitespace-nowrap select-none";
   const variants: Record<string, string> = {
+    // Primary = royal-blue brand CTA (Figma), white text.
     primary:
-      "bg-ink text-bg hover:bg-ink/92 shadow-soft border border-ink",
+      "bg-grad-accent text-white shadow-glow border border-accent/40 hover:opacity-95 hover:shadow-elevated",
     accent:
-      "bg-grad-accent text-bg shadow-glow border border-accent/40 hover:shadow-elevated",
+      "bg-grad-accent text-white shadow-glow border border-accent/40 hover:shadow-elevated",
+    // Neutral high-contrast button (formerly primary).
+    ink: "bg-ink text-bg hover:bg-ink/92 shadow-soft border border-ink",
     secondary:
       "bg-surface-2 text-ink hover:bg-surface-3 border border-line",
     ghost: "text-ink hover:bg-surface-2 border border-transparent",

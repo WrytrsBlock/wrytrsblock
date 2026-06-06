@@ -10,7 +10,7 @@ import { supabaseConfigured } from "@/lib/env";
 export function SignInForm() {
   const router = useRouter();
   const params = useSearchParams();
-  const next = params.get("next") || "/home";
+  const next = params.get("next") || "/marketplace";
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -46,7 +46,7 @@ export function SignInForm() {
       return;
     }
 
-    const { error } = await supabase.auth.signInWithPassword({
+    const { data: authData, error } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
@@ -56,7 +56,24 @@ export function SignInForm() {
       return;
     }
 
-    router.push(next);
+    // If onboarding isn't complete (no creator_profiles row yet), send them to
+    // finish setup instead of the requested destination.
+    let dest = next;
+    try {
+      const uid = authData.user?.id;
+      if (uid) {
+        const { data: cp } = await supabase
+          .from("creator_profiles")
+          .select("handle")
+          .eq("id", uid)
+          .maybeSingle();
+        if (!cp?.handle) dest = "/onboarding";
+      }
+    } catch {
+      /* ignore — fall back to next */
+    }
+
+    router.push(dest);
     router.refresh();
   }
 
