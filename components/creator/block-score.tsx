@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { ChevronDown, Sparkles, Star, TrendingUp } from "lucide-react";
-import { Badge, Card, Progress, SectionLabel } from "@/components/ui/primitives";
+import { Badge, Progress, SectionLabel } from "@/components/ui/primitives";
 import { cn } from "@/lib/cn";
 import {
   levelForScore,
@@ -70,7 +70,7 @@ export function BlockScoreCard({
   const level = levelForScore(score);
 
   return (
-    <Card className="p-6">
+    <div className="glass-card glass-glow rounded-2xl p-6">
       {/* Header — label + rank */}
       <div className="flex items-center justify-between">
         <SectionLabel className="flex items-center gap-1.5">
@@ -100,7 +100,7 @@ export function BlockScoreCard({
         // Established creators: score + rank + progress bar.
         <>
           <div className="mt-3 flex items-end gap-1.5">
-            <span className="font-display text-5xl text-ink tracking-tight leading-none tabular-nums">
+            <span className="font-display text-6xl text-ink tracking-tight leading-none tabular-nums">
               {score}
             </span>
             <span className="text-[11px] text-muted mb-1.5">
@@ -126,7 +126,7 @@ export function BlockScoreCard({
       </button>
 
       {open && (
-        <div className="mt-3 pt-4 border-t border-line animate-fade-up">
+        <div className="mt-3 pt-4 border-t border-white/[0.08] animate-fade-up">
           <ul className="space-y-2">
             {factors.map((f) => (
               <li key={f.label} className="flex items-center gap-3">
@@ -145,6 +145,6 @@ export function BlockScoreCard({
           </p>
         </div>
       )}
-    </Card>
+    </div>
   );
 }
