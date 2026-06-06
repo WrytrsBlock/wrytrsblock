@@ -563,17 +563,17 @@ function CreatorCard({
       {/* Frosted glass gradient band across the lower portion — a translucent
           gradient (lighter at top → frosted-dark at bottom) with a subtle top
           highlight, like a premium artist card. */}
-      <div className="absolute inset-x-0 bottom-0 z-10 bg-gradient-to-t from-black/[0.52] via-black/[0.32] to-black/[0.12] backdrop-blur-md border-t border-white/15 shadow-[inset_0_1px_0_rgb(255_255_255/0.12)]">
-        <div className="relative px-3.5 pt-3.5 pb-3.5">
+      <div className="absolute inset-x-0 bottom-0 z-10 bg-gradient-to-t from-black/65 via-black/40 to-black/15 backdrop-blur-md border-t border-white/15 shadow-[inset_0_1px_0_rgb(255_255_255/0.12)]">
+        <div className="relative px-3.5 pt-2 pb-2.5">
           {/* Creator name — the primary visual element */}
           <Link href={href} className="block">
-            <h3 className="font-display text-[18px] md:text-[21px] text-white leading-[1.1] tracking-tight truncate">
+            <h3 className="font-display text-[18px] md:text-[21px] text-white leading-none tracking-tight truncate">
               {person.name}
             </h3>
           </Link>
 
           {/* Role(s) */}
-          <p className="mt-1 text-[12px] md:text-[12.5px] font-medium text-white/85 truncate">
+          <p className="mt-0.5 text-[12px] md:text-[12.5px] font-medium text-white/85 truncate">
             {roles}
           </p>
 
@@ -588,7 +588,7 @@ function CreatorCard({
             type="button"
             onClick={() => openBlockRequest(person.handle, person.name)}
             aria-label={`Start a Block with ${person.name}`}
-            className="mt-3 w-full inline-flex items-center justify-center gap-1.5 h-9 rounded-lg text-[12.5px] font-semibold text-white bg-white/[0.16] border border-white/25 hover:bg-accent hover:border-accent transition-colors"
+            className="mt-2 w-full inline-flex items-center justify-center gap-1.5 h-8 rounded-lg text-[12.5px] font-semibold text-white bg-white/[0.16] border border-white/25 hover:bg-accent hover:border-accent transition-colors"
             style={{ color: "#FFFFFF" }}
           >
             <Plus size={14} /> Start Block
