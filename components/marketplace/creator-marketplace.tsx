@@ -560,12 +560,11 @@ function CreatorCard({
         </span>
       )}
 
-      {/* Frosted glass overlay across the lower portion */}
-      <div className="absolute inset-x-0 bottom-0 z-10">
-        {/* Soft fade so the glass blends up into the image (no hard edge) */}
-        <div className="pointer-events-none absolute -top-20 inset-x-0 h-20 bg-gradient-to-t from-black/60 to-transparent" />
-
-        <div className="relative bg-black/35 backdrop-blur-md border-t border-white/10 px-3.5 pt-3 pb-3.5">
+      {/* Frosted glass gradient band across the lower portion — a translucent
+          gradient (lighter at top → frosted-dark at bottom) with a subtle top
+          highlight, like a premium artist card. */}
+      <div className="absolute inset-x-0 bottom-0 z-10 bg-gradient-to-t from-black/65 via-black/40 to-black/15 backdrop-blur-md border-t border-white/15 shadow-[inset_0_1px_0_rgb(255_255_255/0.12)]">
+        <div className="relative px-3.5 pt-3.5 pb-3.5">
           {/* Creator name — the primary visual element */}
           <Link href={href} className="block">
             <h3 className="font-display text-[18px] md:text-[21px] text-white leading-[1.1] tracking-tight truncate">
