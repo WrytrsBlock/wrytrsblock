@@ -10,7 +10,7 @@ import {
   Pencil,
 } from "lucide-react";
 import { TopBar } from "@/components/shell/topbar";
-import { Avatar, Badge, Button, Progress } from "@/components/ui/primitives";
+import { Badge, Button, Progress } from "@/components/ui/primitives";
 import { StartBlockButton } from "@/components/block/start-block-button";
 import { BlockScoreCard } from "@/components/creator/block-score";
 import { FeaturedContent } from "@/components/creator/featured-content";
@@ -57,7 +57,13 @@ export default async function ProfilePage({
   const { person, profile } = data;
   const activeBlocks = blocksForPerson(person.id);
   const tracks = tracksForCreator(profile);
-  const bannerImg = profile.banner ?? profile.portfolio[0];
+  // Image-first hero: the creator's cover, then a portfolio image, then a real
+  // uploaded profile photo. Never the generated dicebear avatar (it looks wrong
+  // full-bleed) — fall back to a gradient instead.
+  const heroImage =
+    profile.banner ??
+    profile.portfolio[0] ??
+    (person.avatar.includes("dicebear") ? undefined : person.avatar);
 
   const me = await getCurrentProfile();
   const isMe = me?.handle === person.handle;
@@ -106,14 +112,16 @@ export default async function ProfilePage({
         ]}
       />
       <div className="flex-1 overflow-y-auto">
-        {/* ── Creator hero — full-width cover + frosted-glass identity overlay ── */}
+        {/* ── Creator hero — image-first: the creator's cover/portfolio image
+            fills the section; a frosted-glass overlay across the lower ~35%
+            holds the identity. No avatar circle — the image is the hero. ── */}
         <section className="relative w-full">
-          <div className="relative h-[360px] sm:h-[440px] md:h-[500px] w-full overflow-hidden">
-            {bannerImg ? (
+          <div className="relative h-[420px] sm:h-[520px] md:h-[600px] w-full overflow-hidden">
+            {heroImage ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img
-                src={bannerImg}
-                alt=""
+                src={heroImage}
+                alt={person.name}
                 className="absolute inset-0 h-full w-full object-cover"
               />
             ) : (
@@ -122,31 +130,21 @@ export default async function ProfilePage({
             {/* Top scrim so the breadcrumb stays legible */}
             <div className="absolute inset-0 bg-gradient-to-b from-black/35 via-transparent to-transparent" />
 
-            {/* Frosted glass identity overlay — same language as the cards */}
-            <div className="absolute inset-x-0 bottom-0 z-10 bg-gradient-to-t from-black/80 via-black/50 to-black/10 backdrop-blur-md border-t border-white/15 shadow-[inset_0_1px_0_rgb(255_255_255/0.14)]">
-              <div className="mx-auto max-w-[1100px] px-5 md:px-8 py-5 md:py-7">
+            {/* Frosted glass overlay — lower portion, same language as the cards */}
+            <div className="absolute inset-x-0 bottom-0 z-10 bg-gradient-to-t from-black/85 via-black/50 to-black/5 backdrop-blur-md border-t border-white/15 shadow-[inset_0_1px_0_rgb(255_255_255/0.14)]">
+              <div className="mx-auto max-w-[1100px] px-5 md:px-8 py-6 md:py-8">
                 <div className="flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
                   {/* Identity */}
                   <div className="min-w-0">
-                    <div className="flex items-center gap-3.5">
-                      <Avatar
-                        src={person.avatar}
-                        name={person.name}
-                        size={76}
-                        online={person.online}
-                        className="shrink-0 border-2 border-white/30 shadow-glow"
-                      />
-                      <div className="min-w-0">
-                        <h1 className="font-display text-[28px] sm:text-[38px] md:text-[44px] text-white leading-[1.0] tracking-tight truncate">
-                          {person.name}
-                        </h1>
-                        <p className="mt-0.5 text-[12.5px] text-white/60">
-                          @{person.handle}
-                        </p>
-                      </div>
-                    </div>
+                    <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-white/60">
+                      @{person.handle}
+                    </p>
+                    {/* Creator name — large and premium; the hero of the page */}
+                    <h1 className="mt-1.5 font-display text-[40px] sm:text-[56px] md:text-[68px] text-white leading-[0.95] tracking-tight">
+                      {person.name}
+                    </h1>
 
-                    {/* Role · location · availability */}
+                    {/* Creator type · location · availability */}
                     <div className="mt-3.5 flex flex-wrap items-center gap-2">
                       {profile.roles.map((r) => (
                         <span
@@ -156,7 +154,7 @@ export default async function ProfilePage({
                           {r}
                         </span>
                       ))}
-                      <span className="inline-flex items-center gap-1 text-[12.5px] text-white/70">
+                      <span className="inline-flex items-center gap-1 text-[12.5px] text-white/75">
                         <MapPin size={13} className="shrink-0" />
                         {profile.location}
                       </span>
@@ -171,7 +169,7 @@ export default async function ProfilePage({
                       ))}
                     </div>
 
-                    {/* Bio */}
+                    {/* Short bio */}
                     {(profile.bio || profile.tagline) && (
                       <p className="mt-3 text-[13px] md:text-[13.5px] text-white/75 leading-relaxed max-w-2xl line-clamp-2">
                         {profile.bio || profile.tagline}
