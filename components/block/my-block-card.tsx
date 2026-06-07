@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { CalendarClock, Star, Users } from "lucide-react";
 import { cn } from "@/lib/cn";
+import { BlockCover } from "@/components/block/block-cover";
 import {
   formatPartyDate,
   partyCountLabel,
@@ -59,13 +60,8 @@ export function MyBlockCard({
       className="group relative aspect-[4/5] rounded-2xl overflow-hidden glass-tile glass-hover animate-fade-up"
       style={{ animationDelay: `${Math.min(index, 10) * 40}ms` }}
     >
-      {/* Full-bleed cover */}
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
-        src={block.cover}
-        alt=""
-        className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.05]"
-      />
+      {/* Full-bleed cover — branded placeholder when missing or it fails to load */}
+      <BlockCover src={block.cover} type={block.blockType} />
 
       {/* Whole card opens the Block (preserves existing behavior) */}
       <Link

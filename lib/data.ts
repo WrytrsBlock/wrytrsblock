@@ -297,7 +297,7 @@ function blockRowToView(row: BlockRow): Block {
     status: row.status ?? base.status,
     progress: row.progress ?? base.progress,
     deadline: row.deadline ?? base.deadline,
-    cover: row.cover_url ?? base.cover,
+    cover: row.cover_url || base.cover,
     tags: row.tags ?? base.tags,
     budget: row.budget ?? base.budget,
     kind: row.kind ?? base.kind,

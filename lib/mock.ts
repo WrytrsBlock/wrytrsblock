@@ -355,7 +355,7 @@ export const blocks: Block[] = [
     progress: 45,
     deadline: "Open",
     cover:
-      "https://images.unsplash.com/photo-1558584673-650f1a52f5bd?auto=format&fit=crop&w=2400&q=80",
+      "https://images.unsplash.com/photo-1598488035139-bdbb2231ce04?auto=format&fit=crop&w=2400&q=80",
     leadId: "p6",
     team: ["p6"],
     tags: ["Mixing", "Mastering", "Music"],
