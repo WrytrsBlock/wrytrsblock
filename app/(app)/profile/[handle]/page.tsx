@@ -240,15 +240,6 @@ export default async function ProfilePage({
             </section>
           )}
 
-          {/* Block Score — premium match/score card (breakdown tucked inside) */}
-          <section>
-            <BlockScoreCard
-              score={profile.blockScore}
-              factors={scoreFactors}
-              isNew={isNewCreator}
-            />
-          </section>
-
           {/* Services */}
           {profile.services.length > 0 && (
             <section>
@@ -362,6 +353,15 @@ export default async function ProfilePage({
               </div>
             </section>
           )}
+
+          {/* Block Score — a supporting credibility signal, below the showcase */}
+          <section>
+            <BlockScoreCard
+              score={profile.blockScore}
+              factors={scoreFactors}
+              isNew={isNewCreator}
+            />
+          </section>
 
           {/* History */}
           {profile.credits.length > 0 && (
