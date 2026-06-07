@@ -48,11 +48,6 @@ export function MyBlockCard({
     : isService
       ? "Service Block"
       : "Collaboration Block";
-  const typeCls = isParty
-    ? "text-warning"
-    : isService
-      ? "text-accent-2"
-      : "text-accent";
 
   const statusLabel = isParty
     ? partyStatusLabel(party?.status ?? "upcoming")
@@ -100,25 +95,20 @@ export function MyBlockCard({
       {/* Frosted glass gradient band — same language as Block Market cards */}
       <div className="absolute inset-x-0 bottom-0 z-10 bg-gradient-to-t from-black/65 via-black/40 to-black/15 backdrop-blur-md border-t border-white/15 shadow-[inset_0_1px_0_rgb(255_255_255/0.12)]">
         <div className="relative px-3.5 pt-2 pb-2.5">
-          {/* Block type */}
-          <span
-            className={cn(
-              "text-[10px] font-bold uppercase tracking-[0.12em]",
-              typeCls
-            )}
-          >
+          {/* Block type — white for readability over bright images */}
+          <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-white/80">
             {typeLabel}
           </span>
 
-          {/* Title — large, the primary element */}
+          {/* Title — primary, full white */}
           <Link href={openHref} className="block">
             <h3 className="font-display text-[16px] md:text-[18px] text-white leading-tight tracking-tight truncate">
               {block.title}
             </h3>
           </Link>
 
-          {/* Meta — type-appropriate (preserves the card's key metadata) */}
-          <p className="mt-0.5 flex items-center gap-1.5 text-[11px] text-white/70 leading-tight min-w-0">
+          {/* Meta — white opacity scale (name secondary, the rest tertiary) */}
+          <p className="mt-0.5 flex items-center gap-1.5 text-[11px] text-white/60 leading-tight min-w-0">
             {isParty ? (
               <>
                 <CalendarClock size={11} className="shrink-0" />
@@ -135,11 +125,22 @@ export function MyBlockCard({
               </>
             ) : isService ? (
               <span className="truncate">
-                {lead ? `${lead.name} · ${priceLabel}` : priceLabel}
+                {lead ? (
+                  <>
+                    <span className="font-medium text-white/80">
+                      {lead.name}
+                    </span>{" "}
+                    · {priceLabel}
+                  </>
+                ) : (
+                  priceLabel
+                )}
               </span>
             ) : (
               <>
-                <span className="truncate">{lead?.name ?? block.tagline}</span>
+                <span className="truncate font-medium text-white/80">
+                  {lead?.name ?? block.tagline}
+                </span>
                 {typeof score === "number" && (
                   <>
                     <span className="text-white/40 shrink-0">·</span>
