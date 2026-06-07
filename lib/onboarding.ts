@@ -14,8 +14,10 @@ import {
   Building2,
   Camera,
   CircleEllipsis,
+  Clapperboard,
   Crown,
   Disc3,
+  Drama,
   Film,
   Globe,
   Handshake,
@@ -28,9 +30,11 @@ import {
   Podcast,
   Rocket,
   ScrollText,
+  Shapes,
   SlidersHorizontal,
   Sparkles,
   Sprout,
+  Tag,
   TrendingUp,
   Video,
 } from "lucide-react";
@@ -63,7 +67,11 @@ export type CreatorType =
   | "record_label"
   | "filmmaker"
   | "screenwriter"
+  | "actor"
   | "podcaster"
+  | "content_creator"
+  | "animator"
+  | "brand"
   | "other";
 
 export const CREATOR_TYPES: CardOption<CreatorType>[] = [
@@ -71,18 +79,22 @@ export const CREATOR_TYPES: CardOption<CreatorType>[] = [
   { id: "rapper", label: "Rapper", icon: MicVocal },
   { id: "singer", label: "Singer", icon: Mic },
   { id: "songwriter", label: "Songwriter", icon: PenLine },
-  { id: "engineer", label: "Engineer", icon: AudioWaveform },
+  { id: "engineer", label: "Audio Engineer", icon: AudioWaveform },
   { id: "musician", label: "Musician", icon: Music },
   { id: "dj", label: "DJ", icon: Disc3 },
   { id: "videographer", label: "Videographer", icon: Video },
   { id: "photographer", label: "Photographer", icon: Camera },
   { id: "graphic_designer", label: "Graphic Designer", icon: Palette },
+  { id: "animator", label: "Animator", icon: Shapes },
   { id: "influencer", label: "Influencer", icon: Sparkles },
+  { id: "content_creator", label: "Content Creator", icon: Clapperboard },
   { id: "manager", label: "Manager", icon: Briefcase },
   { id: "record_label", label: "Record Label", icon: Building2 },
+  { id: "brand", label: "Brand", icon: Tag },
   { id: "filmmaker", label: "Filmmaker", icon: Film },
   { id: "screenwriter", label: "Screenwriter", icon: ScrollText },
-  { id: "podcaster", label: "Podcaster", icon: Podcast },
+  { id: "actor", label: "Actor", icon: Drama },
+  { id: "podcaster", label: "Podcast Host", icon: Podcast },
   { id: "other", label: "Other", icon: CircleEllipsis },
 ];
 

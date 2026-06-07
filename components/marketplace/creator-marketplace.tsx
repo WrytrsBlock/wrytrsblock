@@ -31,41 +31,70 @@ type Creator = { person: Person; profile: CreatorProfile };
 const uniqSorted = (arr: string[]) =>
   [...new Set(arr.filter(Boolean))].sort((a, b) => a.localeCompare(b));
 
-// ── Location — a curated hierarchy (city → province → country → remote) plus
-// distance tiers, instead of a long derived list. Matching is substring/region
-// based against the creator's location string. True radius search needs
-// geocoordinates (a future enhancement); the tiers below act as widening
-// catchments so the control is useful with the data we have today. ──────────
-const LOCATION_REGION = ["Remote", "Toronto", "Ontario", "Canada"];
-const LOCATION_NEARBY = ["Within 25 km", "Within 50 km", "Within 100 km"];
+// ── Location, Collaboration Type, and Distance are three separate axes now
+// (geography vs how you work together vs radius). Geography + collab are matched
+// against the creator's location/availability; precise radius needs
+// geocoordinates (a future enhancement), so Distance acts as a "physically
+// reachable" proxy until then. ─────────────────────────────────────────────
+const LOCATION_OPTIONS = [
+  "Toronto",
+  "Ontario",
+  "Canada",
+  "United States",
+  "Worldwide",
+];
+const COLLAB_TYPES = ["Remote", "In Person", "Hybrid"];
+const DISTANCE_OPTIONS = ["25 km", "50 km", "100 km", "250 km"];
 
-const ON_CITIES = ["toronto", "ottawa", "mississauga", "hamilton", "brampton", "kitchener", "windsor"];
-const CA_CITIES = [...ON_CITIES, "vancouver", "montreal", "calgary", "edmonton", "winnipeg", "halifax", "quebec"];
+const ON_CITIES = ["toronto", "ottawa", "mississauga", "hamilton", "brampton", "kitchener", "windsor", "london"];
+const CA_CITIES = [...ON_CITIES, "vancouver", "montreal", "calgary", "edmonton", "winnipeg", "halifax", "quebec", "canada"];
+const US_HINTS = ["united states", "usa", " ny", " ca", " tx", " ga", " or", " il", " fl", " wa", " ma", " tn", " co", "new york", "los angeles", "brooklyn", "austin", "atlanta", "portland", "chicago", "nashville", "miami", "seattle", "san francisco", "boston", "houston", "dallas", "denver"];
 
-function matchLocation(
+function matchLocation(loc: string, sel: string): boolean {
+  if (sel === "All" || sel === "Worldwide") return true;
+  const l = loc.toLowerCase();
+  switch (sel) {
+    case "Toronto":
+      return l.includes("toronto");
+    case "Ontario":
+      return l.includes("ontario") || ON_CITIES.some((c) => l.includes(c));
+    case "Canada":
+      return CA_CITIES.some((c) => l.includes(c));
+    case "United States":
+      return US_HINTS.some((h) => l.includes(h));
+    default:
+      return true;
+  }
+}
+
+function matchCollab(
   loc: string,
   availability: string[] | undefined,
   sel: string
 ): boolean {
+  if (sel === "All") return true;
   const l = loc.toLowerCase();
   const remote =
     l.includes("remote") ||
     (availability ?? []).some((a) => a.toLowerCase().includes("remote"));
+  const inPerson = l.trim().length > 0 && !l.includes("remote");
   switch (sel) {
     case "Remote":
       return remote;
-    case "Toronto":
-    case "Within 25 km":
-      return l.includes("toronto");
-    case "Ontario":
-    case "Within 50 km":
-      return l.includes("ontario") || ON_CITIES.some((c) => l.includes(c));
-    case "Canada":
-    case "Within 100 km":
-      return l.includes("canada") || CA_CITIES.some((c) => l.includes(c));
+    case "In Person":
+      return inPerson;
+    case "Hybrid":
+      return remote && inPerson;
     default:
       return true;
   }
+}
+
+// No geocoordinates yet — any selected radius implies a physically reachable
+// creator (not remote-only). Precise distance is a future enhancement.
+function matchDistance(loc: string, sel: string): boolean {
+  if (sel === "All") return true;
+  return !loc.toLowerCase().includes("remote");
 }
 
 // The card's identity media — driven by the creator's pinned Featured Content,
@@ -170,6 +199,8 @@ export function CreatorMarketplace({
   const [location, setLocation] = useState("All");
   const [genre, setGenre] = useState("All");
   // Advanced filters (in the drawer).
+  const [collab, setCollab] = useState("All");
+  const [distance, setDistance] = useState("All");
   const [availability, setAvailability] = useState("All");
   const [experience, setExperience] = useState("All");
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -191,7 +222,10 @@ export function CreatorMarketplace({
   );
 
   const advancedCount =
-    (availability !== "All" ? 1 : 0) + (experience !== "All" ? 1 : 0);
+    (collab !== "All" ? 1 : 0) +
+    (distance !== "All" ? 1 : 0) +
+    (availability !== "All" ? 1 : 0) +
+    (experience !== "All" ? 1 : 0);
   const primaryActive =
     type !== "All" || location !== "All" || genre !== "All";
   const filtersActive = primaryActive || advancedCount > 0 || query.trim() !== "";
@@ -200,6 +234,8 @@ export function CreatorMarketplace({
     setType("All");
     setLocation("All");
     setGenre("All");
+    setCollab("All");
+    setDistance("All");
     setAvailability("All");
     setExperience("All");
     setQuery("");
@@ -210,10 +246,14 @@ export function CreatorMarketplace({
     const list = creators.filter(({ person, profile }) => {
       if (type !== "All" && !profile.roles.includes(type)) return false;
       if (genre !== "All" && !profile.skills.includes(genre)) return false;
+      if (location !== "All" && !matchLocation(profile.location, location))
+        return false;
       if (
-        location !== "All" &&
-        !matchLocation(profile.location, profile.availability, location)
+        collab !== "All" &&
+        !matchCollab(profile.location, profile.availability, collab)
       )
+        return false;
+      if (distance !== "All" && !matchDistance(profile.location, distance))
         return false;
       if (
         availability !== "All" &&
@@ -242,7 +282,17 @@ export function CreatorMarketplace({
         Number(!!b.person.online) - Number(!!a.person.online) ||
         b.profile.blockScore - a.profile.blockScore
     );
-  }, [creators, query, type, genre, location, availability, experience]);
+  }, [
+    creators,
+    query,
+    type,
+    genre,
+    location,
+    collab,
+    distance,
+    availability,
+    experience,
+  ]);
 
   return (
     <div className="space-y-4">
@@ -271,10 +321,7 @@ export function CreatorMarketplace({
         <FilterSelect
           label="Location"
           value={location}
-          groups={[
-            { label: "Region", options: LOCATION_REGION },
-            { label: "Nearby", options: LOCATION_NEARBY },
-          ]}
+          options={LOCATION_OPTIONS}
           onChange={setLocation}
         />
         <FilterSelect
@@ -357,13 +404,19 @@ export function CreatorMarketplace({
         typeof document !== "undefined" &&
         createPortal(
           <AdvancedDrawer
+            collab={collab}
+            distance={distance}
             availability={availability}
             experience={experience}
             availabilityOptions={opts.availability}
             experienceOptions={opts.experience}
+            onCollab={setCollab}
+            onDistance={setDistance}
             onAvailability={setAvailability}
             onExperience={setExperience}
             onClear={() => {
+              setCollab("All");
+              setDistance("All");
               setAvailability("All");
               setExperience("All");
             }}
@@ -378,25 +431,32 @@ export function CreatorMarketplace({
 // ── Advanced Filters drawer — bottom sheet on mobile, centered dialog on
 // desktop. Holds the secondary filters (Availability + Experience). ─────────
 function AdvancedDrawer({
+  collab,
+  distance,
   availability,
   experience,
   availabilityOptions,
   experienceOptions,
+  onCollab,
+  onDistance,
   onAvailability,
   onExperience,
   onClear,
   onClose,
 }: {
+  collab: string;
+  distance: string;
   availability: string;
   experience: string;
   availabilityOptions: string[];
   experienceOptions: string[];
+  onCollab: (v: string) => void;
+  onDistance: (v: string) => void;
   onAvailability: (v: string) => void;
   onExperience: (v: string) => void;
   onClear: () => void;
   onClose: () => void;
 }) {
-  const hasAny = availabilityOptions.length > 0 || experienceOptions.length > 0;
   return (
     <>
       <button
@@ -424,30 +484,42 @@ function AdvancedDrawer({
           </button>
         </div>
 
-        {hasAny ? (
-          <div className="mt-5 space-y-4">
-            {availabilityOptions.length > 0 && (
-              <DrawerField
-                label="Availability"
-                value={availability}
-                options={availabilityOptions}
-                onChange={onAvailability}
-              />
-            )}
-            {experienceOptions.length > 0 && (
-              <DrawerField
-                label="Experience"
-                value={experience}
-                options={experienceOptions}
-                onChange={onExperience}
-              />
-            )}
+        <div className="mt-5 space-y-4">
+          <DrawerField
+            label="Collaboration Type"
+            value={collab}
+            options={COLLAB_TYPES}
+            onChange={onCollab}
+          />
+          <div>
+            <DrawerField
+              label="Distance"
+              value={distance}
+              options={DISTANCE_OPTIONS}
+              onChange={onDistance}
+            />
+            <p className="mt-1.5 text-[10.5px] text-muted/70">
+              Pairs with Location. Precise radius uses your location — coming
+              soon.
+            </p>
           </div>
-        ) : (
-          <p className="mt-5 text-[13px] text-muted">
-            No advanced filters available yet.
-          </p>
-        )}
+          {availabilityOptions.length > 0 && (
+            <DrawerField
+              label="Availability"
+              value={availability}
+              options={availabilityOptions}
+              onChange={onAvailability}
+            />
+          )}
+          {experienceOptions.length > 0 && (
+            <DrawerField
+              label="Experience"
+              value={experience}
+              options={experienceOptions}
+              onChange={onExperience}
+            />
+          )}
+        </div>
 
         <div className="mt-7 flex items-center gap-2">
           <button
