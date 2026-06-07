@@ -520,34 +520,36 @@ export function NewBlockDialog() {
               </div>
 
               {/* Chat toggle */}
-              <div className="flex items-center justify-between rounded-xl border border-line bg-surface-2/50 p-3.5">
-                <div className="flex items-center gap-2.5">
-                  <MessageSquare size={15} className="text-accent shrink-0" />
-                  <div>
-                    <p className="text-[12.5px] font-medium text-ink">Live chat</p>
-                    <p className="text-[10.5px] text-muted">
-                      Let people talk during the party.
+              <div className="rounded-xl border border-line bg-surface-2/50 p-3.5">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <MessageSquare size={15} className="text-accent shrink-0" />
+                    <p className="text-[12.5px] font-medium text-ink">
+                      Live chat
                     </p>
                   </div>
-                </div>
-                <button
-                  type="button"
-                  role="switch"
-                  aria-checked={partyChat}
-                  aria-label="Live chat"
-                  onClick={() => setPartyChat((c) => !c)}
-                  className={cn(
-                    "relative h-6 w-11 rounded-full transition-colors shrink-0",
-                    partyChat ? "bg-grad-accent" : "bg-surface-3 border border-line"
-                  )}
-                >
-                  <span
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={partyChat}
+                    aria-label="Live chat"
+                    onClick={() => setPartyChat((c) => !c)}
                     className={cn(
-                      "absolute top-0.5 h-5 w-5 rounded-full bg-white shadow-soft transition-transform",
-                      partyChat ? "translate-x-[22px]" : "translate-x-0.5"
+                      "relative h-6 w-11 shrink-0 rounded-full transition-colors",
+                      partyChat ? "bg-grad-accent" : "bg-surface-3 border border-line"
                     )}
-                  />
-                </button>
+                  >
+                    <span
+                      className={cn(
+                        "absolute left-0.5 top-1/2 h-5 w-5 -translate-y-1/2 rounded-full bg-white shadow-soft transition-transform",
+                        partyChat ? "translate-x-[18px]" : ""
+                      )}
+                    />
+                  </button>
+                </div>
+                <p className="mt-1.5 pl-[25px] text-[10.5px] text-muted">
+                  Let people talk during the party.
+                </p>
               </div>
 
               <p className="text-[10.5px] text-muted">
@@ -637,14 +639,9 @@ export function NewBlockDialog() {
           {!isParty && (
           <div className="rounded-xl border border-line bg-surface-2/50 p-3.5">
             <div className="flex items-center justify-between gap-3">
-              <div>
-                <p className="text-[13px] font-semibold text-ink">
-                  Monetize this Block
-                </p>
-                <p className="text-[11px] text-muted mt-0.5">
-                  Charge a one-time price to access or join.
-                </p>
-              </div>
+              <p className="text-[13px] font-semibold text-ink">
+                Monetize this Block
+              </p>
               <button
                 type="button"
                 role="switch"
@@ -652,18 +649,21 @@ export function NewBlockDialog() {
                 aria-label="Monetize this Block"
                 onClick={() => setMonetize((m) => !m)}
                 className={cn(
-                  "relative h-6 w-11 rounded-full transition-colors shrink-0",
+                  "relative h-6 w-11 shrink-0 rounded-full transition-colors",
                   monetize ? "bg-grad-accent" : "bg-surface-3 border border-line"
                 )}
               >
                 <span
                   className={cn(
-                    "absolute top-0.5 h-5 w-5 rounded-full bg-white shadow-soft transition-transform",
-                    monetize ? "translate-x-[22px]" : "translate-x-0.5"
+                    "absolute left-0.5 top-1/2 h-5 w-5 -translate-y-1/2 rounded-full bg-white shadow-soft transition-transform",
+                    monetize ? "translate-x-[18px]" : ""
                   )}
                 />
               </button>
             </div>
+            <p className="text-[11px] text-muted mt-1.5">
+              Charge a one-time price to access or join.
+            </p>
 
             {monetize && (
               <div className="mt-3.5 space-y-3">
