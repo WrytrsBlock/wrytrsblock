@@ -15,6 +15,7 @@ import { Badge, Button, Progress } from "@/components/ui/primitives";
 import { StartBlockButton } from "@/components/block/start-block-button";
 import { BlockScoreCard } from "@/components/creator/block-score";
 import { FeaturedContent } from "@/components/creator/featured-content";
+import { SampleBlocks } from "@/components/creator/sample-blocks";
 import { MediaPlayer } from "@/components/creator/media-player";
 import { blocksForPerson, tracksForCreator } from "@/lib/mock";
 import { profileCompleteness, scoreFactorBreakdown } from "@/lib/block-score";
@@ -339,12 +340,14 @@ export default async function ProfilePage({
             )}
           </section>
 
-          {/* Blocks — the creator's public Blocks. Always shown; empty otherwise. */}
-          <section>
-            <h2 className="font-display text-xl text-ink tracking-tight">
-              Blocks
-            </h2>
-            {activeBlocks.length > 0 ? (
+          {/* Blocks — the creator's real Blocks when they have them; otherwise
+              polished, clearly-labeled SAMPLE examples (presentational only,
+              never persisted) so a new profile never feels empty. */}
+          {activeBlocks.length > 0 ? (
+            <section>
+              <h2 className="font-display text-xl text-ink tracking-tight">
+                Blocks
+              </h2>
               <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                 {activeBlocks.map((b) => (
                   <Link
@@ -398,10 +401,10 @@ export default async function ProfilePage({
                   </Link>
                 ))}
               </div>
-            ) : (
-              <SectionEmpty label="No blocks yet." />
-            )}
-          </section>
+            </section>
+          ) : (
+            <SampleBlocks />
+          )}
 
           {/* Block Score — a supporting credibility signal, below the showcase */}
           <section>
