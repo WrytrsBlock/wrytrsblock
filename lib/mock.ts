@@ -528,7 +528,10 @@ export type CreatorRole = (typeof CREATOR_ROLES)[number];
 
 export type CreatorProfile = {
   personId: string;
-  banner: string;
+  // The creator's uploaded cover image. Optional — undefined means "no cover",
+  // so surfaces fall back deliberately (see lib/creator-image.ts) instead of
+  // showing a random stock photo.
+  banner?: string;
   tagline: string; // short headline / quick bio
   bio: string; // longer bio
   location: string;

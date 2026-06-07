@@ -137,27 +137,39 @@ export function EditProfileForm({
           </h1>
         </div>
 
-        {/* Banner */}
+        {/* Cover image — the large image shown at the top of the profile. */}
         <Field label="Cover image">
           <button
             type="button"
             onClick={() => bannerInput.current?.click()}
-            className="relative block w-full h-32 rounded-2xl overflow-hidden border border-line bg-surface-2 group"
+            className="relative block w-full h-36 rounded-2xl overflow-hidden border border-line bg-surface-2 group"
           >
             {banner ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={banner}
-                alt=""
-                className="h-full w-full object-cover"
-              />
+              <>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={banner}
+                  alt=""
+                  className="h-full w-full object-cover"
+                />
+                {/* Hover affordance once a cover exists. */}
+                <span className="absolute inset-0 flex items-center justify-center gap-2 text-white text-[12.5px] font-medium bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <ImagePlus size={15} />
+                  {bannerUploading ? "Uploading…" : "Change cover image"}
+                </span>
+              </>
             ) : (
-              <span className="absolute inset-0 bg-grad-accent opacity-80" />
+              // Persistent, obvious prompt when there's no cover yet.
+              <span className="absolute inset-0 bg-grad-accent opacity-90 flex flex-col items-center justify-center gap-1.5 text-white">
+                <ImagePlus size={20} strokeWidth={1.75} />
+                <span className="text-[12.5px] font-semibold">
+                  {bannerUploading ? "Uploading…" : "Upload cover image"}
+                </span>
+                <span className="text-[10.5px] text-white/75">
+                  Make your profile stand out
+                </span>
+              </span>
             )}
-            <span className="absolute inset-0 flex items-center justify-center gap-2 text-white text-[12.5px] font-medium bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity">
-              <ImagePlus size={15} />
-              {bannerUploading ? "Uploading…" : "Change cover"}
-            </span>
           </button>
           <input
             ref={bannerInput}
@@ -174,14 +186,17 @@ export function EditProfileForm({
             <p className="mt-1.5 text-[11.5px] text-danger">{bannerError}</p>
           ) : (
             <p className="mt-1.5 text-[11px] text-muted/70">
-              {IMAGE_FORMATS_HINT}
+              Shown large at the top of your profile. {IMAGE_FORMATS_HINT}
             </p>
           )}
         </Field>
 
-        {/* Avatar */}
+        {/* Profile photo — the creator's headshot/avatar. */}
         <Field label="Profile photo">
           <PhotoPicker value={avatar} name={initial.handle} onChange={setAvatar} />
+          <p className="mt-1.5 text-[11px] text-muted/70">
+            Used in the Block Market and as a fallback profile image.
+          </p>
         </Field>
 
         {/* Bio */}

@@ -22,6 +22,7 @@ import {
   youtubeId,
   youtubeThumb,
 } from "@/lib/featured-content";
+import { cardCoverFor } from "@/lib/creator-image";
 import { openNewBlock } from "@/lib/ui-events";
 import { CREATOR_TYPES, INTERESTS } from "@/lib/onboarding";
 
@@ -124,9 +125,9 @@ function cardMedia(
     // portfolio → no inline media; falls back to an image below.
   }
 
-  // Fall back to a portfolio/banner image (then the generated avatar) so the
-  // card is always full-bleed — never an empty box.
-  if (!image) image = profile.portfolio[0] ?? profile.banner ?? person.avatar;
+  // Fall back to the creator's real work/photo (then a branded cover) so the
+  // card is always full-bleed — never an empty box or a transparent avatar.
+  if (!image) image = cardCoverFor(person, profile);
 
   return { image, mediaIcon };
 }

@@ -364,9 +364,6 @@ export async function getBlock(
 
 // ---------- Creators (marketplace source of truth) ----------
 
-const DEFAULT_BANNER =
-  "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?auto=format&fit=crop&w=1600&q=80";
-
 // Maps a DB creator row into the {person, profile} view-model the marketplace +
 // profile UI already consume, so the components stay unchanged.
 function creatorRowToView(row: CreatorProfileRow): CreatorView {
@@ -394,7 +391,10 @@ function creatorRowToView(row: CreatorProfileRow): CreatorView {
   };
   const profile: CreatorProfile = {
     personId: row.id,
-    banner: row.banner_url ?? DEFAULT_BANNER,
+    // Real uploaded cover only — undefined when the creator hasn't added one, so
+    // the profile hero falls back to their photo/featured work, not a random
+    // stock image (see lib/creator-image.ts).
+    banner: row.banner_url ?? undefined,
     tagline: row.tagline ?? row.bio ?? `${roles[0] ?? "Creator"} on WrytrsBlock.`,
     bio: row.bio ?? "",
     location,

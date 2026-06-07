@@ -6,6 +6,7 @@ import {
   ExternalLink,
   Globe,
   Headphones,
+  ImagePlus,
   MapPin,
   Pencil,
 } from "lucide-react";
@@ -17,6 +18,7 @@ import { FeaturedContent } from "@/components/creator/featured-content";
 import { MediaPlayer } from "@/components/creator/media-player";
 import { blocksForPerson, tracksForCreator } from "@/lib/mock";
 import { profileCompleteness, scoreFactorBreakdown } from "@/lib/block-score";
+import { heroImageFor } from "@/lib/creator-image";
 import { getCreator, getCurrentProfile } from "@/lib/data";
 
 export const dynamic = "force-dynamic";
@@ -57,13 +59,12 @@ export default async function ProfilePage({
   const { person, profile } = data;
   const activeBlocks = blocksForPerson(person.id);
   const tracks = tracksForCreator(profile);
-  // Image-first hero: the creator's cover, then a portfolio image, then a real
-  // uploaded profile photo. Never the generated dicebear avatar (it looks wrong
-  // full-bleed) — fall back to a gradient instead.
-  const heroImage =
-    profile.banner ??
-    profile.portfolio[0] ??
-    (person.avatar.includes("dicebear") ? undefined : person.avatar);
+  // Image-first hero, resolved in one place (lib/creator-image.ts):
+  //   cover → featured-content image → real profile photo → portfolio image.
+  // Never the generated dicebear avatar and never a random stock banner — if the
+  // creator has no image at all this is undefined and we show a branded
+  // gradient + "add a cover" guidance instead.
+  const heroImage = heroImageFor(person, profile);
 
   const me = await getCurrentProfile();
   const isMe = me?.handle === person.handle;
@@ -125,7 +126,32 @@ export default async function ProfilePage({
                 className="absolute inset-0 h-full w-full object-cover"
               />
             ) : (
-              <div className="absolute inset-0 bg-grad-accent" />
+              // No cover/photo/featured image yet — a clean, intentional branded
+              // backdrop (never a random or blank image). Owners get a clear
+              // prompt to add a cover; visitors just see the branded gradient.
+              <div className="absolute inset-0 bg-grad-accent">
+                <div className="absolute inset-0 bg-grad-mesh opacity-30" />
+                {isMe && (
+                  <div className="absolute inset-x-0 top-0 bottom-[38%] flex flex-col items-center justify-center gap-3 px-6 text-center">
+                    <span className="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-white/15 border border-white/25 backdrop-blur-sm text-white">
+                      <ImagePlus size={20} strokeWidth={1.75} />
+                    </span>
+                    <p className="text-white text-[14px] sm:text-[15px] font-medium max-w-xs leading-snug">
+                      Add a cover image to make your profile stand out
+                    </p>
+                    <Link href="/profile/edit">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="border-white/35 text-white hover:bg-white/15"
+                        style={{ color: "#FFFFFF" }}
+                      >
+                        <ImagePlus size={13} /> Add cover image
+                      </Button>
+                    </Link>
+                  </div>
+                )}
+              </div>
             )}
             {/* Top scrim so the breadcrumb stays legible */}
             <div className="absolute inset-0 bg-gradient-to-b from-black/35 via-transparent to-transparent" />

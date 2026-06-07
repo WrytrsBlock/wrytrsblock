@@ -7,6 +7,7 @@ import {
   youtubeId,
   youtubeThumb,
 } from "@/lib/featured-content";
+import { cardCoverFor } from "@/lib/creator-image";
 import type { CreatorProfile, Person } from "@/lib/mock";
 
 // Resolve the spotlight background from the creator's pinned Featured Content,
@@ -27,7 +28,7 @@ function spotlightMedia(
     } else if (f.type === "instagram" || f.type === "tiktok") mediaIcon = "play";
     else if (f.type === "audio") mediaIcon = "audio";
   }
-  if (!image) image = profile.portfolio[0] ?? profile.banner ?? person.avatar;
+  if (!image) image = cardCoverFor(person, profile);
   return { image, mediaIcon };
 }
 

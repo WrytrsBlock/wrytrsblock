@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Play, Star } from "lucide-react";
 import { cn } from "@/lib/cn";
+import { cardCoverFor } from "@/lib/creator-image";
 import { featuredCreators } from "@/lib/mock";
 
 // A wall of real creators for the landing — reads as "look at all this talent,"
@@ -20,7 +21,7 @@ export function CreatorWall({ href = "/marketplace" }: { href?: string }) {
   return (
     <div className="columns-2 md:columns-3 gap-3 md:gap-4 [column-fill:_balance]">
       {creators.map(({ person, profile }, i) => {
-        const image = profile.portfolio[0] ?? profile.banner;
+        const image = cardCoverFor(person, profile);
         return (
           <Link
             key={person.id}
