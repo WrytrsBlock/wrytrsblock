@@ -25,26 +25,33 @@ export function FeaturedContent({
   const featured = pickFeatured(items);
 
   if (!featured) {
-    if (!isOwner) return null;
+    // Always render the section (never hide it on empty data). Owners get an
+    // actionable prompt; visitors get a clean "nothing yet" state.
     return (
       <section>
         <h2 className="font-display text-xl text-ink tracking-tight">
           Featured Content
         </h2>
         <div className="mt-3 glass-card rounded-2xl px-5 py-8 text-center">
-          <p className="text-[13.5px] text-ink font-medium">
-            Showcase your work by adding Featured Content.
-          </p>
-          <p className="text-[12px] text-muted mt-1 max-w-xs mx-auto leading-relaxed">
-            Show visitors why they should Start a Block with you.
-          </p>
-          <Link
-            href="/profile/edit#featured"
-            className="mt-4 inline-flex items-center gap-1.5 h-9 px-4 rounded-full bg-accent text-[12.5px] font-semibold text-white hover:bg-accent/90 transition-colors"
-            style={{ color: "#FFFFFF" }}
-          >
-            <Plus size={14} /> Add Content
-          </Link>
+          {isOwner ? (
+            <>
+              <p className="text-[13.5px] text-ink font-medium">
+                Showcase your work by adding Featured Content.
+              </p>
+              <p className="text-[12px] text-muted mt-1 max-w-xs mx-auto leading-relaxed">
+                Show visitors why they should Start a Block with you.
+              </p>
+              <Link
+                href="/profile/edit#featured"
+                className="mt-4 inline-flex items-center gap-1.5 h-9 px-4 rounded-full bg-accent text-[12.5px] font-semibold text-white hover:bg-accent/90 transition-colors"
+                style={{ color: "#FFFFFF" }}
+              >
+                <Plus size={14} /> Add Content
+              </Link>
+            </>
+          ) : (
+            <p className="text-[13px] text-muted">No featured content yet.</p>
+          )}
         </div>
       </section>
     );

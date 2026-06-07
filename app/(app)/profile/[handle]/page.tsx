@@ -49,6 +49,16 @@ function socialUrl(platform: string, value: string): string {
   }
 }
 
+// A clean, consistent empty state for a profile section — so sections are never
+// hidden just because the live profile has no data yet.
+function SectionEmpty({ label }: { label: string }) {
+  return (
+    <div className="mt-4 glass-card rounded-2xl px-5 py-8 text-center">
+      <p className="text-[13px] text-muted">{label}</p>
+    </div>
+  );
+}
+
 export default async function ProfilePage({
   params,
 }: {
@@ -273,12 +283,12 @@ export default async function ProfilePage({
             </section>
           )}
 
-          {/* Services */}
-          {profile.services.length > 0 && (
-            <section>
-              <h2 className="font-display text-xl text-ink tracking-tight">
-                Services
-              </h2>
+          {/* Services — always shown; empty state when none yet. */}
+          <section>
+            <h2 className="font-display text-xl text-ink tracking-tight">
+              Services
+            </h2>
+            {profile.services.length > 0 ? (
               <div className="mt-4 grid gap-2.5 sm:grid-cols-2">
                 {profile.services.map((s) => (
                   <div
@@ -310,27 +320,31 @@ export default async function ProfilePage({
                   </div>
                 ))}
               </div>
-            </section>
-          )}
+            ) : (
+              <SectionEmpty label="No services yet." />
+            )}
+          </section>
 
-          {/* Demos */}
-          {tracks.length > 0 && (
-            <section>
-              <h2 className="font-display text-xl text-ink tracking-tight inline-flex items-center gap-2">
-                <Headphones size={16} className="text-accent" /> Demos
-              </h2>
+          {/* Demos — always shown; empty state when none yet. */}
+          <section>
+            <h2 className="font-display text-xl text-ink tracking-tight inline-flex items-center gap-2">
+              <Headphones size={16} className="text-accent" /> Demos
+            </h2>
+            {tracks.length > 0 ? (
               <div className="mt-4 glass-card rounded-2xl p-5">
                 <MediaPlayer tracks={tracks} />
               </div>
-            </section>
-          )}
+            ) : (
+              <SectionEmpty label="No demos yet." />
+            )}
+          </section>
 
-          {/* Blocks — the creator's public Blocks */}
-          {activeBlocks.length > 0 && (
-            <section>
-              <h2 className="font-display text-xl text-ink tracking-tight">
-                Blocks
-              </h2>
+          {/* Blocks — the creator's public Blocks. Always shown; empty otherwise. */}
+          <section>
+            <h2 className="font-display text-xl text-ink tracking-tight">
+              Blocks
+            </h2>
+            {activeBlocks.length > 0 ? (
               <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                 {activeBlocks.map((b) => (
                   <Link
@@ -384,8 +398,10 @@ export default async function ProfilePage({
                   </Link>
                 ))}
               </div>
-            </section>
-          )}
+            ) : (
+              <SectionEmpty label="No blocks yet." />
+            )}
+          </section>
 
           {/* Block Score — a supporting credibility signal, below the showcase */}
           <section>
