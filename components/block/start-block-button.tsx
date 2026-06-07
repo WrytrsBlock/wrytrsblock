@@ -3,11 +3,10 @@
 import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/primitives";
 import { cn } from "@/lib/cn";
-import { openBlockRequest, openNewBlock } from "@/lib/ui-events";
+import { openNewBlock } from "@/lib/ui-events";
 
-// "Start Block" is the action after discovering a creator — it opens the Block
-// Request modal (communication on WrytrsBlock is tied to a Block). Without a
-// creator handle it falls back to the generic create-a-Block flow.
+// "Start Block" opens the one unified Create-a-Block flow everywhere. When
+// started from a creator, that creator is pre-invited into the new Block.
 export function StartBlockButton({
   className,
   size = "sm",
@@ -20,7 +19,7 @@ export function StartBlockButton({
   size?: "sm" | "md" | "lg";
   variant?: "primary" | "secondary" | "ghost" | "outline" | "accent";
   label?: string;
-  // When started from a creator, sends a Block Request to them.
+  // When started from a creator, that creator is pre-invited into the new Block.
   handle?: string;
   name?: string;
 }) {
@@ -33,11 +32,7 @@ export function StartBlockButton({
       // color wins over any cascade conflict; the icon inherits via currentColor.
       className={cn("text-[#FFFFFF] [&_svg]:text-[#FFFFFF]", className)}
       style={{ color: "#FFFFFF" }}
-      onClick={() =>
-        handle
-          ? openBlockRequest(handle, name ?? handle)
-          : openNewBlock("collaboration")
-      }
+      onClick={() => openNewBlock(undefined, handle)}
     >
       <Plus size={size === "lg" ? 14 : 12} /> {label}
     </Button>

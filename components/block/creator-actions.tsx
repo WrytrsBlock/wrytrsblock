@@ -3,11 +3,10 @@
 import { useState } from "react";
 import { Bookmark, BookmarkCheck, Plus } from "lucide-react";
 import { Button } from "@/components/ui/primitives";
-import { openBlockRequest } from "@/lib/ui-events";
+import { openNewBlock } from "@/lib/ui-events";
 
-// Actions on another creator's profile. Start Block — the only way to reach a
-// creator before a Block exists — sends a Block Request; Save bookmarks them.
-// (No standalone messaging: communication on WrytrsBlock is tied to a Block.)
+// Actions on another creator's profile. Start Block opens the unified
+// Create-a-Block flow with this creator pre-invited; Save bookmarks them.
 export function CreatorActions({
   handle,
   name,
@@ -24,7 +23,7 @@ export function CreatorActions({
         size="md"
         className="text-[#FFFFFF] [&_svg]:text-[#FFFFFF]"
         style={{ color: "#FFFFFF" }}
-        onClick={() => openBlockRequest(handle, name)}
+        onClick={() => openNewBlock(undefined, handle)}
       >
         <Plus size={13} /> Start Block
       </Button>

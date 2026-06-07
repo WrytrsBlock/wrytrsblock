@@ -9,8 +9,6 @@ type UIEventMap = {
   "wb:new-block":
     | { type?: "collaboration" | "service"; handle?: string }
     | undefined;
-  // Send a Block Request to a specific creator (replaces pre-collab messaging).
-  "wb:block-request": { handle: string; name: string };
   "wb:open-command": undefined;
   "wb:invite": { blockSlug: string; handle?: string };
   "wb:edit-service": undefined;
@@ -42,8 +40,6 @@ export const openNewBlock = (
     "wb:new-block",
     type || handle ? { type, handle } : undefined
   );
-export const openBlockRequest = (handle: string, name: string) =>
-  emitUIEvent("wb:block-request", { handle, name });
 export const openCommandPalette = () => emitUIEvent("wb:open-command");
 export const openInvite = (blockSlug: string, handle?: string) =>
   emitUIEvent("wb:invite", { blockSlug, handle });

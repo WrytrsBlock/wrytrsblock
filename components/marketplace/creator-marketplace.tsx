@@ -22,7 +22,7 @@ import {
   youtubeId,
   youtubeThumb,
 } from "@/lib/featured-content";
-import { openBlockRequest } from "@/lib/ui-events";
+import { openNewBlock } from "@/lib/ui-events";
 import { CREATOR_TYPES, INTERESTS } from "@/lib/onboarding";
 
 type Creator = { person: Person; profile: CreatorProfile };
@@ -658,7 +658,7 @@ function CreatorCard({
           {/* Start Block — the single action */}
           <button
             type="button"
-            onClick={() => openBlockRequest(person.handle, person.name)}
+            onClick={() => openNewBlock(undefined, person.handle)}
             aria-label={`Start a Block with ${person.name}`}
             className="mt-2 w-full inline-flex items-center justify-center gap-1.5 h-8 rounded-lg text-[12.5px] font-semibold text-white bg-white/[0.16] border border-white/25 hover:bg-accent hover:border-accent transition-colors"
             style={{ color: "#FFFFFF" }}

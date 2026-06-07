@@ -2,7 +2,6 @@ import { Sidebar } from "@/components/shell/sidebar";
 import { BottomTabBar } from "@/components/shell/bottom-tab-bar";
 import { CommandPalette } from "@/components/shell/command-palette";
 import { NewBlockDialog } from "@/components/block/new-block-dialog";
-import { BlockRequestDialog } from "@/components/block/block-request-dialog";
 import { InviteDialog } from "@/components/block/invite-dialog";
 import { ProfileProvider } from "@/components/shell/profile-context";
 import {
@@ -49,7 +48,6 @@ export default async function AppLayout({
         {/* Global overlays */}
         <CommandPalette blocks={blocks} />
         <NewBlockDialog />
-        <BlockRequestDialog />
         <InviteDialog />
       </div>
     </ProfileProvider>
