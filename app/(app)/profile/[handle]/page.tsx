@@ -112,18 +112,25 @@ export default async function ProfilePage({
           { label: person.name },
         ]}
       />
-      <div className="flex-1 overflow-y-auto">
+      {/* min-h-0 is required so this flex child actually scrolls (esp. iOS
+          Safari) instead of growing to its content height and clipping. */}
+      <div className="flex-1 min-h-0 overflow-y-auto">
         {/* ── Creator hero — image-first: the creator's cover/portfolio image
-            fills the section; a frosted-glass overlay across the lower ~35%
-            holds the identity. No avatar circle — the image is the hero. ── */}
+            fills a height-capped band; a frosted-glass overlay across the lower
+            portion holds the identity. No avatar circle — the image is the hero.
+            Heights are bounded (mobile ~360px, desktop ~500px) so the image
+            never takes over the page. ── */}
         <section className="relative w-full">
-          <div className="relative h-[420px] sm:h-[520px] md:h-[600px] w-full overflow-hidden">
+          <div className="relative h-[360px] sm:h-[440px] md:h-[500px] w-full overflow-hidden">
             {heroImage ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img
                 src={heroImage}
                 alt={person.name}
-                className="absolute inset-0 h-full w-full object-cover"
+                // object-cover + object-center crops elegantly from the middle —
+                // a portrait used as a hero fallback is never stretched or
+                // awkwardly zoomed.
+                className="absolute inset-0 h-full w-full object-cover object-center"
               />
             ) : (
               // No cover/photo/featured image yet — a clean, intentional branded
