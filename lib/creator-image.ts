@@ -28,25 +28,26 @@ export function featuredImageUrl(profile: CreatorProfile): string | undefined {
 }
 
 /**
- * Profile hero image, in the exact required priority:
- *   1. uploaded cover / banner
- *   2. a Featured Content image
- *   3. the uploaded profile photo (never the generated avatar)
- *   4. a portfolio image (still the creator's real work)
- * Returns `undefined` when the creator has no image at all — the hero then shows
- * a branded gradient + "add a cover" guidance rather than a random photo.
+ * Profile HERO image. Two image concepts stay distinct — never conflate them:
+ *   • Cover / Hero image  (banner_url): the large full-width image at the top.
+ *   • Profile photo / Avatar (avatar_url): the small identity image used in the
+ *     sidebar, cards, comments, and notifications.
+ *
+ * Hero fallback order (product spec):
+ *   1. Cover image (banner)
+ *   2. Profile photo (the uploaded avatar) — so removing the circular avatar
+ *      from the hero NEVER hides an uploaded photo; it simply backs the hero
+ *      when there's no cover yet.
+ *   3. `undefined` → the page shows a branded gradient + "add a cover" guidance.
+ *
+ * Note: the generated dicebear avatar is treated as "no photo" (realAvatar), and
+ * Featured Content images appear in their own section, not the hero.
  */
 export function heroImageFor(
   person: Person,
   profile: CreatorProfile
 ): string | undefined {
-  return (
-    profile.banner ||
-    featuredImageUrl(profile) ||
-    realAvatar(person) ||
-    profile.portfolio[0] ||
-    undefined
-  );
+  return profile.banner || realAvatar(person) || undefined;
 }
 
 /**

@@ -228,16 +228,19 @@ export function EditProfileForm({
             <p className="mt-1.5 text-[11.5px] text-danger">{bannerError}</p>
           ) : (
             <p className="mt-1.5 text-[11px] text-muted/70">
-              Shown large at the top of your profile. {IMAGE_FORMATS_HINT}
+              Appears large across the top of your profile. {IMAGE_FORMATS_HINT}
             </p>
           )}
         </Field>
 
-        {/* Profile photo — the creator's headshot/avatar. */}
+        {/* Profile photo — the creator's identity avatar. Distinct from the
+            cover image: it's the small image used across the app, and it backs
+            the hero when no cover image has been added. */}
         <Field label="Profile photo">
           <PhotoPicker value={avatar} name={initial.handle} onChange={setAvatar} />
           <p className="mt-1.5 text-[11px] text-muted/70">
-            Used in the Block Market and as a fallback profile image.
+            Appears in the sidebar, on Block Market cards, and in notifications —
+            and fills your profile hero if you haven&rsquo;t added a cover image.
           </p>
         </Field>
 
