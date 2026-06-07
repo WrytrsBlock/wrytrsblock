@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, ImagePlus } from "lucide-react";
+import { ArrowLeft, CheckCircle2, ImagePlus, Loader2 } from "lucide-react";
 import { Button, Input } from "@/components/ui/primitives";
 import { Chip, Field, PhotoPicker } from "@/components/onboarding/primitives";
 import {
@@ -36,6 +36,8 @@ export function EditProfileForm({
   const [banner, setBanner] = useState<string | null>(initial.bannerUrl);
   const [bannerUploading, setBannerUploading] = useState(false);
   const [bannerError, setBannerError] = useState<string | null>(null);
+  // True briefly after a successful cover upload (confirmation cue).
+  const [bannerSaved, setBannerSaved] = useState(false);
   const [country, setCountry] = useState(initial.country);
   const [city, setCity] = useState(initial.city);
   const [creatorTypes, setCreatorTypes] = useState<string[]>(
@@ -52,6 +54,12 @@ export function EditProfileForm({
   );
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Success confirmation + a non-blocking notice (e.g. Featured Content couldn't
+  // be saved because its migration isn't applied yet — the photo/cover still
+  // saved). `savedHandle` is the destination to view the persisted profile.
+  const [saved, setSaved] = useState(false);
+  const [notice, setNotice] = useState<string | null>(null);
+  const [savedHandle, setSavedHandle] = useState<string | null>(null);
 
   // Arriving via "Add Featured Content" (/profile/edit#featured): scroll
   // straight to the Featured Content section. The form lives inside a nested
@@ -76,6 +84,7 @@ export function EditProfileForm({
 
   async function onBannerFile(file: File) {
     setBannerError(null);
+    setBannerSaved(false);
 
     const invalid = validateImageFile(file);
     if (invalid) {
@@ -86,7 +95,15 @@ export function EditProfileForm({
     setBannerUploading(true);
     try {
       const url = await uploadToAvatars(file, "banner");
-      if (url) setBanner(url);
+      // Only reflect the new cover if the upload actually returned a URL — never
+      // pretend the image changed when it didn't persist to storage.
+      if (url) {
+        setBanner(url);
+        setBannerSaved(true);
+        window.setTimeout(() => setBannerSaved(false), 2400);
+      } else {
+        setBannerError("Upload didn't complete. Please try again.");
+      }
     } catch (e) {
       console.error("Banner upload failed:", e);
       setBannerError(
@@ -100,6 +117,8 @@ export function EditProfileForm({
   async function save() {
     setSaving(true);
     setError(null);
+    setNotice(null);
+    setSaved(false);
     const res = await updateCreatorProfileAction({
       bio,
       country,
@@ -114,8 +133,18 @@ export function EditProfileForm({
     });
     setSaving(false);
     if (res.ok) {
-      router.push(`/profile/${res.handle ?? initial.handle}`);
-      router.refresh();
+      const dest = `/profile/${res.handle ?? initial.handle}`;
+      if (res.warning) {
+        // Core fields (photo/cover/bio) persisted, but something secondary
+        // didn't. Stay on the page so the user actually reads the notice; they
+        // can tap "View profile" to confirm the image saved.
+        setSaved(true);
+        setNotice(res.warning);
+        setSavedHandle(dest);
+      } else {
+        router.push(dest);
+        router.refresh();
+      }
     } else {
       setError(res.error);
     }
@@ -168,6 +197,19 @@ export function EditProfileForm({
                 <span className="text-[10.5px] text-white/75">
                   Make your profile stand out
                 </span>
+              </span>
+            )}
+
+            {/* Loading overlay while the file uploads to storage. */}
+            {bannerUploading && (
+              <span className="absolute inset-0 flex items-center justify-center gap-2 bg-black/55 text-white text-[12.5px] font-medium">
+                <Loader2 size={15} className="animate-spin" /> Uploading…
+              </span>
+            )}
+            {/* Success cue — confirms the cover actually saved to storage. */}
+            {bannerSaved && !bannerUploading && (
+              <span className="absolute inset-0 flex items-center justify-center gap-2 bg-success/35 text-white text-[12.5px] font-semibold">
+                <CheckCircle2 size={16} /> Cover uploaded
               </span>
             )}
           </button>
@@ -302,6 +344,21 @@ export function EditProfileForm({
           </p>
         )}
 
+        {/* Success confirmation (shown when we stay on the page after a save). */}
+        {saved && (
+          <p className="inline-flex items-center gap-2 text-[12.5px] text-success bg-success/10 border border-success/30 rounded-md px-3 py-2">
+            <CheckCircle2 size={15} /> Profile saved.
+          </p>
+        )}
+
+        {/* Non-blocking notice — e.g. photo/cover saved but Featured Content
+            couldn't be (its migration isn't applied yet). */}
+        {notice && (
+          <p className="text-[12px] text-warning bg-warning/10 border border-warning/30 rounded-md px-3 py-2">
+            {notice}
+          </p>
+        )}
+
         <div className="flex items-center gap-2 pt-1">
           <Button
             variant="primary"
@@ -312,14 +369,27 @@ export function EditProfileForm({
           >
             {saving ? "Saving…" : "Save changes"}
           </Button>
-          <Button
-            variant="outline"
-            size="lg"
-            onClick={() => router.push(`/profile/${initial.handle}`)}
-            disabled={saving}
-          >
-            Cancel
-          </Button>
+          {saved && savedHandle ? (
+            <Button
+              variant="outline"
+              size="lg"
+              onClick={() => {
+                router.push(savedHandle);
+                router.refresh();
+              }}
+            >
+              View profile
+            </Button>
+          ) : (
+            <Button
+              variant="outline"
+              size="lg"
+              onClick={() => router.push(`/profile/${initial.handle}`)}
+              disabled={saving}
+            >
+              Cancel
+            </Button>
+          )}
         </div>
       </div>
     </div>

@@ -121,12 +121,15 @@ export function PhotoPicker({
   const inputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // True briefly after a successful upload — a clear confirmation cue.
+  const [saved, setSaved] = useState(false);
 
   // Validate, then upload to Supabase Storage (avatars/<uid>/...). In demo mode
   // (no Supabase) we use a local object URL. Real upload failures surface the
   // actual error instead of failing silently.
   async function handleFile(file: File) {
     setError(null);
+    setSaved(false);
 
     const invalid = validateImageFile(file);
     if (invalid) {
@@ -142,7 +145,15 @@ export function PhotoPicker({
     setUploading(true);
     try {
       const url = await uploadToAvatars(file, "avatar");
-      if (url) onChange(url);
+      // Only reflect the new photo if the upload returned a real public URL —
+      // never pretend the image changed when it didn't persist to storage.
+      if (url) {
+        onChange(url);
+        setSaved(true);
+        window.setTimeout(() => setSaved(false), 2400);
+      } else {
+        setError("Upload didn't complete. Please try again.");
+      }
     } catch (e) {
       console.error("Avatar upload failed:", e);
       setError(
@@ -168,8 +179,17 @@ export function PhotoPicker({
             size={104}
             className="border-2 border-line"
           />
-          <span className="absolute bottom-0 right-0 inline-flex h-8 w-8 items-center justify-center rounded-full bg-grad-accent text-white border-2 border-bg shadow-glow">
-            <Camera size={15} strokeWidth={2} />
+          <span
+            className={cn(
+              "absolute bottom-0 right-0 inline-flex h-8 w-8 items-center justify-center rounded-full text-white border-2 border-bg shadow-glow transition-colors",
+              saved ? "bg-success" : "bg-grad-accent"
+            )}
+          >
+            {saved ? (
+              <Check size={15} strokeWidth={2.5} />
+            ) : (
+              <Camera size={15} strokeWidth={2} />
+            )}
           </span>
         </button>
         {value && (
@@ -187,9 +207,18 @@ export function PhotoPicker({
         type="button"
         onClick={() => inputRef.current?.click()}
         disabled={uploading}
-        className="text-[12px] font-medium text-accent hover:underline disabled:opacity-60"
+        className={cn(
+          "text-[12px] font-medium hover:underline disabled:opacity-60",
+          saved ? "text-success" : "text-accent"
+        )}
       >
-        {uploading ? "Uploading…" : value ? "Change photo" : "Add a photo"}
+        {uploading
+          ? "Uploading…"
+          : saved
+            ? "Photo updated ✓"
+            : value
+              ? "Change photo"
+              : "Add a photo"}
       </button>
       {error ? (
         <p className="text-[11.5px] text-danger text-center max-w-[220px]">

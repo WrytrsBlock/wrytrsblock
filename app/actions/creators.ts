@@ -30,8 +30,52 @@ export type UpdateProfileInput = {
   featuredContent?: FeaturedContentItem[];
 };
 export type UpdateProfileResult =
-  | { ok: true; handle: string | null }
+  | { ok: true; handle: string | null; warning?: string }
   | { ok: false; error: string };
+
+// Columns that come from later migrations. If a deployment hasn't applied those
+// migrations yet, an upsert that includes them fails with a "schema cache" /
+// "column does not exist" error — which historically nuked the WHOLE save,
+// including avatar_url + banner_url. We strip any such column and retry so core
+// profile fields (photo, cover, bio) ALWAYS persist. Returns the saved row plus
+// the list of columns that had to be dropped.
+const OPTIONAL_COLUMNS = ["featured_content", "portfolio"] as const;
+
+async function upsertProfileResilient(
+  supabase: ReturnType<typeof createSupabaseServerClient>,
+  fullRow: Record<string, unknown> & { id: string }
+): Promise<{ row: Awaited<ReturnType<typeof upsertCreatorProfile>>; dropped: string[] }> {
+  let payload: Record<string, unknown> & { id: string } = { ...fullRow };
+  const dropped: string[] = [];
+
+  // At most one retry per optional column.
+  for (let attempt = 0; attempt <= OPTIONAL_COLUMNS.length; attempt++) {
+    try {
+      const row = await upsertCreatorProfile(
+        supabase,
+        payload as Parameters<typeof upsertCreatorProfile>[1]
+      );
+      return { row, dropped };
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      // Find an optional column the DB is complaining about and still in payload.
+      const offending = OPTIONAL_COLUMNS.find(
+        (c) => c in payload && msg.toLowerCase().includes(c)
+      );
+      if (!offending) throw e; // a real error — surface it
+      const next = { ...payload };
+      delete next[offending];
+      payload = next;
+      dropped.push(offending);
+    }
+  }
+  // Exhausted retries — make a final attempt so a genuine error propagates.
+  const row = await upsertCreatorProfile(
+    supabase,
+    payload as Parameters<typeof upsertCreatorProfile>[1]
+  );
+  return { row, dropped };
+}
 
 // Save edits from the Edit Profile page to creator_profiles (and sync the
 // display fields on profiles). Real-mode only; surfaces the actual error.
@@ -59,7 +103,7 @@ export async function updateCreatorProfileAction(
       socialsUpdate = socials;
     }
 
-    const row = await upsertCreatorProfile(supabase, {
+    const { row, dropped } = await upsertProfileResilient(supabase, {
       id: user.id,
       bio: input.bio || null,
       country: input.country || null,
@@ -78,19 +122,32 @@ export async function updateCreatorProfileAction(
     });
 
     // Keep the sidebar/topbar avatar + bio in sync (those read from profiles).
+    // Mirror avatar changes including removal (null), so the shell never shows a
+    // stale photo.
     await supabase
       .from("profiles")
       .update({
         bio: input.bio || null,
-        ...(input.avatarUrl ? { avatar_url: input.avatarUrl } : {}),
+        ...(input.avatarUrl !== undefined
+          ? { avatar_url: input.avatarUrl }
+          : {}),
       })
       .eq("id", user.id)
       .then(() => {});
 
     revalidatePath("/marketplace");
     revalidatePath("/profile");
+    revalidatePath("/", "layout"); // refresh the sidebar/topbar user card
     if (row.handle) revalidatePath(`/profile/${row.handle}`);
-    return { ok: true, handle: row.handle ?? null };
+
+    // If Featured Content couldn't be saved because its column isn't in the DB
+    // yet (migration 0011 not applied), the photo/cover/bio still saved — tell
+    // the user precisely what didn't, rather than failing the whole save.
+    const warning = dropped.includes("featured_content")
+      ? "Your photo and cover were saved. Featured Content couldn't be saved yet — the database migration (0011_featured_content) hasn't been applied."
+      : undefined;
+
+    return { ok: true, handle: row.handle ?? null, warning };
   } catch (e) {
     console.error("updateCreatorProfileAction failed:", e);
     return {

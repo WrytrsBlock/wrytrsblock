@@ -51,15 +51,20 @@ export function heroImageFor(
 
 /**
  * Marketplace/wall card cover — always returns a usable image so a card is never
- * empty. Prefers the creator's real work, then their photo, then a branded
- * fallback (never a transparent generated avatar).
+ * empty. Required fallback order:
+ *   1. cover / hero image (banner)
+ *   2. a Featured Content image
+ *   3. profile image (uploaded photo — never the transparent generated avatar)
+ *   4. branded fallback
+ * (A portfolio image is used as a final real-work option before the branded
+ * fallback, so seeded/legacy creators still look full.)
  */
 export function cardCoverFor(person: Person, profile: CreatorProfile): string {
   return (
-    profile.portfolio[0] ||
     profile.banner ||
     featuredImageUrl(profile) ||
     realAvatar(person) ||
+    profile.portfolio[0] ||
     FALLBACK_COVER
   );
 }
