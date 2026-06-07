@@ -19,6 +19,10 @@ import {
 import { Wordmark } from "@/components/marketing/wordmark";
 import { CreatorWall } from "@/components/marketing/creator-wall";
 import { CreativeCollage } from "@/components/marketing/creative-collage";
+import {
+  LandingSignInButton,
+  LandingSignInDialog,
+} from "@/components/marketing/landing-sign-in";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { supabaseConfigured } from "@/lib/env";
 import { getCurrentProfile } from "@/lib/data";
@@ -104,17 +108,19 @@ export default async function LandingPage() {
                 Features
               </a>
             </nav>
-            <div className="flex items-center gap-2">
-              <ThemeToggle />
-              <Link
-                href="/sign-in"
-                className="hidden sm:inline-flex items-center h-8 px-3 rounded-lg text-[12.5px] text-white/90 hover:bg-white/10 transition-colors"
-              >
+            <div className="flex items-center gap-1.5 sm:gap-2">
+              {/* Theme toggle hides on mobile to keep room for both auth CTAs. */}
+              <span className="hidden sm:inline-flex">
+                <ThemeToggle />
+              </span>
+              {/* Inline sign-in — opens a modal on the landing page itself, no
+                  navigation. Visible on mobile and desktop. */}
+              <LandingSignInButton className="inline-flex items-center h-8 px-3 sm:px-3.5 rounded-lg border border-white/20 bg-white/5 backdrop-blur-sm text-[12.5px] font-medium text-white/90 hover:bg-white/15 hover:text-white transition-colors">
                 Sign in
-              </Link>
+              </LandingSignInButton>
               <Link
                 href="/sign-up"
-                className="inline-flex items-center gap-1.5 h-8 px-3.5 rounded-lg bg-white text-black text-[12.5px] font-semibold hover:bg-white/90 transition-colors shadow-soft"
+                className="inline-flex items-center gap-1.5 h-8 px-3 sm:px-3.5 rounded-lg bg-white text-black text-[12.5px] font-semibold hover:bg-white/90 transition-colors shadow-soft"
               >
                 Get started <ArrowRight size={13} />
               </Link>
@@ -308,12 +314,9 @@ export default async function LandingPage() {
             >
               Join the Collectv <ArrowRight size={15} />
             </Link>
-            <Link
-              href="/sign-in"
-              className="inline-flex items-center h-11 px-6 rounded-xl border border-line text-[14px] font-medium hover:bg-surface-2 transition-colors"
-            >
+            <LandingSignInButton className="inline-flex items-center h-11 px-6 rounded-xl border border-line text-[14px] font-medium hover:bg-surface-2 transition-colors">
               Sign in
-            </Link>
+            </LandingSignInButton>
           </div>
         </div>
       </section>
@@ -347,6 +350,9 @@ export default async function LandingPage() {
           </div>
         </div>
       </footer>
+
+      {/* Inline sign-in modal — opened by any "Sign in" trigger above. */}
+      <LandingSignInDialog />
     </div>
   );
 }
