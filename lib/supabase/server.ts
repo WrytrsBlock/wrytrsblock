@@ -35,19 +35,16 @@ export function createSupabaseServerClient() {
   });
 }
 
-// A request-scoped client that attaches the signed-in user's access token
-// DIRECTLY as the Authorization header. Use this for RLS-protected writes in
-// Server Actions: it guarantees the database sees the user's JWT (so auth.uid()
-// is the real user id) even if cookie-based session propagation is unreliable.
-// Stateless — never persists or refreshes the session.
+// A request-scoped client that performs RLS-protected writes AS the signed-in
+// user. supabase-js sets the Authorization header on every request from its
+// internal _getAccessToken() — which OVERRIDES a plain global.headers.
+// Authorization and otherwise falls back to the anon key. So we must supply the
+// user's JWT via the `accessToken` option; that is what actually makes the
+// database see the user (auth.uid() = the real user id). Use only for data
+// writes — `.auth.*` is intentionally disabled on this client.
 export function createSupabaseAuthedClient(accessToken: string) {
   return createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-    global: { headers: { Authorization: `Bearer ${accessToken}` } },
-    auth: {
-      persistSession: false,
-      autoRefreshToken: false,
-      detectSessionInUrl: false,
-    },
+    accessToken: async () => accessToken,
   });
 }
 

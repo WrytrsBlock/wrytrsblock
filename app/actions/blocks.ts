@@ -5,7 +5,6 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import {
   createSupabaseServerClient,
   createSupabaseAuthedClient,
-  createSupabaseServiceClient,
 } from "@/lib/supabase/server";
 import { supabaseConfigured } from "@/lib/env";
 import { slugify } from "@/lib/cn";
@@ -84,25 +83,20 @@ export async function createBlockAction(
     } = await cookieClient.auth.getUser();
     if (!user) return { ok: false, error: "You need to be signed in." };
 
-    // 2) Choose the write client. Preferred: a service-role client, which runs
-    //    the inserts with elevated privileges and CANNOT be blocked by a drifted
-    //    RLS policy (the user is already validated above and created_by is
-    //    forced to user.id below — so this stays safe). Fallback: a client with
-    //    the user's JWT attached explicitly so auth.uid() is the real user.
-    const serviceClient = createSupabaseServiceClient();
-    let supabase = serviceClient;
-    if (!supabase) {
-      const {
-        data: { session },
-      } = await cookieClient.auth.getSession();
-      const accessToken = session?.access_token;
-      if (!accessToken)
-        return {
-          ok: false,
-          error: "Your session expired — please sign in again.",
-        };
-      supabase = createSupabaseAuthedClient(accessToken);
-    }
+    // 2) Perform all writes AS the user, through RLS. We pass the user's access
+    //    token via the `accessToken` option so supabase-js sends it as the
+    //    bearer token — making auth.uid() = user.id so the standard policy
+    //    (created_by = auth.uid()) passes. No service-role bypass.
+    const {
+      data: { session },
+    } = await cookieClient.auth.getSession();
+    const accessToken = session?.access_token;
+    if (!accessToken)
+      return {
+        ok: false,
+        error: "Your session expired — please sign in again.",
+      };
+    const supabase = createSupabaseAuthedClient(accessToken);
 
     const displayName =
       (user.user_metadata?.display_name as string) ??
