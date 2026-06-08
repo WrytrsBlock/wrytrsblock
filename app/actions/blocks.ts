@@ -1,7 +1,11 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import {
+  createSupabaseServerClient,
+  createSupabaseAuthedClient,
+} from "@/lib/supabase/server";
 import { supabaseConfigured } from "@/lib/env";
 import { slugify } from "@/lib/cn";
 import { createBlock, addBlockMember } from "@/services/blocks.service";
@@ -35,29 +39,22 @@ export type ActionResult =
   | { ok: true; slug: string; blockType: BlockType }
   | { ok: false; error: string };
 
-// Ensures the signed-in user has at least one workspace, creating a personal
-// one on first use. Returns the workspace id to attach new Blocks to.
-async function ensureWorkspace(): Promise<string | null> {
-  const supabase = createSupabaseServerClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return null;
-
-  const existing = await listWorkspacesForUser(supabase, user.id);
+// Ensures the user has at least one workspace, creating a personal one on first
+// use. Uses the passed (explicitly-authenticated) client so the workspace insert
+// runs with the user's JWT — created_by = auth.uid() = userId passes RLS.
+async function ensureWorkspace(
+  supabase: SupabaseClient,
+  userId: string,
+  displayName: string
+): Promise<string | null> {
+  const existing = await listWorkspacesForUser(supabase, userId);
   if (existing.length > 0) return existing[0].id;
 
-  const base =
-    (user.user_metadata?.display_name as string) ??
-    user.email?.split("@")[0] ??
-    "studio";
   const ws = await createWorkspace(supabase, {
-    name: `${base}'s Studio`,
-    slug: `${slugify(base)}-${user.id.slice(0, 6)}`,
+    name: `${displayName}'s Studio`,
+    slug: `${slugify(displayName)}-${userId.slice(0, 6)}`,
     description: "Personal workspace",
-    // Required so the workspace insert passes RLS and the owner-membership
-    // trigger adds the creator (otherwise block inserts fail).
-    created_by: user.id,
+    created_by: userId,
   });
   return ws.id;
 }
@@ -78,13 +75,31 @@ export async function createBlockAction(
   }
 
   try {
-    const supabase = createSupabaseServerClient();
+    // 1) Validate the session (getUser hits the auth server) and capture the
+    //    access token so every write below carries the user's JWT explicitly.
+    const cookieClient = createSupabaseServerClient();
     const {
       data: { user },
-    } = await supabase.auth.getUser();
+    } = await cookieClient.auth.getUser();
     if (!user) return { ok: false, error: "You need to be signed in." };
 
-    const workspaceId = await ensureWorkspace();
+    const {
+      data: { session },
+    } = await cookieClient.auth.getSession();
+    const accessToken = session?.access_token;
+    if (!accessToken)
+      return { ok: false, error: "Your session expired — please sign in again." };
+
+    // 2) All writes go through a client with the JWT attached → auth.uid() is
+    //    guaranteed to be the real user id (fixes RLS on workspace/Block insert).
+    const supabase = createSupabaseAuthedClient(accessToken);
+
+    const displayName =
+      (user.user_metadata?.display_name as string) ??
+      user.email?.split("@")[0] ??
+      "studio";
+
+    const workspaceId = await ensureWorkspace(supabase, user.id, displayName);
     if (!workspaceId)
       return { ok: false, error: "Couldn't resolve a workspace." };
 

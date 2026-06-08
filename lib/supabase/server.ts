@@ -1,4 +1,5 @@
 import { createServerClient } from "@supabase/ssr";
+import { createClient } from "@supabase/supabase-js";
 import { cookies } from "next/headers";
 import { SUPABASE_ANON_KEY, SUPABASE_URL } from "@/lib/env";
 
@@ -25,6 +26,22 @@ export function createSupabaseServerClient() {
           // middleware refreshes/persists the session instead.
         }
       },
+    },
+  });
+}
+
+// A request-scoped client that attaches the signed-in user's access token
+// DIRECTLY as the Authorization header. Use this for RLS-protected writes in
+// Server Actions: it guarantees the database sees the user's JWT (so auth.uid()
+// is the real user id) even if cookie-based session propagation is unreliable.
+// Stateless — never persists or refreshes the session.
+export function createSupabaseAuthedClient(accessToken: string) {
+  return createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+    global: { headers: { Authorization: `Bearer ${accessToken}` } },
+    auth: {
+      persistSession: false,
+      autoRefreshToken: false,
+      detectSessionInUrl: false,
     },
   });
 }
