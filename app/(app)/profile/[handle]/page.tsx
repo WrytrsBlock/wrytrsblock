@@ -121,9 +121,9 @@ export default async function ProfilePage({
             the integrated Block Showcase 3×3 grid (≈35%) on the right, both the
             same full height. Communicates who/what/why at a glance, no scroll. ── */}
         <section className="w-full px-3 md:px-5 pt-3 md:pt-4">
-          <div className="mx-auto grid w-full max-w-[1320px] grid-cols-1 gap-3 lg:grid-cols-[1.85fr_1fr] lg:gap-4">
+          <div className="mx-auto grid w-full max-w-[1320px] grid-cols-1 gap-3 lg:grid-cols-[1.8fr_1fr] lg:gap-4 xl:gap-5">
             {/* LEFT — cover image + identity */}
-            <div className="relative min-h-[440px] md:min-h-[470px] lg:min-h-[510px] overflow-hidden rounded-[28px] border border-white/10">
+            <div className="relative min-h-[440px] md:min-h-[480px] lg:min-h-[520px] xl:min-h-[560px] overflow-hidden rounded-[28px] border border-white/10">
               {heroImage ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
@@ -138,6 +138,16 @@ export default async function ProfilePage({
               )}
               {/* Top scrim for legibility */}
               <div className="absolute inset-0 bg-gradient-to-b from-black/35 via-transparent to-transparent" />
+
+              {/* Always-visible Edit Profile affordance for the owner (top-right) */}
+              {isMe && (
+                <Link
+                  href="/profile/edit"
+                  className="absolute right-3 top-3 z-20 inline-flex h-9 items-center gap-1.5 rounded-full border border-white/30 bg-black/45 px-3.5 text-[12.5px] font-semibold text-white backdrop-blur-md transition-colors hover:bg-black/70"
+                >
+                  <Pencil size={13} /> Edit Profile
+                </Link>
+              )}
 
               {/* Owner prompt when there's no cover yet */}
               {!heroImage && isMe && (
@@ -242,7 +252,7 @@ export default async function ProfilePage({
             </div>
 
             {/* RIGHT — integrated Block Showcase */}
-            <div className="flex min-h-[440px] md:min-h-[470px] lg:min-h-[510px] flex-col rounded-[28px] border border-white/10 bg-black/35 p-3 backdrop-blur-sm">
+            <div className="flex min-h-[440px] md:min-h-[480px] lg:min-h-[520px] xl:min-h-[560px] flex-col rounded-[28px] border border-white/10 bg-black/35 p-3 backdrop-blur-sm">
               <div className="mb-2.5 flex items-center justify-between px-1">
                 <h2 className="font-display text-[15px] tracking-tight text-ink">
                   Block Showcase

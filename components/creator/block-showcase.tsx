@@ -107,7 +107,7 @@ export function BlockShowcase({
 
   return (
     <div className="flex h-full flex-col">
-      <div className="grid h-full grid-cols-3 grid-rows-3 gap-2">
+      <div className="grid h-full grid-cols-3 grid-rows-3 gap-2 lg:gap-2.5">
         {slots.map((item, i) =>
           item ? (
             <Tile

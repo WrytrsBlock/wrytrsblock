@@ -21,12 +21,18 @@ export type UpdateProfileInput = {
   genres: string[];
   lookingFor: string[];
   availability: string[];
+  // Identity
+  displayName?: string;
+  handle?: string;
+  website?: string;
+  // All social links keyed by platform; replaces the stored socials map.
+  socials?: Record<string, string>;
   avatarUrl?: string | null;
   bannerUrl?: string | null;
   // Featured Work (legacy)
   portfolio?: string[];
   youtube?: string;
-  // Featured Content — curated showcase items
+  // Block Showcase — curated showcase items
   featuredContent?: FeaturedContentItem[];
 };
 export type UpdateProfileResult =
@@ -90,9 +96,16 @@ export async function updateCreatorProfileAction(
     } = await supabase.auth.getUser();
     if (!user) return { ok: false, error: "You need to be signed in." };
 
-    // Merge YouTube into the existing socials map (preserve other links).
+    // Socials: a full map from the form replaces the stored one (empty values
+    // dropped); otherwise fall back to merging the legacy single youtube field.
     let socialsUpdate: Record<string, string> | undefined;
-    if (input.youtube !== undefined) {
+    if (input.socials !== undefined) {
+      socialsUpdate = Object.fromEntries(
+        Object.entries(input.socials)
+          .map(([k, v]) => [k, (v ?? "").trim()] as const)
+          .filter(([, v]) => v.length > 0)
+      );
+    } else if (input.youtube !== undefined) {
       const current = await getCreatorProfileById(supabase, user.id).catch(
         () => null
       );
@@ -103,6 +116,21 @@ export async function updateCreatorProfileAction(
       socialsUpdate = socials;
     }
 
+    // Identity: normalize the username (lowercase, url-safe). An empty handle is
+    // ignored so a creator never accidentally blanks their profile URL.
+    const handle =
+      input.handle !== undefined
+        ? input.handle
+            .trim()
+            .toLowerCase()
+            .replace(/^@+/, "")
+            .replace(/[^a-z0-9_.-]/g, "")
+        : undefined;
+    const displayName =
+      input.displayName !== undefined ? input.displayName.trim() : undefined;
+    const website =
+      input.website !== undefined ? input.website.trim() : undefined;
+
     const { row, dropped } = await upsertProfileResilient(supabase, {
       id: user.id,
       bio: input.bio || null,
@@ -112,6 +140,9 @@ export async function updateCreatorProfileAction(
       genres: input.genres,
       looking_for: input.lookingFor,
       availability: input.availability,
+      ...(displayName !== undefined ? { display_name: displayName || null } : {}),
+      ...(handle ? { handle } : {}),
+      ...(website !== undefined ? { website: website || null } : {}),
       ...(input.avatarUrl !== undefined ? { avatar_url: input.avatarUrl } : {}),
       ...(input.bannerUrl !== undefined ? { banner_url: input.bannerUrl } : {}),
       ...(input.portfolio !== undefined ? { portfolio: input.portfolio } : {}),
@@ -131,6 +162,10 @@ export async function updateCreatorProfileAction(
         ...(input.avatarUrl !== undefined
           ? { avatar_url: input.avatarUrl }
           : {}),
+        ...(displayName !== undefined
+          ? { display_name: displayName || null }
+          : {}),
+        ...(handle ? { handle } : {}),
       })
       .eq("id", user.id)
       .then(() => {});
@@ -150,6 +185,14 @@ export async function updateCreatorProfileAction(
     return { ok: true, handle: row.handle ?? null, warning };
   } catch (e) {
     console.error("updateCreatorProfileAction failed:", e);
+    const msg = e instanceof Error ? e.message : "";
+    // A unique-constraint hit here is almost always the handle/username.
+    if (/duplicate key|already exists|unique constraint/i.test(msg)) {
+      return {
+        ok: false,
+        error: "That username is already taken — please choose another.",
+      };
+    }
     return {
       ok: false,
       error: e instanceof Error ? e.message : "Couldn't save your profile.",

@@ -48,7 +48,17 @@ export function EditProfileForm({
   const [availability, setAvailability] = useState<string[]>(
     initial.availability
   );
-  // Featured Content — curated showcase items
+  // Identity
+  const [displayName, setDisplayName] = useState(initial.displayName);
+  const [username, setUsername] = useState(initial.handle);
+  const [website, setWebsite] = useState(initial.website);
+  // Social links
+  const [instagram, setInstagram] = useState(initial.socials.instagram ?? "");
+  const [youtube, setYoutube] = useState(initial.socials.youtube ?? "");
+  const [spotify, setSpotify] = useState(initial.socials.spotify ?? "");
+  const [tiktok, setTiktok] = useState(initial.socials.tiktok ?? "");
+  const [linkedin, setLinkedin] = useState(initial.socials.linkedin ?? "");
+  // Block Showcase — curated showcase items
   const [featured, setFeatured] = useState<FeaturedContentItem[]>(
     initial.featuredContent
   );
@@ -127,6 +137,10 @@ export function EditProfileForm({
       genres,
       lookingFor,
       availability,
+      displayName,
+      handle: username,
+      website,
+      socials: { instagram, youtube, spotify, tiktok, linkedin },
       avatarUrl: avatar,
       bannerUrl: banner,
       featuredContent: featured,
@@ -244,6 +258,32 @@ export function EditProfileForm({
           </p>
         </Field>
 
+        {/* Identity — display name + username */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+          <Field label="Display name">
+            <Input
+              value={displayName}
+              onChange={(e) => setDisplayName(e.target.value)}
+              placeholder="Your name"
+            />
+          </Field>
+          <Field label="Username" hint="your profile URL">
+            <div className="flex items-center rounded-lg border border-line bg-surface-2 focus-within:border-accent/50 transition-colors">
+              <span className="pl-3 text-[13px] text-muted">@</span>
+              <input
+                value={username}
+                onChange={(e) =>
+                  setUsername(
+                    e.target.value.toLowerCase().replace(/[^a-z0-9_.-]/g, "")
+                  )
+                }
+                placeholder="username"
+                className="flex-1 bg-transparent px-1.5 py-2.5 text-[13px] text-ink placeholder:text-muted/70 focus:outline-none"
+              />
+            </div>
+          </Field>
+        </div>
+
         {/* Bio */}
         <Field label="Bio" hint={`${bio.length}/${BIO_MAX}`}>
           <textarea
@@ -330,6 +370,54 @@ export function EditProfileForm({
           </div>
         </Field>
 
+        {/* Website */}
+        <Field label="Website">
+          <Input
+            value={website}
+            onChange={(e) => setWebsite(e.target.value)}
+            placeholder="https://yoursite.com"
+          />
+        </Field>
+
+        {/* Social links */}
+        <Field label="Social links">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <SocialInput
+              label="Instagram"
+              prefix="@"
+              value={instagram}
+              onChange={setInstagram}
+              placeholder="username"
+            />
+            <SocialInput
+              label="YouTube"
+              prefix="@"
+              value={youtube}
+              onChange={setYoutube}
+              placeholder="channel"
+            />
+            <SocialInput
+              label="Spotify"
+              value={spotify}
+              onChange={setSpotify}
+              placeholder="artist link or name"
+            />
+            <SocialInput
+              label="TikTok"
+              prefix="@"
+              value={tiktok}
+              onChange={setTiktok}
+              placeholder="username"
+            />
+            <SocialInput
+              label="LinkedIn"
+              value={linkedin}
+              onChange={setLinkedin}
+              placeholder="profile id"
+            />
+          </div>
+        </Field>
+
         {/* Block Showcase — the curated 3×3 grid shown in the profile banner */}
         <div id="featured" className="scroll-mt-20">
           <Field label="Block Showcase">
@@ -396,6 +484,40 @@ export function EditProfileForm({
             </Button>
           )}
         </div>
+      </div>
+    </div>
+  );
+}
+
+// A labelled social-link input with an optional @ prefix.
+function SocialInput({
+  label,
+  value,
+  onChange,
+  placeholder,
+  prefix,
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  placeholder?: string;
+  prefix?: string;
+}) {
+  return (
+    <div>
+      <span className="mb-1 block text-[11px] font-medium text-muted">
+        {label}
+      </span>
+      <div className="flex items-center rounded-lg border border-line bg-surface-2 focus-within:border-accent/50 transition-colors">
+        {prefix && <span className="pl-3 text-[13px] text-muted">{prefix}</span>}
+        <input
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder={placeholder}
+          className={`flex-1 bg-transparent py-2.5 text-[13px] text-ink placeholder:text-muted/70 focus:outline-none ${
+            prefix ? "px-1.5" : "px-3"
+          }`}
+        />
       </div>
     </div>
   );

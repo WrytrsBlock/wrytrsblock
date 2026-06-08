@@ -186,6 +186,7 @@ export async function getMyCreatorProfileHandle(): Promise<string | null> {
 // Edit Profile page). Null when signed out / no profile yet.
 export type EditableCreatorProfile = {
   handle: string;
+  displayName: string;
   bio: string;
   avatarUrl: string | null;
   bannerUrl: string | null;
@@ -195,10 +196,13 @@ export type EditableCreatorProfile = {
   genres: string[];
   lookingFor: string[];
   availability: string[];
+  website: string;
+  // All social links keyed by platform (instagram, youtube, spotify, …).
+  socials: Record<string, string>;
   // Featured Work (legacy single-image + youtube fields, kept for compatibility)
   portfolio: string[];
   youtube: string;
-  // Featured Content — the curated showcase the creator manages in Settings.
+  // Block Showcase — the curated grid the creator manages.
   featuredContent: FeaturedContentItem[];
 };
 
@@ -214,6 +218,7 @@ export async function getMyCreatorProfile(): Promise<EditableCreatorProfile | nu
     if (!row) return null;
     return {
       handle: row.handle ?? "",
+      displayName: row.display_name ?? "",
       bio: row.bio ?? "",
       avatarUrl: row.avatar_url,
       bannerUrl: row.banner_url,
@@ -223,6 +228,8 @@ export async function getMyCreatorProfile(): Promise<EditableCreatorProfile | nu
       genres: row.genres ?? [],
       lookingFor: row.looking_for ?? [],
       availability: row.availability ?? [],
+      website: row.website ?? "",
+      socials: row.socials ?? {},
       portfolio: row.portfolio ?? [],
       youtube: row.socials?.youtube ?? "",
       featuredContent: row.featured_content ?? [],
@@ -413,7 +420,17 @@ function creatorRowToView(row: CreatorProfileRow): CreatorView {
       : undefined,
     country: row.country ?? undefined,
     credits: [],
-    services: [],
+    // Services offered are managed as "service" tiles in the Block Showcase, so
+    // they surface both in the showcase grid and the dedicated Services section.
+    services: (row.featured_content ?? [])
+      .filter((i) => i.type === "service")
+      .map((i) => ({
+        title: i.title || "Service",
+        price: i.subtitle || "",
+        slug: i.url?.startsWith("/blocks/")
+          ? i.url.replace(/^\/blocks\//, "")
+          : undefined,
+      })),
     portfolio: row.portfolio ?? [],
     portfolioLinks: [],
     socials: row.socials ?? {},

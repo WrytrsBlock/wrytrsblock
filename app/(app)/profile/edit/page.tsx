@@ -26,6 +26,7 @@ export default async function EditProfilePage() {
     // Saving upserts the creator profile.
     const fallback: EditableCreatorProfile = {
       handle: me.handle,
+      displayName: me.name ?? "",
       bio: "",
       avatarUrl: me.avatar,
       bannerUrl: null,
@@ -35,6 +36,8 @@ export default async function EditProfilePage() {
       genres: [],
       lookingFor: [],
       availability: [],
+      website: "",
+      socials: {},
       portfolio: [],
       youtube: "",
       featuredContent: [],
