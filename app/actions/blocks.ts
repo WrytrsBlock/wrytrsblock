@@ -50,11 +50,13 @@ async function ensureWorkspace(
   const existing = await listWorkspacesForUser(supabase, userId);
   if (existing.length > 0) return existing[0].id;
 
+  // Do NOT send created_by — let the column default (auth.uid()) populate it, so
+  // the row satisfies the (created_by = auth.uid()) policy by construction,
+  // independent of the app's user.id value.
   const ws = await createWorkspace(supabase, {
     name: `${displayName}'s Studio`,
     slug: `${slugify(displayName)}-${userId.slice(0, 6)}`,
     description: "Personal workspace",
-    created_by: userId,
   });
   return ws.id;
 }
@@ -136,8 +138,9 @@ export async function createBlockAction(
     const price = input.price && input.price > 0 ? input.price : null;
     const visibility = input.visibility ?? "Public";
     const party = blockType === "block_party" ? input.party ?? null : null;
-    // created_by + lead_id are required for the blocks-insert RLS check
-    // (created_by = auth.uid()).
+    // created_by is left to the column default (auth.uid()) so the blocks-insert
+    // RLS check (created_by = auth.uid()) passes by construction. lead_id is not
+    // part of the policy and stays as the creator for display/ownership.
     const base = {
       workspace_id: workspaceId,
       title,
@@ -148,7 +151,6 @@ export async function createBlockAction(
       price,
       visibility,
       party,
-      created_by: user.id,
       lead_id: user.id,
     };
     const block = await createBlock(supabase, { ...base, slug }).catch(
