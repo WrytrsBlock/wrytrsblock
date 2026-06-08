@@ -74,6 +74,10 @@ export async function createBlockAction(
     return { ok: true, slug, blockType };
   }
 
+  // Temporary runtime diagnostic surfaced in any error, so we can verify (1)
+  // this code version is live and (2) what the DB actually sees.
+  let diag = "[blk-at1]";
+
   try {
     // 1) Validate the session (getUser hits the auth server) and capture the
     //    access token so every write below carries the user's JWT explicitly.
@@ -97,6 +101,25 @@ export async function createBlockAction(
         error: "Your session expired — please sign in again.",
       };
     const supabase = createSupabaseAuthedClient(accessToken);
+
+    // Diagnostic: does the DB see this user via the authed client? Updating the
+    // user's own creator_profiles row only touches a row when auth.uid() = id,
+    // so this proves whether the JWT actually reached PostgREST.
+    const tokenKind = accessToken.startsWith("eyJ")
+      ? "jwt"
+      : `other:${accessToken.slice(0, 6)}`;
+    let authUidOk = "?";
+    try {
+      const probe = await supabase
+        .from("creator_profiles")
+        .update({ updated_at: new Date().toISOString() })
+        .eq("id", user.id)
+        .select("id");
+      authUidOk = (probe.data?.length ?? 0) > 0 ? "yes" : "no";
+    } catch {
+      authUidOk = "err";
+    }
+    diag = `[blk-at1 token=${tokenKind} authUid=${authUidOk}]`;
 
     const displayName =
       (user.user_metadata?.display_name as string) ??
@@ -170,6 +193,6 @@ export async function createBlockAction(
         : e && typeof e === "object" && "message" in e
         ? String((e as { message: unknown }).message)
         : "Failed to create Block.";
-    return { ok: false, error: message };
+    return { ok: false, error: `${message} ${diag}` };
   }
 }
