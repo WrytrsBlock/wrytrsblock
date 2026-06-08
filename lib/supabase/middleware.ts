@@ -30,18 +30,20 @@ export async function updateSession(request: NextRequest) {
 
   const supabase = createServerClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     cookies: {
-      get(name) {
-        return request.cookies.get(name)?.value;
+      getAll() {
+        return request.cookies.getAll();
       },
-      set(name, value, options) {
-        request.cookies.set({ name, value, ...options });
+      setAll(cookiesToSet) {
+        // Write the refreshed session back onto BOTH the request (so this pass
+        // sees it) and the response (so the browser persists it). Using getAll/
+        // setAll keeps chunked auth-token cookies intact.
+        cookiesToSet.forEach(({ name, value }) =>
+          request.cookies.set(name, value)
+        );
         response = NextResponse.next({ request });
-        response.cookies.set({ name, value, ...options });
-      },
-      remove(name, options) {
-        request.cookies.set({ name, value: "", ...options });
-        response = NextResponse.next({ request });
-        response.cookies.set({ name, value: "", ...options });
+        cookiesToSet.forEach(({ name, value, options }) =>
+          response.cookies.set(name, value, options)
+        );
       },
     },
   });
