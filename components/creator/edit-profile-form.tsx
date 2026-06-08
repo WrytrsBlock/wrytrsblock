@@ -330,13 +330,15 @@ export function EditProfileForm({
           </div>
         </Field>
 
-        {/* Featured Content — the curated showcase shown high on the profile */}
+        {/* Block Showcase — the curated 3×3 grid shown in the profile banner */}
         <div id="featured" className="scroll-mt-20">
-          <Field label="Featured Content">
+          <Field label="Block Showcase">
             <FeaturedContentEditor value={featured} onChange={setFeatured} />
             <p className="mt-2 text-[11px] text-muted/70">
-              Add videos, reels, audio, images, or portfolio links. Choose one
-              ⭐ Featured item — it shows first and larger on your profile.
+              Photos, reels, videos, songs, beat packs, services, projects,
+              releases, and testimonials — they fill your profile banner&apos;s
+              3×3 grid. You can also add &amp; reorder tiles right on your
+              profile.
             </p>
           </Field>
         </div>

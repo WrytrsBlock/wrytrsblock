@@ -1,9 +1,16 @@
 import {
+  Briefcase,
+  Disc3,
+  Film,
   Headphones,
   Image as ImageIcon,
   Instagram,
+  Layers,
   Link2,
+  MessageSquareQuote,
   Music2,
+  PartyPopper,
+  Rocket,
   Youtube,
   type LucideIcon,
 } from "lucide-react";
@@ -11,8 +18,9 @@ import type { ContentType, FeaturedContentItem } from "@/types";
 
 export type { ContentType, FeaturedContentItem };
 
-// How a creator supplies each content type in Settings.
-type InputKind = "url" | "image" | "audio";
+// How a creator supplies each content type. "link" types accept a URL plus an
+// optional uploaded thumbnail; "text" types are free-form (e.g. testimonials).
+type InputKind = "url" | "image" | "audio" | "link" | "text";
 
 type ContentMeta = {
   id: ContentType;
@@ -89,15 +97,112 @@ export const CONTENT_TYPES: ContentMeta[] = [
   },
   {
     id: "portfolio",
-    label: "Portfolio Link",
-    badge: "Link",
+    label: "Portfolio Project",
+    badge: "Project",
     Icon: Link2,
     accent: "text-accent",
     input: "url",
     placeholder: "https://your-portfolio.com",
     hint: "Link to a portfolio or external piece of work.",
   },
+  {
+    id: "video",
+    label: "Video",
+    badge: "Video",
+    Icon: Film,
+    accent: "text-danger",
+    input: "link",
+    placeholder: "https://… (Vimeo, a hosted .mp4, or any video link)",
+    hint: "Paste a video link; add a thumbnail so the tile looks great.",
+  },
+  {
+    id: "song",
+    label: "Song",
+    badge: "Song",
+    Icon: Music2,
+    accent: "text-accent",
+    input: "link",
+    placeholder: "https://… (Spotify, Apple Music, SoundCloud)",
+    hint: "Link a song; add cover art as the thumbnail.",
+  },
+  {
+    id: "beat_pack",
+    label: "Beat Pack",
+    badge: "Beats",
+    Icon: Disc3,
+    accent: "text-accent-2",
+    input: "link",
+    placeholder: "https://… (store or download link)",
+    hint: "Link a beat pack; add cover art as the thumbnail.",
+  },
+  {
+    id: "service",
+    label: "Service",
+    badge: "Service",
+    Icon: Briefcase,
+    accent: "text-accent-2",
+    input: "link",
+    placeholder: "/blocks/your-service  or  https://…",
+    hint: "Promote a service you offer.",
+  },
+  {
+    id: "block",
+    label: "Active Block",
+    badge: "Block",
+    Icon: Layers,
+    accent: "text-accent",
+    input: "link",
+    placeholder: "/blocks/your-block",
+    hint: "Feature an active Block collaborators can join.",
+  },
+  {
+    id: "release",
+    label: "Upcoming Release",
+    badge: "Release",
+    Icon: Rocket,
+    accent: "text-warning",
+    input: "link",
+    placeholder: "https://… (pre-save, store, or info link)",
+    hint: "Tease an upcoming release with cover art + date.",
+  },
+  {
+    id: "block_party",
+    label: "Block Party",
+    badge: "Party",
+    Icon: PartyPopper,
+    accent: "text-warning",
+    input: "link",
+    placeholder: "/blocks/your-block-party",
+    hint: "Promote a Block Party event.",
+  },
+  {
+    id: "testimonial",
+    label: "Testimonial",
+    badge: "Praise",
+    Icon: MessageSquareQuote,
+    accent: "text-success",
+    input: "text",
+    placeholder: "“Working with them was incredible…”",
+    hint: "Add a quote from someone you've collaborated with.",
+  },
 ];
+
+// Showcase ordering: pinned tiles first, otherwise original order (stable).
+export function sortShowcase(items: FeaturedContentItem[]): FeaturedContentItem[] {
+  return [...items].sort((a, b) => Number(!!b.pinned) - Number(!!a.pinned));
+}
+
+// The best image to represent a tile (explicit thumbnail → image url → YouTube
+// thumb). Returns null when the tile should render an icon/text instead.
+export function tileThumb(item: FeaturedContentItem): string | null {
+  if (item.thumbnail) return item.thumbnail;
+  if (item.type === "image") return item.url || null;
+  if (isVideoType(item.type)) {
+    const id = youtubeId(item.url);
+    if (id) return youtubeThumb(id);
+  }
+  return null;
+}
 
 export const contentMeta = (t: ContentType): ContentMeta =>
   CONTENT_TYPES.find((c) => c.id === t) ?? CONTENT_TYPES[0];

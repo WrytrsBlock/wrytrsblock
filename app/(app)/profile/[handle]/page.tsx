@@ -14,12 +14,13 @@ import { TopBar } from "@/components/shell/topbar";
 import { Badge, Button, Progress } from "@/components/ui/primitives";
 import { StartBlockButton } from "@/components/block/start-block-button";
 import { BlockScoreCard } from "@/components/creator/block-score";
-import { FeaturedContent } from "@/components/creator/featured-content";
+import { BlockShowcase } from "@/components/creator/block-showcase";
+import { ShareProfileButton } from "@/components/creator/share-profile-button";
 import { SampleBlocks } from "@/components/creator/sample-blocks";
 import { MediaPlayer } from "@/components/creator/media-player";
 import { blocksForPerson, tracksForCreator } from "@/lib/mock";
 import { profileCompleteness, scoreFactorBreakdown } from "@/lib/block-score";
-import { heroImageFor } from "@/lib/creator-image";
+import { heroImageFor, realAvatar } from "@/lib/creator-image";
 import { getCreator, getCurrentProfile } from "@/lib/data";
 
 export const dynamic = "force-dynamic";
@@ -70,12 +71,11 @@ export default async function ProfilePage({
   const { person, profile } = data;
   const activeBlocks = blocksForPerson(person.id);
   const tracks = tracksForCreator(profile);
-  // Image-first hero, resolved in one place (lib/creator-image.ts):
-  //   cover → featured-content image → real profile photo → portfolio image.
-  // Never the generated dicebear avatar and never a random stock banner — if the
-  // creator has no image at all this is undefined and we show a branded
-  // gradient + "add a cover" guidance instead.
+  // Cover/hero image (cover → featured image → real photo → portfolio). Never a
+  // dicebear avatar or random stock — undefined ⇒ branded gradient instead.
   const heroImage = heroImageFor(person, profile);
+  // The profile photo (avatar) shown in the identity card — real photo only.
+  const avatar = realAvatar(person);
 
   const me = await getCurrentProfile();
   const isMe = me?.handle === person.handle;
@@ -95,9 +95,6 @@ export default async function ProfilePage({
   });
 
   const completedBlocks = activeBlocks.length;
-  const collaborators = profile.reviews; // placeholder proxy until tracked
-  const ratingDisplay =
-    profile.reviews >= 3 ? profile.rating.toFixed(1) : "New";
   const isNewCreator = completedBlocks === 0 && profile.reviews < 3;
 
   const socialEntries = Object.entries(profile.socials).filter(
@@ -108,12 +105,6 @@ export default async function ProfilePage({
   if (profile.openTo.includes("collaboration"))
     availability.push("Open to Collaboration");
   if (profile.openTo.includes("service")) availability.push("Open to Services");
-
-  const stats = [
-    { value: completedBlocks, label: "Completed Blocks" },
-    { value: collaborators, label: "Collaborators" },
-    { value: ratingDisplay, label: "Rating" },
-  ];
 
   return (
     <>
@@ -126,145 +117,152 @@ export default async function ProfilePage({
       {/* min-h-0 is required so this flex child actually scrolls (esp. iOS
           Safari) instead of growing to its content height and clipping. */}
       <div className="flex-1 min-h-0 overflow-y-auto">
-        {/* ── Creator hero — image-first: the creator's cover/portfolio image
-            fills a height-capped band; a frosted-glass overlay across the lower
-            portion holds the identity. No avatar circle — the image is the hero.
-            Heights are bounded (mobile ~360px, desktop ~500px) so the image
-            never takes over the page. ── */}
-        <section className="relative w-full">
-          <div className="relative h-[360px] sm:h-[440px] md:h-[500px] w-full overflow-hidden">
-            {heroImage ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={heroImage}
-                alt={person.name}
-                // object-cover + object-center crops elegantly from the middle —
-                // a portrait used as a hero fallback is never stretched or
-                // awkwardly zoomed.
-                className="absolute inset-0 h-full w-full object-cover object-center"
-              />
-            ) : (
-              // No cover/photo/featured image yet — a clean, intentional branded
-              // backdrop (never a random or blank image). Owners get a clear
-              // prompt to add a cover; visitors just see the branded gradient.
-              <div className="absolute inset-0 bg-grad-accent">
-                <div className="absolute inset-0 bg-grad-mesh opacity-30" />
-                {isMe && (
-                  <div className="absolute inset-x-0 top-0 bottom-[38%] flex flex-col items-center justify-center gap-3 px-6 text-center">
-                    <span className="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-white/15 border border-white/25 backdrop-blur-sm text-white">
-                      <ImagePlus size={20} strokeWidth={1.75} />
-                    </span>
-                    <p className="text-white text-[14px] sm:text-[15px] font-medium max-w-xs leading-snug">
-                      Add a cover image to make your profile stand out
-                    </p>
-                    <Link href="/profile/edit">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="border-white/35 text-white hover:bg-white/15"
-                        style={{ color: "#FFFFFF" }}
-                      >
-                        <ImagePlus size={13} /> Add cover image
-                      </Button>
-                    </Link>
-                  </div>
-                )}
-              </div>
-            )}
-            {/* Top scrim so the breadcrumb stays legible */}
-            <div className="absolute inset-0 bg-gradient-to-b from-black/35 via-transparent to-transparent" />
+        {/* ── Split banner — identity over the cover image (≈65%) on the left,
+            the integrated Block Showcase 3×3 grid (≈35%) on the right, both the
+            same full height. Communicates who/what/why at a glance, no scroll. ── */}
+        <section className="w-full px-3 md:px-5 pt-3 md:pt-4">
+          <div className="mx-auto grid w-full max-w-[1320px] grid-cols-1 gap-3 lg:grid-cols-[1.85fr_1fr] lg:gap-4">
+            {/* LEFT — cover image + identity */}
+            <div className="relative min-h-[440px] md:min-h-[470px] lg:min-h-[510px] overflow-hidden rounded-[28px] border border-white/10">
+              {heroImage ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={heroImage}
+                  alt={person.name}
+                  className="absolute inset-0 h-full w-full object-cover object-center"
+                />
+              ) : (
+                <div className="absolute inset-0 bg-grad-accent">
+                  <div className="absolute inset-0 bg-grad-mesh opacity-30" />
+                </div>
+              )}
+              {/* Top scrim for legibility */}
+              <div className="absolute inset-0 bg-gradient-to-b from-black/35 via-transparent to-transparent" />
 
-            {/* Frosted glass overlay — lower portion, same language as the cards */}
-            <div className="absolute inset-x-0 bottom-0 z-10 bg-gradient-to-t from-black/85 via-black/50 to-black/5 backdrop-blur-md border-t border-white/15 shadow-[inset_0_1px_0_rgb(255_255_255/0.14)]">
-              <div className="mx-auto max-w-[1100px] px-5 md:px-8 py-6 md:py-8">
-                <div className="flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
-                  {/* Identity */}
-                  <div className="min-w-0">
+              {/* Owner prompt when there's no cover yet */}
+              {!heroImage && isMe && (
+                <div className="absolute inset-x-0 top-7 flex flex-col items-center gap-2.5 px-6 text-center">
+                  <span className="inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-white/15 border border-white/25 backdrop-blur-sm text-white">
+                    <ImagePlus size={18} strokeWidth={1.75} />
+                  </span>
+                  <p className="text-white text-[13.5px] font-medium max-w-xs leading-snug">
+                    Add a cover image to make your profile stand out
+                  </p>
+                  <Link href="/profile/edit">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="border-white/35 text-white hover:bg-white/15"
+                      style={{ color: "#FFFFFF" }}
+                    >
+                      <ImagePlus size={13} /> Add cover image
+                    </Button>
+                  </Link>
+                </div>
+              )}
+
+              {/* Frosted identity panel */}
+              <div className="absolute inset-x-0 bottom-0 z-10 border-t border-white/10 bg-gradient-to-t from-black/90 via-black/55 to-transparent backdrop-blur-md p-5 md:p-7">
+                <div className="flex items-end gap-4">
+                  {/* Profile photo */}
+                  <div className="shrink-0">
+                    {avatar ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={avatar}
+                        alt={person.name}
+                        className="h-16 w-16 md:h-20 md:w-20 rounded-2xl border-2 border-white/25 object-cover shadow-lg"
+                      />
+                    ) : (
+                      <span className="flex h-16 w-16 md:h-20 md:w-20 items-center justify-center rounded-2xl border-2 border-white/25 bg-white/15 font-display text-2xl text-white">
+                        {person.name.slice(0, 1)}
+                      </span>
+                    )}
+                  </div>
+                  <div className="min-w-0 flex-1">
                     <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-white/60">
                       @{person.handle}
                     </p>
-                    {/* Creator name — large and premium; the hero of the page */}
-                    <h1 className="mt-1.5 font-display text-[40px] sm:text-[56px] md:text-[68px] text-white leading-[0.95] tracking-tight">
+                    <h1 className="mt-0.5 truncate font-display text-[34px] sm:text-[44px] md:text-[52px] leading-[0.95] tracking-tight text-white">
                       {person.name}
                     </h1>
-
-                    {/* Creator type · location · availability */}
-                    <div className="mt-3.5 flex flex-wrap items-center gap-2">
-                      {profile.roles.map((r) => (
-                        <span
-                          key={r}
-                          className="inline-flex items-center h-7 px-3 rounded-full bg-white/15 border border-white/25 text-white text-[12px] font-semibold backdrop-blur-sm"
-                        >
-                          {r}
-                        </span>
-                      ))}
-                      <span className="inline-flex items-center gap-1 text-[12.5px] text-white/75">
-                        <MapPin size={13} className="shrink-0" />
-                        {profile.location}
-                      </span>
-                      {availability.map((a) => (
-                        <span
-                          key={a}
-                          className="inline-flex items-center gap-1.5 h-7 px-2.5 rounded-full bg-success/20 border border-success/40 text-success text-[11.5px] font-medium"
-                        >
-                          <span className="h-1.5 w-1.5 rounded-full bg-success" />
-                          {a}
-                        </span>
-                      ))}
-                    </div>
-
-                    {/* Short bio */}
-                    {(profile.bio || profile.tagline) && (
-                      <p className="mt-3 text-[13px] md:text-[13.5px] text-white/75 leading-relaxed max-w-2xl line-clamp-2">
-                        {profile.bio || profile.tagline}
-                      </p>
-                    )}
-                  </div>
-
-                  {/* CTA + stats */}
-                  <div className="shrink-0 flex flex-col items-start md:items-end gap-4">
-                    {isMe ? (
-                      <Link href="/profile/edit">
-                        <Button
-                          variant="primary"
-                          size="lg"
-                          style={{ color: "#FFFFFF" }}
-                        >
-                          <Pencil size={14} /> Edit Profile
-                        </Button>
-                      </Link>
-                    ) : (
-                      <StartBlockButton
-                        handle={person.handle}
-                        name={person.name}
-                        size="lg"
-                      />
-                    )}
-
-                    <div className="flex items-center gap-5 md:gap-7">
-                      {stats.map((s) => (
-                        <div key={s.label} className="text-left md:text-right">
-                          <div className="font-display text-[24px] md:text-[28px] text-white tabular-nums leading-none">
-                            {s.value}
-                          </div>
-                          <div className="mt-1.5 text-[9.5px] uppercase tracking-[0.1em] text-white/55">
-                            {s.label}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
                   </div>
                 </div>
+
+                {/* Creator type(s) · location · collaboration status */}
+                <div className="mt-3.5 flex flex-wrap items-center gap-2">
+                  {profile.roles.map((r) => (
+                    <span
+                      key={r}
+                      className="inline-flex h-7 items-center rounded-full border border-white/25 bg-white/15 px-3 text-[12px] font-semibold text-white backdrop-blur-sm"
+                    >
+                      {r}
+                    </span>
+                  ))}
+                  <span className="inline-flex items-center gap-1 text-[12.5px] text-white/75">
+                    <MapPin size={13} className="shrink-0" />
+                    {profile.location}
+                  </span>
+                  {availability.map((a) => (
+                    <span
+                      key={a}
+                      className="inline-flex h-7 items-center gap-1.5 rounded-full border border-success/40 bg-success/20 px-2.5 text-[11.5px] font-medium text-success"
+                    >
+                      <span className="h-1.5 w-1.5 rounded-full bg-success" />
+                      {a}
+                    </span>
+                  ))}
+                </div>
+
+                {/* Short bio */}
+                {(profile.bio || profile.tagline) && (
+                  <p className="mt-3 max-w-2xl text-[13px] md:text-[13.5px] leading-relaxed text-white/75 line-clamp-2">
+                    {profile.bio || profile.tagline}
+                  </p>
+                )}
+
+                {/* Actions: Edit (owner) / Start Block (visitor) + Share */}
+                <div className="mt-4 flex flex-wrap items-center gap-2.5">
+                  {isMe ? (
+                    <Link href="/profile/edit">
+                      <Button variant="primary" size="lg" style={{ color: "#FFFFFF" }}>
+                        <Pencil size={14} /> Edit Profile
+                      </Button>
+                    </Link>
+                  ) : (
+                    <StartBlockButton
+                      handle={person.handle}
+                      name={person.name}
+                      size="lg"
+                    />
+                  )}
+                  <ShareProfileButton handle={person.handle} name={person.name} />
+                </div>
+              </div>
+            </div>
+
+            {/* RIGHT — integrated Block Showcase */}
+            <div className="flex min-h-[440px] md:min-h-[470px] lg:min-h-[510px] flex-col rounded-[28px] border border-white/10 bg-black/35 p-3 backdrop-blur-sm">
+              <div className="mb-2.5 flex items-center justify-between px-1">
+                <h2 className="font-display text-[15px] tracking-tight text-ink">
+                  Block Showcase
+                </h2>
+                <span className="text-[10.5px] text-muted">
+                  {isMe ? "Drag · pin · edit" : "Tap a tile to view"}
+                </span>
+              </div>
+              <div className="min-h-0 flex-1">
+                <BlockShowcase
+                  initialItems={profile.featuredContent ?? []}
+                  isOwner={isMe}
+                />
               </div>
             </div>
           </div>
         </section>
 
         {/* ── Body — a creator portfolio, not a settings dashboard ── */}
-        <div className="px-5 md:px-8 pt-7 md:pt-8 pb-12 max-w-[1100px] w-full space-y-9 animate-fade-up">
-          {/* Featured Content — first thing visitors see */}
-          <FeaturedContent items={profile.featuredContent ?? []} isOwner={isMe} />
-
+        <div className="mx-auto w-full max-w-[1320px] px-5 md:px-8 pt-9 md:pt-10 pb-12 space-y-9 animate-fade-up">
           {/* Skills & Genres — premium pills */}
           {profile.skills.length > 0 && (
             <section>

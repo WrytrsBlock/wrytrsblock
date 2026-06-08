@@ -101,24 +101,44 @@ export interface Profile {
 }
 
 // Marketplace source of truth — structured creator data (see 0006 migration).
-// ── Featured Content — creator-selected showcase pieces on the profile. Not a
-// social feed: a small, curated set with one "featured" item shown larger. ───
+// ── Block Showcase — creator-selected showcase pieces shown in the profile
+// banner's 3×3 grid (formerly "Featured Content"). A curated portfolio grid:
+// photos, reels, videos, songs, beat packs, services, active Blocks, projects,
+// upcoming releases, Block Party promos, and testimonials. ───────────────────
 export type ContentType =
   | "youtube"
   | "youtube_short"
   | "instagram"
   | "tiktok"
+  | "video"
   | "audio"
+  | "song"
+  | "beat_pack"
   | "image"
-  | "portfolio";
+  | "portfolio"
+  | "service"
+  | "block"
+  | "release"
+  | "block_party"
+  | "testimonial";
 
 export interface FeaturedContentItem {
   id: string;
   type: ContentType;
+  // Primary link (video/audio/portfolio/service/block/release/party). Optional
+  // for text-only tiles (testimonial) and image tiles (url == the image).
   url: string;
   title?: string;
-  // Exactly one item should be flagged featured (shown first + larger). When
-  // none is flagged the first item is treated as featured.
+  // Optional supporting label shown under the title on richer tiles.
+  subtitle?: string;
+  // Uploaded/derived image used as the tile's visual (for non-image types).
+  thumbnail?: string;
+  // Free text body — used by testimonial tiles.
+  body?: string;
+  // Pinned tiles sort to the front of the showcase grid.
+  pinned?: boolean;
+  // Exactly one item may be flagged featured (shown first + larger in the
+  // legacy list view). When none is flagged the first item is treated as such.
   featured?: boolean;
 }
 
