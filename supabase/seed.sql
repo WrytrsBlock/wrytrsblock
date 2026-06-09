@@ -90,7 +90,7 @@ on conflict (id) do update set
 -- \set me_id 'REPLACE-WITH-YOUR-AUTH-UUID'
 --
 -- insert into public.workspaces (name, slug, description, created_by)
--- values ('Inkwell Studio', 'inkwell', 'Independent creative studio.', :'me_id')
+-- values ('My Studio', 'my-studio', 'Independent creative studio.', :'me_id')
 -- on conflict (slug) do nothing;
 --
 -- insert into public.blocks
@@ -101,5 +101,5 @@ on conflict (id) do update set
 --        'Producing', 'Audio Drama', 64, '2026-06-28',
 --        'https://images.unsplash.com/photo-1490971588422-52f6262a237a',
 --        array['Audio Drama','Period','Serial'], '$84,500', :'me_id', :'me_id'
--- from public.workspaces w where w.slug = 'inkwell'
+-- from public.workspaces w where w.slug = 'my-studio'
 -- on conflict do nothing;

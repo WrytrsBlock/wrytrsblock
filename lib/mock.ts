@@ -52,7 +52,7 @@ export type Workspace = {
 };
 
 export const workspaces: Workspace[] = [
-  { id: "w1", name: "Inkwell Studio", initials: "IS", hue: "from-amber-400/80 to-rose-400/80" },
+  { id: "w1", name: "My Studio", initials: "MS", hue: "from-amber-400/80 to-rose-400/80" },
   { id: "w2", name: "Northbeam Films", initials: "NF", hue: "from-rose-500/80 to-orange-500/80" },
   { id: "w3", name: "Solo · Personal", initials: "SO", hue: "from-emerald-500/80 to-teal-500/80" },
 ];

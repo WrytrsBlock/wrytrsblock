@@ -244,8 +244,8 @@ export async function getMyWorkspaces() {
     return [
       {
         id: "ws-mock",
-        name: "Inkwell Studio",
-        slug: "inkwell",
+        name: "My Studio",
+        slug: "my-studio",
         description: null,
         cover_url: null,
         created_by: null,

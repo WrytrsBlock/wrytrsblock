@@ -16,7 +16,7 @@ import { getPerson, type Block } from "@/lib/mock";
 
 const visibilities = [
   { id: "private", label: "Private", desc: "Only invited collaborators", icon: Lock },
-  { id: "workspace", label: "Workspace", desc: "Anyone in Inkwell Studio", icon: Users },
+  { id: "workspace", label: "Workspace", desc: "Anyone in your workspace", icon: Users },
   { id: "public", label: "Public link", desc: "Anyone with the link can view", icon: Globe },
 ] as const;
 
