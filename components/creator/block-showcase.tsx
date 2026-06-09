@@ -124,7 +124,7 @@ export function BlockShowcase({
   );
 
   return (
-    <div className="flex h-full flex-col">
+    <div className="relative h-full">
       <div className="grid h-full grid-cols-3 grid-rows-3 gap-2 lg:gap-2.5">
         {slots.map((item, i) =>
           item ? (
@@ -163,16 +163,25 @@ export function BlockShowcase({
         )}
       </div>
 
-      {/* Save status (owner only) */}
+      {/* Save status (owner only) — an overlay so it never changes grid height */}
       {isOwner && (saving || saveError) && (
-        <div className="mt-2 flex items-center gap-1.5 text-[11px]">
-          {saving ? (
-            <span className="inline-flex items-center gap-1.5 text-white/70">
-              <Loader2 size={12} className="animate-spin" /> Saving showcase…
-            </span>
-          ) : (
-            <span className="text-danger">{saveError}</span>
-          )}
+        <div className="pointer-events-none absolute inset-x-1 bottom-1.5 z-20 flex justify-center">
+          <span
+            className={cn(
+              "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10.5px] backdrop-blur-sm",
+              saveError
+                ? "border-danger/40 bg-danger/25 text-white"
+                : "border-white/15 bg-black/65 text-white/85"
+            )}
+          >
+            {saving ? (
+              <>
+                <Loader2 size={11} className="animate-spin" /> Saving…
+              </>
+            ) : (
+              saveError
+            )}
+          </span>
         </div>
       )}
 
@@ -270,7 +279,7 @@ function Tile({
         <img
           src={thumb}
           alt={title}
-          className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.06]"
+          className="absolute inset-0 h-full w-full object-cover object-center transition-transform duration-500 group-hover:scale-[1.06]"
         />
       ) : (
         <span

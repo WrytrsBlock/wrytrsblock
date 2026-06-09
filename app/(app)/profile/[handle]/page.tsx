@@ -152,7 +152,7 @@ export default async function ProfilePage({
         <section className="w-full pt-3 md:pt-4">
           <div className="mx-auto grid w-full max-w-[1320px] grid-cols-1 gap-3 px-4 md:px-6 lg:grid-cols-[1.8fr_1fr] lg:gap-4 xl:gap-5">
             {/* LEFT — cover image + identity */}
-            <div className="relative min-h-[440px] md:min-h-[480px] lg:min-h-[520px] xl:min-h-[560px] overflow-hidden rounded-[28px] border border-white/10">
+            <div className="relative h-[460px] md:h-[500px] lg:h-[520px] xl:h-[560px] overflow-hidden rounded-[28px] border border-white/10">
               {heroImage ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
@@ -242,22 +242,14 @@ export default async function ProfilePage({
               </div>
             </div>
 
-            {/* RIGHT — integrated Block Showcase */}
-            <div className="flex min-h-[440px] md:min-h-[480px] lg:min-h-[520px] xl:min-h-[560px] flex-col rounded-[28px] border border-white/10 bg-black/35 p-3 backdrop-blur-sm">
-              <div className="mb-2.5 flex items-center justify-between px-1">
-                <h2 className="font-display text-[15px] tracking-tight text-ink">
-                  Block Showcase
-                </h2>
-                <span className="text-[10.5px] text-muted">
-                  {isMe ? "Drag · pin · edit" : "Tap a tile to view"}
-                </span>
-              </div>
-              <div className="min-h-0 flex-1">
-                <BlockShowcase
-                  initialItems={profile.featuredContent ?? []}
-                  isOwner={isMe}
-                />
-              </div>
+            {/* RIGHT — integrated Block Showcase. Same definite height as the
+                cover so the 3×3 grid aligns perfectly top and bottom with the
+                banner image. The grid fills the panel edge-to-edge. */}
+            <div className="h-[460px] md:h-[500px] lg:h-[520px] xl:h-[560px] rounded-[28px] border border-white/10 bg-black/35 p-2.5 backdrop-blur-sm">
+              <BlockShowcase
+                initialItems={profile.featuredContent ?? []}
+                isOwner={isMe}
+              />
             </div>
           </div>
         </section>
