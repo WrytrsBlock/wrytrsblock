@@ -245,7 +245,7 @@ export default async function ProfilePage({
             {/* RIGHT — integrated Block Showcase. Same definite height as the
                 cover so the 3×3 grid aligns perfectly top and bottom with the
                 banner image. The grid fills the panel edge-to-edge. */}
-            <div className="h-[460px] md:h-[500px] lg:h-[520px] xl:h-[560px] rounded-[28px] border border-white/10 bg-black/35 p-2.5 backdrop-blur-sm">
+            <div className="flex items-center justify-center rounded-[28px] border border-white/10 bg-black/35 p-2.5 backdrop-blur-sm lg:h-[520px] xl:h-[560px]">
               <BlockShowcase
                 initialItems={profile.featuredContent ?? []}
                 isOwner={isMe}

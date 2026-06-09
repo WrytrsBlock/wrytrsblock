@@ -124,8 +124,8 @@ export function BlockShowcase({
   );
 
   return (
-    <div className="relative h-full">
-      <div className="grid h-full grid-cols-3 grid-rows-3 gap-2 lg:gap-2.5">
+    <div className="relative w-full">
+      <div className="grid w-full grid-cols-3 gap-2 lg:gap-2.5">
         {slots.map((item, i) =>
           item ? (
             <Tile
@@ -246,7 +246,7 @@ function Tile({
   return (
     <div
       className={cn(
-        "group relative min-h-0 overflow-hidden rounded-xl border border-white/12 bg-white/[0.04] cursor-pointer transition-all",
+        "group relative aspect-square overflow-hidden rounded-xl border border-white/12 bg-white/[0.04] cursor-pointer transition-all",
         "hover:border-white/30 hover:shadow-[0_8px_24px_rgb(0_0_0/0.35)]",
         dragging && "ring-2 ring-accent/80 scale-[0.97]"
       )}
@@ -387,14 +387,14 @@ function EmptyTile({
 }) {
   if (!isOwner) {
     return (
-      <div className="min-h-0 rounded-xl border border-dashed border-white/10 bg-white/[0.015]" />
+      <div className="aspect-square rounded-xl border border-dashed border-white/10 bg-white/[0.015]" />
     );
   }
   return (
     <button
       type="button"
       onClick={onAdd}
-      className="group flex min-h-0 flex-col items-center justify-center gap-1 rounded-xl border border-dashed border-white/20 bg-white/[0.03] text-white/55 transition-colors hover:border-accent/60 hover:bg-accent/10 hover:text-white"
+      className="group flex aspect-square flex-col items-center justify-center gap-1 rounded-xl border border-dashed border-white/20 bg-white/[0.03] text-white/55 transition-colors hover:border-accent/60 hover:bg-accent/10 hover:text-white"
     >
       <Plus size={16} />
       <span className="text-[10px] font-semibold">Add Content</span>
