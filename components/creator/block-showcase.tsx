@@ -125,7 +125,7 @@ export function BlockShowcase({
 
   return (
     <div className="relative w-full">
-      <div className="grid w-full grid-cols-3 gap-2 lg:gap-2.5">
+      <div className="grid w-full grid-cols-3 gap-1.5">
         {slots.map((item, i) =>
           item ? (
             <Tile

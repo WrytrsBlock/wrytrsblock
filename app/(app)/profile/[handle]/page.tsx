@@ -150,9 +150,14 @@ export default async function ProfilePage({
             the integrated Block Showcase 3×3 grid (≈35%) on the right, both the
             same full height. Communicates who/what/why at a glance, no scroll. ── */}
         <section className="w-full pt-3 md:pt-4">
-          <div className="mx-auto grid w-full max-w-[1320px] grid-cols-1 gap-3 px-4 md:px-6 lg:grid-cols-[1.8fr_1fr] lg:gap-4 xl:gap-5">
-            {/* LEFT — cover image + identity */}
-            <div className="relative h-[460px] md:h-[500px] lg:h-[520px] xl:h-[560px] overflow-hidden rounded-[28px] border border-white/10">
+          {/* Side-by-side at lg+: the showcase column is a FIXED width equal to
+              the banner's height, so the square 3×3 grid (whose height always
+              equals its width) is exactly as tall as the cover — perfectly
+              congruent, no dead space. */}
+          <div className="mx-auto grid w-full max-w-[1320px] grid-cols-1 gap-4 px-4 md:px-6 lg:grid-cols-[1fr_460px] lg:gap-4 xl:grid-cols-[1fr_520px] xl:gap-5">
+            {/* LEFT — cover image + identity. Height matches the showcase column
+                width (lg 460 / xl 520) so both sides are exactly the same height. */}
+            <div className="relative h-[440px] md:h-[480px] lg:h-[460px] xl:h-[520px] overflow-hidden rounded-[28px] border border-white/10">
               {heroImage ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
@@ -245,7 +250,10 @@ export default async function ProfilePage({
             {/* RIGHT — integrated Block Showcase. Same definite height as the
                 cover so the 3×3 grid aligns perfectly top and bottom with the
                 banner image. The grid fills the panel edge-to-edge. */}
-            <div className="flex items-center justify-center rounded-[28px] border border-white/10 bg-black/35 p-2.5 backdrop-blur-sm lg:h-[520px] xl:h-[560px]">
+            {/* No outer frame — the 9 tiles sit directly in the hero so the
+                showcase reads as one composition with the banner, not a box
+                beside it. Capped width when stacked on small screens. */}
+            <div className="mx-auto w-full max-w-[440px] lg:max-w-none">
               <BlockShowcase
                 initialItems={profile.featuredContent ?? []}
                 isOwner={isMe}
