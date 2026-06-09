@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import {
@@ -16,6 +17,7 @@ import { StartBlockButton } from "@/components/block/start-block-button";
 import { BlockScoreCard } from "@/components/creator/block-score";
 import { BlockShowcase } from "@/components/creator/block-showcase";
 import { ShareProfileButton } from "@/components/creator/share-profile-button";
+import { ShowcaseAddButton } from "@/components/creator/showcase-add-button";
 import { SampleBlocks } from "@/components/creator/sample-blocks";
 import { MediaPlayer } from "@/components/creator/media-player";
 import { blocksForPerson, tracksForCreator } from "@/lib/mock";
@@ -57,6 +59,33 @@ function SectionEmpty({ label }: { label: string }) {
   return (
     <div className="mt-4 glass-card rounded-2xl px-5 py-8 text-center">
       <p className="text-[13px] text-muted">{label}</p>
+    </div>
+  );
+}
+
+// A premium empty-state card — centered icon + copy, with an optional action
+// (e.g. an "Add Service" / "Add Demo" button for the profile owner).
+function EmptyCard({
+  icon,
+  title,
+  sub,
+  action,
+}: {
+  icon: ReactNode;
+  title: string;
+  sub?: string;
+  action?: ReactNode;
+}) {
+  return (
+    <div className="mt-4 glass-card rounded-2xl px-6 py-9 flex flex-col items-center text-center gap-2">
+      <span className="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-white/10 bg-white/[0.04] text-muted">
+        {icon}
+      </span>
+      <p className="text-[13.5px] font-medium text-ink">{title}</p>
+      {sub && (
+        <p className="max-w-xs text-[12px] leading-relaxed text-muted">{sub}</p>
+      )}
+      {action && <div className="mt-2">{action}</div>}
     </div>
   );
 }
@@ -120,8 +149,8 @@ export default async function ProfilePage({
         {/* ── Split banner — identity over the cover image (≈65%) on the left,
             the integrated Block Showcase 3×3 grid (≈35%) on the right, both the
             same full height. Communicates who/what/why at a glance, no scroll. ── */}
-        <section className="w-full px-3 md:px-5 pt-3 md:pt-4">
-          <div className="mx-auto grid w-full max-w-[1320px] grid-cols-1 gap-3 lg:grid-cols-[1.8fr_1fr] lg:gap-4 xl:gap-5">
+        <section className="w-full pt-3 md:pt-4">
+          <div className="mx-auto grid w-full max-w-[1320px] grid-cols-1 gap-3 px-4 md:px-6 lg:grid-cols-[1.8fr_1fr] lg:gap-4 xl:gap-5">
             {/* LEFT — cover image + identity */}
             <div className="relative min-h-[440px] md:min-h-[480px] lg:min-h-[520px] xl:min-h-[560px] overflow-hidden rounded-[28px] border border-white/10">
               {heroImage ? (
@@ -136,19 +165,6 @@ export default async function ProfilePage({
                   <div className="absolute inset-0 bg-grad-mesh opacity-30" />
                 </div>
               )}
-              {/* Top scrim for legibility */}
-              <div className="absolute inset-0 bg-gradient-to-b from-black/35 via-transparent to-transparent" />
-
-              {/* Always-visible Edit Profile affordance for the owner (top-right) */}
-              {isMe && (
-                <Link
-                  href="/profile/edit"
-                  className="absolute right-3 top-3 z-20 inline-flex h-9 items-center gap-1.5 rounded-full border border-white/30 bg-black/45 px-3.5 text-[12.5px] font-semibold text-white backdrop-blur-md transition-colors hover:bg-black/70"
-                >
-                  <Pencil size={13} /> Edit Profile
-                </Link>
-              )}
-
               {/* Owner prompt when there's no cover yet */}
               {!heroImage && isMe && (
                 <div className="absolute inset-x-0 top-7 flex flex-col items-center gap-2.5 px-6 text-center">
@@ -171,9 +187,12 @@ export default async function ProfilePage({
                 </div>
               )}
 
-              {/* Frosted identity panel */}
-              <div className="absolute inset-x-0 bottom-0 z-10 border-t border-white/10 bg-gradient-to-t from-black/90 via-black/55 to-transparent backdrop-blur-md p-5 md:p-7">
-                <div className="flex items-end gap-4">
+              {/* Identity overlay — only the essentials, sitting low at the
+                  bottom-left. The gradient is concentrated in the lower portion
+                  (tall transparent-to-dark fade) so the banner picture stays the
+                  hero and the top stays clear. No bio / Edit / Share here. */}
+              <div className="absolute inset-x-0 bottom-0 z-10 bg-gradient-to-t from-black/85 via-black/45 to-transparent px-5 pb-5 pt-20 md:px-7 md:pb-6 md:pt-28">
+                <div className="flex items-end gap-3.5">
                   {/* Profile photo */}
                   <div className="shrink-0">
                     {avatar ? (
@@ -181,72 +200,44 @@ export default async function ProfilePage({
                       <img
                         src={avatar}
                         alt={person.name}
-                        className="h-16 w-16 md:h-20 md:w-20 rounded-2xl border-2 border-white/25 object-cover shadow-lg"
+                        className="h-14 w-14 md:h-[68px] md:w-[68px] rounded-2xl border-2 border-white/30 object-cover shadow-lg"
                       />
                     ) : (
-                      <span className="flex h-16 w-16 md:h-20 md:w-20 items-center justify-center rounded-2xl border-2 border-white/25 bg-white/15 font-display text-2xl text-white">
+                      <span className="flex h-14 w-14 md:h-[68px] md:w-[68px] items-center justify-center rounded-2xl border-2 border-white/30 bg-white/15 font-display text-2xl text-white">
                         {person.name.slice(0, 1)}
                       </span>
                     )}
                   </div>
                   <div className="min-w-0 flex-1">
-                    <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-white/60">
-                      @{person.handle}
-                    </p>
-                    <h1 className="mt-0.5 truncate font-display text-[34px] sm:text-[44px] md:text-[52px] leading-[0.95] tracking-tight text-white">
+                    {/* Display name */}
+                    <h1 className="truncate font-display text-[30px] sm:text-[40px] md:text-[46px] leading-[0.95] tracking-tight text-white drop-shadow-[0_2px_8px_rgb(0_0_0/0.45)]">
                       {person.name}
                     </h1>
+                    {/* Roles · location · collaboration status */}
+                    <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1.5">
+                      {profile.roles.map((r) => (
+                        <span
+                          key={r}
+                          className="inline-flex h-6 items-center rounded-full border border-white/25 bg-white/15 px-2.5 text-[11.5px] font-semibold text-white backdrop-blur-sm"
+                        >
+                          {r}
+                        </span>
+                      ))}
+                      <span className="inline-flex items-center gap-1 text-[12px] text-white/85">
+                        <MapPin size={12} className="shrink-0" />
+                        {profile.location}
+                      </span>
+                      {availability.map((a) => (
+                        <span
+                          key={a}
+                          className="inline-flex h-6 items-center gap-1.5 rounded-full border border-success/40 bg-success/20 px-2.5 text-[11px] font-medium text-success"
+                        >
+                          <span className="h-1.5 w-1.5 rounded-full bg-success" />
+                          {a}
+                        </span>
+                      ))}
+                    </div>
                   </div>
-                </div>
-
-                {/* Creator type(s) · location · collaboration status */}
-                <div className="mt-3.5 flex flex-wrap items-center gap-2">
-                  {profile.roles.map((r) => (
-                    <span
-                      key={r}
-                      className="inline-flex h-7 items-center rounded-full border border-white/25 bg-white/15 px-3 text-[12px] font-semibold text-white backdrop-blur-sm"
-                    >
-                      {r}
-                    </span>
-                  ))}
-                  <span className="inline-flex items-center gap-1 text-[12.5px] text-white/75">
-                    <MapPin size={13} className="shrink-0" />
-                    {profile.location}
-                  </span>
-                  {availability.map((a) => (
-                    <span
-                      key={a}
-                      className="inline-flex h-7 items-center gap-1.5 rounded-full border border-success/40 bg-success/20 px-2.5 text-[11.5px] font-medium text-success"
-                    >
-                      <span className="h-1.5 w-1.5 rounded-full bg-success" />
-                      {a}
-                    </span>
-                  ))}
-                </div>
-
-                {/* Short bio */}
-                {(profile.bio || profile.tagline) && (
-                  <p className="mt-3 max-w-2xl text-[13px] md:text-[13.5px] leading-relaxed text-white/75 line-clamp-2">
-                    {profile.bio || profile.tagline}
-                  </p>
-                )}
-
-                {/* Actions: Edit (owner) / Start Block (visitor) + Share */}
-                <div className="mt-4 flex flex-wrap items-center gap-2.5">
-                  {isMe ? (
-                    <Link href="/profile/edit">
-                      <Button variant="primary" size="lg" style={{ color: "#FFFFFF" }}>
-                        <Pencil size={14} /> Edit Profile
-                      </Button>
-                    </Link>
-                  ) : (
-                    <StartBlockButton
-                      handle={person.handle}
-                      name={person.name}
-                      size="lg"
-                    />
-                  )}
-                  <ShareProfileButton handle={person.handle} name={person.name} />
                 </div>
               </div>
             </div>
@@ -271,8 +262,40 @@ export default async function ProfilePage({
           </div>
         </section>
 
+        {/* ── Bio + primary actions — a clean row directly under the banner ── */}
+        <div className="mx-auto w-full max-w-[1320px] px-4 md:px-6 pt-4 md:pt-5">
+          {(profile.bio || profile.tagline) && (
+            <p className="max-w-3xl text-[14px] md:text-[15px] leading-relaxed text-ink/85">
+              {profile.bio || profile.tagline}
+            </p>
+          )}
+          <div className="mt-4 flex flex-wrap items-center gap-2.5">
+            {isMe ? (
+              <>
+                <Link href="/profile/edit">
+                  <Button
+                    variant="primary"
+                    size="lg"
+                    style={{ color: "#FFFFFF" }}
+                  >
+                    <Pencil size={14} /> Edit Profile
+                  </Button>
+                </Link>
+                <ShowcaseAddButton label="Add Content" />
+              </>
+            ) : (
+              <StartBlockButton
+                handle={person.handle}
+                name={person.name}
+                size="lg"
+              />
+            )}
+            <ShareProfileButton handle={person.handle} name={person.name} />
+          </div>
+        </div>
+
         {/* ── Body — a creator portfolio, not a settings dashboard ── */}
-        <div className="mx-auto w-full max-w-[1320px] px-5 md:px-8 pt-9 md:pt-10 pb-12 space-y-9 animate-fade-up">
+        <div className="mx-auto w-full max-w-[1320px] px-4 md:px-6 pt-8 md:pt-9 pb-12 space-y-9 animate-fade-up">
           {/* Skills & Genres — premium pills */}
           {profile.skills.length > 0 && (
             <section>
@@ -329,6 +352,13 @@ export default async function ProfilePage({
                   </div>
                 ))}
               </div>
+            ) : isMe ? (
+              <EmptyCard
+                icon={<Briefcase size={18} strokeWidth={1.75} />}
+                title="Offer a service"
+                sub="List a service you provide so clients can hire you directly from your profile."
+                action={<ShowcaseAddButton type="service" label="Add Service" />}
+              />
             ) : (
               <SectionEmpty label="No services yet." />
             )}
@@ -343,6 +373,13 @@ export default async function ProfilePage({
               <div className="mt-4 glass-card rounded-2xl p-5">
                 <MediaPlayer tracks={tracks} />
               </div>
+            ) : isMe ? (
+              <EmptyCard
+                icon={<Headphones size={18} strokeWidth={1.75} />}
+                title="Showcase your sound"
+                sub="Add a demo, track, or beat so collaborators can hear your work right away."
+                action={<ShowcaseAddButton type="audio" label="Add Demo" />}
+              />
             ) : (
               <SectionEmpty label="No demos yet." />
             )}

@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  useEffect,
   useRef,
   useState,
   useTransition,
@@ -63,9 +64,26 @@ export function BlockShowcase({
   );
   const [saving, startSave] = useTransition();
   const [saveError, setSaveError] = useState<string | null>(null);
+  // Pre-selected type when the editor is opened from an external button
+  // (e.g. "Add Content" / "Add Service" / "Add Demo" below the banner).
+  const [presetType, setPresetType] = useState<ContentType | undefined>();
 
   const dragFrom = useRef<number | null>(null);
   const [dragOver, setDragOver] = useState<number | null>(null);
+
+  // Owner-only: let buttons elsewhere on the page open the add modal.
+  useEffect(() => {
+    if (!isOwner) return;
+    function onAdd(e: Event) {
+      const detail = (e as CustomEvent).detail as
+        | { type?: ContentType }
+        | undefined;
+      setPresetType(detail?.type);
+      setEditing("new");
+    }
+    window.addEventListener("wb:showcase-add", onAdd);
+    return () => window.removeEventListener("wb:showcase-add", onAdd);
+  }, [isOwner]);
 
   function persist(next: FeaturedContentItem[]) {
     const sorted = sortShowcase(next).slice(0, SLOTS);
@@ -164,8 +182,15 @@ export function BlockShowcase({
       {editing && (
         <ShowcaseEditor
           item={editing === "new" ? null : editing}
-          onClose={() => setEditing(null)}
-          onSave={upsert}
+          defaultType={presetType}
+          onClose={() => {
+            setEditing(null);
+            setPresetType(undefined);
+          }}
+          onSave={(it) => {
+            setPresetType(undefined);
+            upsert(it);
+          }}
         />
       )}
     </div>
@@ -530,14 +555,18 @@ function OpenLink({
 // ── Add / Edit modal ────────────────────────────────────────────────────────
 function ShowcaseEditor({
   item,
+  defaultType,
   onClose,
   onSave,
 }: {
   item: FeaturedContentItem | null;
+  defaultType?: ContentType;
   onClose: () => void;
   onSave: (item: FeaturedContentItem) => void;
 }) {
-  const [type, setType] = useState<ContentType>(item?.type ?? "image");
+  const [type, setType] = useState<ContentType>(
+    item?.type ?? defaultType ?? "image"
+  );
   const [url, setUrl] = useState(item?.url ?? "");
   const [title, setTitle] = useState(item?.title ?? "");
   const [subtitle, setSubtitle] = useState(item?.subtitle ?? "");
