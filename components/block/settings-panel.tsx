@@ -1,14 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import {
-  AlertTriangle,
-  Check,
-  Globe,
-  Lock,
-  Trash2,
-  Users,
-} from "lucide-react";
+import { AlertTriangle, Check, Globe, Lock, Users } from "lucide-react";
 import {
   Badge,
   Button,
@@ -18,6 +11,7 @@ import {
   SectionLabel,
 } from "@/components/ui/primitives";
 import { cn } from "@/lib/cn";
+import { DeleteBlockButton } from "@/components/block/delete-block-button";
 import { getPerson, type Block } from "@/lib/mock";
 
 const visibilities = [
@@ -32,7 +26,13 @@ const roleTones: Record<string, "accent" | "accent-2" | "soft"> = {
   reviewer: "soft",
 };
 
-export function SettingsPanel({ block }: { block: Block }) {
+export function SettingsPanel({
+  block,
+  isOwner = false,
+}: {
+  block: Block;
+  isOwner?: boolean;
+}) {
   const [visibility, setVisibility] = useState<string>("workspace");
 
   return (
@@ -150,41 +150,42 @@ export function SettingsPanel({ block }: { block: Block }) {
         </ul>
       </Card>
 
-      {/* Danger zone */}
-      <Card className="p-6 border-danger/30">
-        <div className="flex items-center gap-2">
-          <AlertTriangle size={13} className="text-danger" />
-          <SectionLabel className="!text-danger">Danger zone</SectionLabel>
-        </div>
-        <div className="mt-4 flex items-center justify-between gap-4">
-          <div>
-            <p className="text-[13px] font-medium text-ink">
-              Archive this Block
-            </p>
-            <p className="text-[11.5px] text-muted mt-0.5">
-              Hidden from the workspace, recoverable for 30 days.
-            </p>
+      {/* Danger zone — owner only. Collaborators never see archive/delete. */}
+      {isOwner && (
+        <Card className="p-6 border-danger/30">
+          <div className="flex items-center gap-2">
+            <AlertTriangle size={13} className="text-danger" />
+            <SectionLabel className="!text-danger">Danger zone</SectionLabel>
           </div>
-          <Button variant="outline" size="md">
-            Archive
-          </Button>
-        </div>
-        <div className="mt-4 pt-4 border-t border-line flex items-center justify-between gap-4">
-          <div>
-            <p className="text-[13px] font-medium text-ink">Delete permanently</p>
-            <p className="text-[11.5px] text-muted mt-0.5">
-              This cannot be undone. All files, threads, and history are removed.
-            </p>
+          {/* Archive — separate, non-destructive, recoverable. */}
+          <div className="mt-4 flex items-center justify-between gap-4">
+            <div>
+              <p className="text-[13px] font-medium text-ink">
+                Archive this Block
+              </p>
+              <p className="text-[11.5px] text-muted mt-0.5">
+                Hidden from the workspace, recoverable for 30 days.
+              </p>
+            </div>
+            <Button variant="outline" size="md">
+              Archive
+            </Button>
           </div>
-          <Button
-            variant="outline"
-            size="md"
-            className="!border-danger/40 !text-danger hover:!bg-danger/10"
-          >
-            <Trash2 size={12} /> Delete
-          </Button>
-        </div>
-      </Card>
+          {/* Delete — permanent, owner-only, confirmation-gated. */}
+          <div className="mt-4 pt-4 border-t border-line flex items-center justify-between gap-4">
+            <div>
+              <p className="text-[13px] font-medium text-ink">
+                Delete permanently
+              </p>
+              <p className="text-[11.5px] text-muted mt-0.5">
+                This cannot be undone. All files, messages, tasks, split sheet
+                data, collaborators, and history are removed.
+              </p>
+            </div>
+            <DeleteBlockButton blockId={block.id} />
+          </div>
+        </Card>
+      )}
     </div>
   );
 }

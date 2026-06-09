@@ -34,7 +34,8 @@ export const dynamic = "force-dynamic";
 function renderPanel(
   tab: BlockTabId,
   block: Block,
-  members: BlockMemberView[]
+  members: BlockMemberView[],
+  isOwner: boolean
 ) {
   switch (tab) {
     case "team":
@@ -60,7 +61,7 @@ function renderPanel(
     case "requests":
       return <RequestsPanel block={block} />;
     case "settings":
-      return <SettingsPanel block={block} />;
+      return <SettingsPanel block={block} isOwner={isOwner} />;
     case "overview":
     default:
       if (block.blockType === "service")
@@ -94,6 +95,9 @@ export default async function BlockPage({
     getMyBlockMembership(params.slug),
   ]);
 
+  // The lead/creator is the owner — only they may delete the Block.
+  const isOwner = myMembership?.isOwner ?? false;
+
   const validTabs: string[] = tabsForType(block.blockType).map((t) => t.id);
   const tab: BlockTabId = validTabs.includes(searchParams.tab ?? "")
     ? (searchParams.tab as BlockTabId)
@@ -122,7 +126,7 @@ export default async function BlockPage({
           fullHeight ? "overflow-hidden" : "overflow-y-auto"
         )}
       >
-        {renderPanel(tab, block, members)}
+        {renderPanel(tab, block, members, isOwner)}
       </div>
     </>
   );

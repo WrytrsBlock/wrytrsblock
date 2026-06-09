@@ -110,3 +110,57 @@ export async function createBlockAction(
     return { ok: false, error: message };
   }
 }
+
+export type DeleteBlockResult = { ok: true } | { ok: false; error: string };
+
+// Permanently delete a Block (owner-only). Runs through the SECURITY DEFINER
+// delete_user_block RPC, which validates the caller is the owner/lead and
+// cascade-deletes everything connected to the Block. The user's JWT is attached
+// so auth.uid() inside the function is the real signed-in user.
+export async function deleteBlockAction(
+  blockId: string
+): Promise<DeleteBlockResult> {
+  // Demo mode (no Supabase): treat as a successful no-op so the UI can redirect.
+  if (!supabaseConfigured) return { ok: true };
+  if (!blockId) return { ok: false, error: "Missing Block id." };
+
+  try {
+    const cookieClient = createSupabaseServerClient();
+    const {
+      data: { user },
+    } = await cookieClient.auth.getUser();
+    if (!user) return { ok: false, error: "You need to be signed in." };
+
+    const {
+      data: { session },
+    } = await cookieClient.auth.getSession();
+    const accessToken = session?.access_token;
+    if (!accessToken)
+      return { ok: false, error: "Your session expired — please sign in again." };
+
+    const supabase = createSupabaseAuthedClient(accessToken);
+    const { error } = await supabase.rpc("delete_user_block", {
+      p_block_id: blockId,
+    });
+
+    if (error) {
+      const msg = error.message ?? "";
+      if (error.code === "42501" || /owner/i.test(msg))
+        return { ok: false, error: "Only the Block owner can delete this Block." };
+      if (error.code === "P0002" || /not found/i.test(msg))
+        return { ok: false, error: "This Block no longer exists." };
+      throw error;
+    }
+
+    revalidatePath("/blocks");
+    revalidatePath("/marketplace");
+    revalidatePath("/", "layout"); // refresh the sidebar block list
+    return { ok: true };
+  } catch (e) {
+    console.error("deleteBlockAction failed:", e);
+    return {
+      ok: false,
+      error: e instanceof Error ? e.message : "Couldn't delete this Block.",
+    };
+  }
+}

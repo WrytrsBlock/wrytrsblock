@@ -523,7 +523,7 @@ export async function getBlockMembers(slug: string): Promise<BlockMemberView[]> 
 // The signed-in user's invitation/membership status on a Block (for the banner).
 export async function getMyBlockMembership(
   slug: string
-): Promise<{ status: BlockMemberStatus } | null> {
+): Promise<{ status: BlockMemberStatus; isOwner: boolean } | null> {
   if (!supabaseConfigured) return null;
   const supabase = createSupabaseServerClient();
   const {
@@ -533,8 +533,11 @@ export async function getMyBlockMembership(
   try {
     const block = await getBlockBySlug(supabase, slug);
     if (!block) return null;
+    // The creator/lead is the owner — the only role allowed to delete.
+    const isOwner =
+      block.created_by === user.id || block.lead_id === user.id;
     const m = await getMembership(supabase, block.id, user.id);
-    return m ? { status: m.status } : null;
+    return m ? { status: m.status, isOwner } : null;
   } catch {
     return null;
   }
