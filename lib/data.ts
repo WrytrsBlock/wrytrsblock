@@ -543,6 +543,72 @@ export async function getMyBlockMembership(
   }
 }
 
+// The collaboration relationship between the signed-in user and a creator, used
+// to drive the Start Block button's state on the profile (and elsewhere).
+export type BlockRelationship =
+  | { status: "self" }
+  | { status: "none" }
+  | { status: "request_sent" } // I sent a pending request
+  | { status: "incoming"; requestId: string } // they sent me a pending request
+  | { status: "active"; slug: string }; // accepted → we share an active Block
+
+export async function getBlockRelationship(
+  creatorHandle: string
+): Promise<BlockRelationship> {
+  if (!supabaseConfigured) return { status: "none" };
+  const supabase = createSupabaseServerClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { status: "none" };
+  try {
+    const creatorId = await getCreatorIdByHandle(
+      supabase,
+      creatorHandle.replace(/^@/, "")
+    ).catch(() => null);
+    if (!creatorId) return { status: "none" };
+    if (creatorId === user.id) return { status: "self" };
+
+    // Most recent request between the two parties (either direction).
+    const { data } = await supabase
+      .from("block_requests")
+      .select("id, requester_id, recipient_id, status, block_id")
+      .or(
+        `and(requester_id.eq.${user.id},recipient_id.eq.${creatorId}),and(requester_id.eq.${creatorId},recipient_id.eq.${user.id})`
+      )
+      .order("created_at", { ascending: false })
+      .limit(1);
+    const req = data?.[0] as
+      | {
+          id: string;
+          requester_id: string;
+          recipient_id: string;
+          status: string;
+          block_id: string | null;
+        }
+      | undefined;
+    if (!req) return { status: "none" };
+
+    if (req.status === "accepted" && req.block_id) {
+      const { data: b } = await supabase
+        .from("blocks")
+        .select("slug")
+        .eq("id", req.block_id)
+        .maybeSingle();
+      return { status: "active", slug: (b?.slug as string) ?? "" };
+    }
+    if (req.status === "pending") {
+      return req.requester_id === user.id
+        ? { status: "request_sent" }
+        : { status: "incoming", requestId: req.id };
+    }
+    // declined → let the user start fresh
+    return { status: "none" };
+  } catch {
+    return { status: "none" };
+  }
+}
+
 // ---------- Direct messaging ----------
 
 export type ConversationView = {

@@ -1,24 +1,12 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
+import {
+  createSupabaseServerClient,
+  createSupabaseAuthedClient,
+} from "@/lib/supabase/server";
 import { supabaseConfigured } from "@/lib/env";
-import { slugify } from "@/lib/cn";
-import { addBlockMember, createBlock } from "@/services/blocks.service";
-import { createChannel, sendMessage } from "@/services/messages.service";
-import {
-  getCreatorIdByHandle,
-  getCreatorProfileById,
-} from "@/services/creator-profiles.service";
-import {
-  createWorkspace,
-  listWorkspacesForUser,
-} from "@/services/workspaces.service";
-import {
-  createBlockRequest,
-  getBlockRequest,
-  setBlockRequestResponse,
-} from "@/services/block-requests.service";
+import { getCreatorIdByHandle } from "@/services/creator-profiles.service";
 
 type SendInput = {
   recipientHandle: string;
@@ -34,8 +22,24 @@ export type AcceptResult =
   | { ok: false; error: string };
 export type SimpleResult = { ok: true } | { ok: false; error: string };
 
-// Send a Block Request. Nothing is created yet — this only records the request
-// and surfaces it to the recipient, who Accepts (creates the Block) or Declines.
+// Authenticated client (carries the user's JWT) so auth.uid() inside the RPCs is
+// the real signed-in user. Returns null if there's no session.
+async function authedClient() {
+  const cookieClient = createSupabaseServerClient();
+  const {
+    data: { user },
+  } = await cookieClient.auth.getUser();
+  if (!user) return { user: null, supabase: null, cookieClient };
+  const {
+    data: { session },
+  } = await cookieClient.auth.getSession();
+  const token = session?.access_token;
+  if (!token) return { user, supabase: null, cookieClient };
+  return { user, supabase: createSupabaseAuthedClient(token), cookieClient };
+}
+
+// Send a Block Request. The SECURITY DEFINER RPC records the pending request and
+// notifies the recipient. Nothing else is created until they accept.
 export async function sendBlockRequestAction(
   input: SendInput
 ): Promise<SendResult> {
@@ -44,158 +48,77 @@ export async function sendBlockRequestAction(
   if (!blockTitle) return { ok: false, error: "Give your Block a title." };
   if (!introMessage)
     return { ok: false, error: "Add an intro message for the creator." };
-
-  // Demo mode (no Supabase): no persistence, but the flow succeeds locally.
   if (!supabaseConfigured) return { ok: true };
 
   try {
-    const supabase = createSupabaseServerClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+    const { user, supabase, cookieClient } = await authedClient();
     if (!user) return { ok: false, error: "You need to be signed in." };
+    if (!supabase)
+      return { ok: false, error: "Your session expired — please sign in again." };
 
     const handle = input.recipientHandle.trim().replace(/^@/, "");
-    const recipientId = await getCreatorIdByHandle(supabase, handle).catch(
+    const recipientId = await getCreatorIdByHandle(cookieClient, handle).catch(
       () => null
     );
-    if (!recipientId)
-      return { ok: false, error: "Couldn't find that creator." };
+    if (!recipientId) return { ok: false, error: "Couldn't find that creator." };
     if (recipientId === user.id)
       return { ok: false, error: "You can't start a Block with yourself." };
 
-    // Snapshot the requester for the recipient's inbox.
-    const me = await getCreatorProfileById(supabase, user.id).catch(() => null);
-    const requesterName =
-      me?.display_name ??
-      (user.user_metadata?.display_name as string) ??
-      user.email?.split("@")[0] ??
-      "A creator";
-    const requesterHandle = me?.handle ?? null;
-
-    await createBlockRequest(supabase, {
-      requester_id: user.id,
-      recipient_id: recipientId,
-      requester_name: requesterName,
-      requester_handle: requesterHandle,
-      block_title: blockTitle,
-      block_type: input.blockType,
-      intro_message: introMessage,
-      expected_outcome: input.expectedOutcome?.trim() || null,
+    const { error } = await supabase.rpc("send_block_request", {
+      p_recipient: recipientId,
+      p_title: blockTitle,
+      p_type: input.blockType,
+      p_intro: introMessage,
+      p_outcome: input.expectedOutcome?.trim() || null,
     });
+    if (error) {
+      if (error.code === "23505")
+        return {
+          ok: false,
+          error: "You already have a pending request with this creator.",
+        };
+      if (error.code === "22023" || /yourself/i.test(error.message ?? ""))
+        return { ok: false, error: "You can't start a Block with yourself." };
+      throw error;
+    }
 
     revalidatePath("/notifications");
     return { ok: true };
   } catch (e) {
     console.error("sendBlockRequestAction failed:", e);
-    return {
-      ok: false,
-      error: errMessage(e, "Couldn't send the Block Request."),
-    };
+    return { ok: false, error: errMessage(e, "Couldn't send the Block Request.") };
   }
 }
 
-// Accept a request: create the Block, add BOTH creators as members (so chat is
-// unlocked), link the request, and return the slug to route into the workspace.
+// Accept a request → creates the Block + adds BOTH creators (accepted), seeds a
+// channel, links the request, notifies the requester. Returns the Block slug.
 export async function acceptBlockRequestAction(
   requestId: string
 ): Promise<AcceptResult> {
-  if (!supabaseConfigured) return { ok: false, error: "Supabase not configured." };
-
+  if (!supabaseConfigured)
+    return { ok: false, error: "Supabase not configured." };
   try {
-    const supabase = createSupabaseServerClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+    const { user, supabase } = await authedClient();
     if (!user) return { ok: false, error: "You need to be signed in." };
+    if (!supabase)
+      return { ok: false, error: "Your session expired — please sign in again." };
 
-    const req = await getBlockRequest(supabase, requestId);
-    if (!req) return { ok: false, error: "Request not found." };
-    if (req.recipient_id !== user.id)
-      return { ok: false, error: "This request isn't addressed to you." };
-    if (req.status !== "pending")
-      return { ok: false, error: `Request already ${req.status}.` };
-
-    // Resolve the recipient's workspace (RLS: created_by must = auth.uid()).
-    const workspaceId = await ensureWorkspace();
-    if (!workspaceId)
-      return { ok: false, error: "Couldn't resolve a workspace." };
-
-    const slug = slugify(req.block_title);
-    // Block Party requests get a minimal default event payload (MVP: no
-    // scheduling/ticketing yet) so the Party card renders cleanly.
-    const party =
-      req.block_type === "block_party"
-        ? {
-            category: "Networking" as const,
-            startsAt: "",
-            status: "upcoming" as const,
-            access: "invite" as const,
-            chatEnabled: true,
-            interested: 0,
-          }
-        : null;
-    const base = {
-      workspace_id: workspaceId,
-      title: req.block_title,
-      tagline: req.intro_message,
-      block_type: req.block_type,
-      party,
-      created_by: user.id, // recipient creates → satisfies blocks-insert RLS
-      lead_id: req.requester_id, // the requester initiated the collaboration
-    };
-    const block = await createBlock(supabase, { ...base, slug }).catch(() =>
-      createBlock(supabase, {
-        ...base,
-        slug: `${slug}-${Date.now().toString(36).slice(-4)}`,
-      })
-    );
-
-    // Add the recipient first (passes RLS via user_id = auth.uid()), which makes
-    // them a member so the second insert passes via is_block_member().
-    await addBlockMember(supabase, block.id, user.id, "collaborator", {
-      status: "accepted",
+    const { data, error } = await supabase.rpc("accept_block_request", {
+      p_request_id: requestId,
     });
-    await addBlockMember(supabase, block.id, req.requester_id, "lead", {
-      status: "accepted",
-    });
-
-    // Seed the Block chat with the request context (best-effort: chat seeding
-    // must never block the acceptance itself). Messages are authored by the
-    // accepter — the messages-insert RLS requires author_id = auth.uid() — so
-    // the intro is attributed to the requester in-text.
-    try {
-      const channel = await createChannel(supabase, {
-        workspace_id: workspaceId,
-        block_id: block.id,
-        name: "General",
-        kind: "public",
-      });
-      await sendMessage(supabase, {
-        channel_id: channel.id,
-        body: "Block Request accepted. Collaboration started.",
-      });
-      const requesterLabel =
-        req.requester_name ?? req.requester_handle ?? "The requester";
-      await sendMessage(supabase, {
-        channel_id: channel.id,
-        body: `${requesterLabel} wrote:\n${req.intro_message}`,
-      });
-      if (req.expected_outcome) {
-        await sendMessage(supabase, {
-          channel_id: channel.id,
-          body: `Goal: ${req.expected_outcome}`,
-        });
-      }
-    } catch (chatErr) {
-      console.error("Block chat seeding failed (non-fatal):", chatErr);
+    if (error) {
+      if (error.code === "42501")
+        return { ok: false, error: "This request isn't addressed to you." };
+      if (error.code === "P0002")
+        return { ok: false, error: "Request not found." };
+      throw error;
     }
-
-    await setBlockRequestResponse(supabase, req.id, "accepted", block.id);
+    const slug = typeof data === "string" ? data : String(data ?? "");
 
     revalidatePath("/blocks");
     revalidatePath("/notifications");
-    return { ok: true, slug: block.slug };
+    revalidatePath("/", "layout"); // surface the new Block in the sidebar
+    return { ok: true, slug };
   } catch (e) {
     console.error("acceptBlockRequestAction failed:", e);
     return { ok: false, error: errMessage(e, "Couldn't accept the request.") };
@@ -207,47 +130,27 @@ export async function declineBlockRequestAction(
 ): Promise<SimpleResult> {
   if (!supabaseConfigured) return { ok: true };
   try {
-    const supabase = createSupabaseServerClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+    const { user, supabase } = await authedClient();
     if (!user) return { ok: false, error: "You need to be signed in." };
+    if (!supabase)
+      return { ok: false, error: "Your session expired — please sign in again." };
 
-    const req = await getBlockRequest(supabase, requestId);
-    if (!req) return { ok: false, error: "Request not found." };
-    if (req.recipient_id !== user.id)
-      return { ok: false, error: "This request isn't addressed to you." };
-
-    await setBlockRequestResponse(supabase, req.id, "declined", null);
+    const { error } = await supabase.rpc("decline_block_request", {
+      p_request_id: requestId,
+    });
+    if (error) {
+      if (error.code === "42501")
+        return { ok: false, error: "This request isn't addressed to you." };
+      if (error.code === "P0002")
+        return { ok: false, error: "Request not found." };
+      throw error;
+    }
     revalidatePath("/notifications");
     return { ok: true };
   } catch (e) {
     console.error("declineBlockRequestAction failed:", e);
     return { ok: false, error: errMessage(e, "Couldn't decline the request.") };
   }
-}
-
-// ── helpers ────────────────────────────────────────────────────────────────
-
-async function ensureWorkspace(): Promise<string | null> {
-  const supabase = createSupabaseServerClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return null;
-  const existing = await listWorkspacesForUser(supabase, user.id);
-  if (existing.length > 0) return existing[0].id;
-  const base =
-    (user.user_metadata?.display_name as string) ??
-    user.email?.split("@")[0] ??
-    "studio";
-  const ws = await createWorkspace(supabase, {
-    name: `${base}'s Studio`,
-    slug: `${slugify(base)}-${user.id.slice(0, 6)}`,
-    description: "Personal workspace",
-    created_by: user.id,
-  });
-  return ws.id;
 }
 
 function errMessage(e: unknown, fallback: string): string {

@@ -13,7 +13,7 @@ import {
 } from "lucide-react";
 import { TopBar } from "@/components/shell/topbar";
 import { Badge, Button, Progress } from "@/components/ui/primitives";
-import { StartBlockButton } from "@/components/block/start-block-button";
+import { StartBlockFlow } from "@/components/block/start-block-flow";
 import { BlockScoreCard } from "@/components/creator/block-score";
 import { BlockShowcase } from "@/components/creator/block-showcase";
 import { ShareProfileButton } from "@/components/creator/share-profile-button";
@@ -23,7 +23,11 @@ import { MediaPlayer } from "@/components/creator/media-player";
 import { blocksForPerson, tracksForCreator } from "@/lib/mock";
 import { profileCompleteness, scoreFactorBreakdown } from "@/lib/block-score";
 import { heroImageFor, realAvatar } from "@/lib/creator-image";
-import { getCreator, getCurrentProfile } from "@/lib/data";
+import {
+  getBlockRelationship,
+  getCreator,
+  getCurrentProfile,
+} from "@/lib/data";
 
 export const dynamic = "force-dynamic";
 
@@ -108,6 +112,9 @@ export default async function ProfilePage({
 
   const me = await getCurrentProfile();
   const isMe = me?.handle === person.handle;
+  // Relationship drives the Start Block button's state (request sent / pending /
+  // active). Only needed when viewing someone else's profile.
+  const relationship = isMe ? null : await getBlockRelationship(person.handle);
 
   const completeness = profileCompleteness({
     bio: profile.bio,
@@ -284,10 +291,13 @@ export default async function ProfilePage({
                 <ShowcaseAddButton label="Add Content" />
               </>
             ) : (
-              <StartBlockButton
+              <StartBlockFlow
                 handle={person.handle}
                 name={person.name}
-                size="lg"
+                avatar={avatar ?? undefined}
+                myName={me?.name ?? "You"}
+                myAvatar={me?.avatar}
+                relationship={relationship ?? { status: "none" }}
               />
             )}
             <ShareProfileButton handle={person.handle} name={person.name} />
