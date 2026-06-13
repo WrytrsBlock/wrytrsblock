@@ -5,19 +5,19 @@ import { usePathname } from "next/navigation";
 import {
   Bell,
   CircleDot,
+  House,
   LayoutGrid,
+  MessageSquare,
   Plus,
-  Search,
   Settings,
   Store,
   User,
 } from "lucide-react";
 import { cn } from "@/lib/cn";
 import type { Block, Person } from "@/lib/mock";
-import { Badge, Kbd } from "@/components/ui/primitives";
 import { Wordmark } from "@/components/marketing/wordmark";
 import { UserMenu } from "@/components/shell/user-menu";
-import { openCommandPalette, openNewBlock } from "@/lib/ui-events";
+import { openNewBlock } from "@/lib/ui-events";
 
 type Props = {
   profile: Person;
@@ -33,16 +33,22 @@ export function Sidebar({ profile, blocks, unreadMessages = 0 }: Props) {
   const isActive = (href: string) =>
     path === href || (href !== "/" && path?.startsWith(href));
 
-  // Three primary destinations.
+  // Primary destinations.
   const primary = [
+    { href: "/home", label: "Home", icon: House },
     { href: "/marketplace", label: "Block Market", icon: Store },
     { href: "/blocks", label: "My Blocks", icon: LayoutGrid },
     { href: profileHref, label: "Profile", icon: User },
   ];
 
-  // Secondary actions. (No standalone Messages — communication on WrytrsBlock
-  // happens inside a Block, after a Block Request is accepted.)
+  // Secondary actions.
   const secondary = [
+    {
+      href: "/messages",
+      label: "Messages",
+      icon: MessageSquare,
+      badge: unreadMessages,
+    },
     { href: "/notifications", label: "Notifications", icon: Bell },
     { href: "/settings", label: "Settings", icon: Settings },
   ];
@@ -51,7 +57,7 @@ export function Sidebar({ profile, blocks, unreadMessages = 0 }: Props) {
     <aside className="hidden lg:flex flex-col w-[264px] shrink-0 border-r border-white/[0.07] bg-surface/45 backdrop-blur-2xl shadow-[inset_-1px_0_0_rgb(255_255_255/0.04)]">
       {/* Brand */}
       <div className="px-4 pt-4 pb-2">
-        <Wordmark href="/marketplace" variant="horizontal" />
+        <Wordmark href="/home" variant="horizontal" />
       </div>
 
       {/* Start a Block — the hero action */}
@@ -66,17 +72,7 @@ export function Sidebar({ profile, blocks, unreadMessages = 0 }: Props) {
         <Plus size={15} strokeWidth={2.5} /> Start a Block
       </button>
 
-      {/* Search */}
-      <button
-        onClick={() => openCommandPalette()}
-        className="mx-3 mt-2.5 flex items-center gap-2 px-3 h-9 rounded-lg bg-surface-2 border border-line text-muted hover:border-line-strong hover:text-ink transition-all duration-200"
-      >
-        <Search size={13} strokeWidth={1.75} />
-        <span className="text-[12.5px] flex-1 text-left">Search creators…</span>
-        <Kbd>⌘K</Kbd>
-      </button>
-
-      {/* Primary nav */}
+      {/* Primary nav — search lives in the centered glass pill, not here */}
       <nav className="px-3 mt-5 space-y-1">
         {primary.map((item) => {
           const Icon = item.icon;
@@ -160,6 +156,11 @@ export function Sidebar({ profile, blocks, unreadMessages = 0 }: Props) {
             >
               <Icon size={15} strokeWidth={1.75} />
               <span className="flex-1">{item.label}</span>
+              {"badge" in item && (item.badge ?? 0) > 0 && (
+                <span className="inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-accent text-white text-[10px] font-semibold tabular-nums">
+                  {item.badge}
+                </span>
+              )}
             </Link>
           );
         })}

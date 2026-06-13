@@ -7,7 +7,7 @@ import {
   Upload,
 } from "lucide-react";
 import { TopBar } from "@/components/shell/topbar";
-import { Avatar, Badge, Card, SectionLabel } from "@/components/ui/primitives";
+import { Avatar, Card } from "@/components/ui/primitives";
 import { cn } from "@/lib/cn";
 import { getPerson } from "@/lib/mock";
 import { BlockRequestInbox } from "@/components/block/block-request-inbox";
@@ -45,22 +45,21 @@ export default async function NotificationsPage() {
         crumbs={[{ label: "The CR8TV Collectv" }, { label: "Notifications" }]}
       />
       <div className="flex-1 overflow-y-auto">
-        <div className="px-6 md:px-8 py-8 max-w-[820px] w-full animate-fade-up">
-          <div className="flex items-end justify-between mb-6">
-            <div>
-              <SectionLabel>Activity</SectionLabel>
-              <h1 className="mt-2 font-display text-4xl text-ink tracking-tighter">
-                Notifications
-              </h1>
-            </div>
-            {unread > 0 && <Badge tone="accent">{unread} new</Badge>}
+        <div className="page-fluid pb-12 pt-5 md:pt-6 animate-fade-up">
+          <div className="flex items-center justify-between mb-3">
+            <h1 className="text-[18px] md:text-[21px] font-semibold text-white">
+              Notifications
+            </h1>
+            {unread > 0 && (
+              <span className="lg-pill lg-pill-b">{unread} new</span>
+            )}
           </div>
 
           {/* Incoming Block Requests — accept to create the Block + unlock chat */}
           <BlockRequestInbox requests={blockRequests} />
 
           <Card className="overflow-hidden p-0">
-            <ul className="divide-y divide-line">
+            <ul className="divide-y divide-white/[0.08]">
               {NOTIFS.map((n) => {
                 const actor = getPerson(n.actorId);
                 const Icon = n.icon;
@@ -69,8 +68,8 @@ export default async function NotificationsPage() {
                     <Link
                       href={n.href}
                       className={cn(
-                        "flex items-start gap-3.5 px-5 py-4 transition-colors hover:bg-surface-2",
-                        n.unread && "bg-accent/[0.035]"
+                        "flex items-start gap-3.5 px-5 py-4 transition-colors hover:bg-white/[0.06]",
+                        n.unread && "bg-white/[0.03]"
                       )}
                     >
                       <span className="relative shrink-0">
@@ -79,7 +78,7 @@ export default async function NotificationsPage() {
                         )}
                         <span
                           className={cn(
-                            "absolute -bottom-1 -right-1 h-5 w-5 rounded-full flex items-center justify-center ring-2 ring-surface border",
+                            "absolute -bottom-1 -right-1 h-5 w-5 rounded-full flex items-center justify-center ring-2 ring-[#15161c] border",
                             n.tone
                           )}
                         >

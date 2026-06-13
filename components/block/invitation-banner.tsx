@@ -27,7 +27,7 @@ export function InvitationBanner({ slug }: { slug: string }) {
 
   return (
     <div className="shrink-0 border-b border-accent/30 bg-accent/10 px-5 md:px-8 py-3">
-      <div className="max-w-[1100px] flex flex-col sm:flex-row sm:items-center gap-3 sm:justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:justify-between">
         <p className="inline-flex items-center gap-2 text-[13px] text-ink">
           <Mail size={15} className="text-accent shrink-0" />
           You&apos;ve been invited to collaborate on this Block.

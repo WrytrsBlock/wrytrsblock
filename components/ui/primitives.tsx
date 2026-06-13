@@ -50,11 +50,14 @@ export function Card({
   hover,
   ...props
 }: { hover?: boolean } & ComponentPropsWithoutRef<"div">) {
+  // Liquid-glass surface (only used inside the dark app shell) — white-alpha
+  // glass with the bright top edge, matching the lg-glass mockup language.
   return (
     <div
       className={cn(
-        "bg-surface border border-line rounded-2xl shadow-soft",
-        hover && "transition-all duration-300 ease hover:border-line-strong hover:shadow-elevated",
+        "rounded-2xl bg-white/[0.07] border border-white/[0.18] border-t-white/[0.35] backdrop-blur-[16px] shadow-[0_8px_32px_rgba(0,0,0,0.3)]",
+        hover &&
+          "transition-all duration-300 ease hover:border-white/[0.3] hover:bg-white/[0.1]",
         className
       )}
       {...props}

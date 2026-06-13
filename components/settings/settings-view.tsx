@@ -152,14 +152,14 @@ function Group({
   children: ReactNode;
 }) {
   return (
-    <section className="rounded-2xl border border-line bg-surface overflow-hidden">
-      <div className="px-5 sm:px-6 pt-4 pb-3 border-b border-line">
-        <h2 className="text-[12px] font-bold uppercase tracking-[0.14em] text-muted">
+    <section className="lg-glass overflow-hidden !rounded-2xl">
+      <div className="px-5 sm:px-6 pt-4 pb-3 border-b border-white/[0.12]">
+        <h2 className="text-[12px] font-bold uppercase tracking-[0.14em] text-white/60">
           {title}
         </h2>
-        {desc && <p className="text-[12px] text-muted/80 mt-1">{desc}</p>}
+        {desc && <p className="text-[12px] text-white/50 mt-1">{desc}</p>}
       </div>
-      <div className="divide-y divide-line">{children}</div>
+      <div className="divide-y divide-white/[0.08]">{children}</div>
     </section>
   );
 }
@@ -168,7 +168,7 @@ const ROW = "flex items-center gap-3 px-5 sm:px-6 py-3.5";
 
 function RowIcon({ icon: Icon }: { icon: LucideIcon }) {
   return (
-    <span className="h-9 w-9 shrink-0 rounded-lg bg-surface-2 border border-line flex items-center justify-center text-muted">
+    <span className="h-9 w-9 shrink-0 rounded-lg bg-white/[0.08] border border-white/[0.16] flex items-center justify-center text-white/70">
       <Icon size={16} strokeWidth={1.75} />
     </span>
   );
@@ -197,7 +197,7 @@ function LinkRow({
       <ChevronRight size={16} className="text-muted/60 shrink-0" />
     </>
   );
-  const cls = cn(ROW, "hover:bg-surface-2 transition-colors");
+  const cls = cn(ROW, "hover:bg-white/[0.06] transition-colors");
   return newTab ? (
     <a href={href} target="_blank" rel="noreferrer" className={cls}>
       {body}

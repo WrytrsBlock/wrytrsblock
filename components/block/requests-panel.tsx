@@ -43,7 +43,7 @@ export function RequestsPanel({ block }: { block: Block }) {
   const open = requests.filter((r) => r.status === "new").length;
 
   return (
-    <div className="px-6 md:px-8 py-8 max-w-[820px] space-y-5 animate-fade-up">
+    <div className="page-fluid py-8 space-y-5 animate-fade-up">
       <div className="flex items-end justify-between gap-4">
         <div>
           <SectionLabel>Service · {block.kind}</SectionLabel>

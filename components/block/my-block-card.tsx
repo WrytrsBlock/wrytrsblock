@@ -1,5 +1,13 @@
 import Link from "next/link";
-import { CalendarClock, Star, Users } from "lucide-react";
+import {
+  ArrowUpRight,
+  CalendarClock,
+  CalendarPlus,
+  Inbox,
+  Play,
+  Star,
+  Users,
+} from "lucide-react";
 import { cn } from "@/lib/cn";
 import { BlockCover } from "@/components/block/block-cover";
 import {
@@ -44,6 +52,17 @@ export function MyBlockCard({
       ? "View Requests"
       : "Open Block";
 
+  // A single, recognizable icon for the square CTA, per Block type/state.
+  const CtaIcon = isLive
+    ? Play
+    : isParty
+      ? party?.status === "ended"
+        ? Play
+        : CalendarPlus
+      : isService
+        ? Inbox
+        : ArrowUpRight;
+
   const typeLabel = isParty
     ? party?.category ?? "Block Party"
     : isService
@@ -57,7 +76,7 @@ export function MyBlockCard({
 
   return (
     <article
-      className="group relative aspect-[4/5] rounded-2xl overflow-hidden glass-tile glass-hover animate-fade-up"
+      className="group relative aspect-[4/5] rounded-[20px] overflow-hidden glass-tile glass-hover animate-fade-up"
       style={{ animationDelay: `${Math.min(index, 10) * 40}ms` }}
     >
       {/* Full-bleed cover — branded placeholder when missing or it fails to load */}
@@ -88,23 +107,26 @@ export function MyBlockCard({
         {statusLabel}
       </span>
 
-      {/* Frosted glass gradient band — same language as Block Market cards */}
-      <div className="absolute inset-x-0 bottom-0 z-10 bg-gradient-to-t from-black/65 via-black/40 to-black/15 backdrop-blur-md border-t border-white/15 shadow-[inset_0_1px_0_rgb(255_255_255/0.12)]">
-        <div className="relative px-3.5 pt-2 pb-2.5">
-          {/* Block type — white for readability over bright images */}
-          <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-white/80">
+      {/* Translucent gradient, low on the card — lowered + see-through so more
+          of the cover shows. Title/meta on the left, a square type-aware CTA on
+          the right. pointer-events-none so taps fall through to the card link;
+          the title and CTA re-enable their own clicks. */}
+      <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 flex items-end justify-between gap-2.5 bg-gradient-to-t from-black/75 via-black/28 to-transparent px-3.5 pb-3 pt-14 md:px-4">
+        <div className="min-w-0">
+          {/* Block type */}
+          <span className="block truncate text-[10px] font-bold uppercase tracking-[0.12em] text-white/75 drop-shadow-[0_1px_3px_rgb(0_0_0/0.6)]">
             {typeLabel}
           </span>
 
-          {/* Title — primary, full white */}
-          <Link href={openHref} className="block">
-            <h3 className="font-display text-[16px] md:text-[18px] text-white leading-tight tracking-tight truncate">
+          {/* Title */}
+          <Link href={openHref} className="pointer-events-auto block">
+            <h3 className="mt-0.5 font-display text-[16px] md:text-[19px] text-white leading-tight tracking-tight truncate drop-shadow-[0_1px_4px_rgb(0_0_0/0.55)]">
               {block.title}
             </h3>
           </Link>
 
-          {/* Meta — white opacity scale (name secondary, the rest tertiary) */}
-          <p className="mt-0.5 flex items-center gap-1.5 text-[11px] text-white/60 leading-tight min-w-0">
+          {/* Meta */}
+          <p className="mt-1 flex items-center gap-1.5 text-[11.5px] text-white/75 leading-tight min-w-0 drop-shadow-[0_1px_3px_rgb(0_0_0/0.6)]">
             {isParty ? (
               <>
                 <CalendarClock size={11} className="shrink-0" />
@@ -123,7 +145,7 @@ export function MyBlockCard({
               <span className="truncate">
                 {lead ? (
                   <>
-                    <span className="font-medium text-white/80">
+                    <span className="font-medium text-white/85">
                       {lead.name}
                     </span>{" "}
                     · {priceLabel}
@@ -134,7 +156,7 @@ export function MyBlockCard({
               </span>
             ) : (
               <>
-                <span className="truncate font-medium text-white/80">
+                <span className="truncate font-medium text-white/85">
                   {lead?.name ?? block.tagline}
                 </span>
                 {typeof score === "number" && (
@@ -147,28 +169,27 @@ export function MyBlockCard({
               </>
             )}
           </p>
-
-          {/* CTA — type-aware, integrated into the overlay */}
-          <Link
-            href={ctaHref}
-            aria-label={cta}
-            className={cn(
-              "mt-2.5 w-full inline-flex items-center justify-center gap-1.5 h-9 rounded-lg text-[12.5px] font-semibold text-white transition-colors",
-              isLive
-                ? "bg-danger border border-danger hover:bg-danger/90"
-                : "bg-white/[0.16] border border-white/25 hover:bg-accent hover:border-accent"
-            )}
-            style={{ color: "#FFFFFF" }}
-          >
-            {isLive && (
-              <span className="relative flex h-1.5 w-1.5">
-                <span className="absolute inline-flex h-full w-full rounded-full bg-white opacity-75 animate-ping" />
-                <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-white" />
-              </span>
-            )}
-            {cta}
-          </Link>
         </div>
+
+        {/* Square CTA — type-aware icon (live is red) */}
+        <Link
+          href={ctaHref}
+          aria-label={cta}
+          title={cta}
+          className={cn(
+            "pointer-events-auto inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-white backdrop-blur-md transition-colors",
+            isLive
+              ? "bg-danger border border-danger hover:bg-danger/90"
+              : "bg-[rgba(59,102,246,0.55)] border border-[rgba(140,170,255,0.6)] border-t-[rgba(185,205,255,0.75)] shadow-[0_4px_18px_rgba(59,102,246,0.4)] hover:bg-[rgba(59,102,246,0.78)]"
+          )}
+          style={{ color: "#FFFFFF" }}
+        >
+          <CtaIcon
+            size={18}
+            strokeWidth={2.2}
+            className={CtaIcon === Play ? "fill-current ml-0.5" : ""}
+          />
+        </Link>
       </div>
     </article>
   );

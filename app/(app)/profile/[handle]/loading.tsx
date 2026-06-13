@@ -14,7 +14,7 @@ export default function Loading() {
           </div>
 
           {/* Identity hero */}
-          <div className="px-4 md:px-8 max-w-[1100px]">
+          <div className="page-fluid">
             <div className="glass-card relative -mt-16 md:-mt-20 rounded-3xl px-5 md:px-8 pb-7">
               <div className="-mt-14 md:-mt-16 h-[120px] w-[120px] rounded-full bg-white/[0.08] border-4 border-bg" />
               <div className="mt-4 space-y-3">
@@ -33,7 +33,7 @@ export default function Loading() {
           </div>
 
           {/* Content blocks */}
-          <div className="px-5 md:px-8 pt-7 max-w-[1100px] space-y-4">
+          <div className="page-fluid pt-7 space-y-4">
             {Array.from({ length: 3 }).map((_, i) => (
               <div
                 key={i}

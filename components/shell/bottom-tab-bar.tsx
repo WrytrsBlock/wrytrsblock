@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Bell, CircleUser, LayoutGrid, Plus, Search } from "lucide-react";
+import { CircleUser, House, LayoutGrid, Plus, Search } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { openNewBlock } from "@/lib/ui-events";
@@ -69,8 +69,8 @@ export function BottomTabBar({ profileHref }: { profileHref: string }) {
     >
       {/* Floating liquid-glass dock */}
       <div className="mx-auto flex max-w-md items-stretch gap-0.5 rounded-[26px] glass-strong border border-white/[0.1] px-1.5 py-1.5 shadow-[0_12px_36px_-8px_rgb(0_0_0/0.7),inset_0_1px_0_rgb(255_255_255/0.08)]">
+        <NavTab href="/home" label="Home" icon={House} />
         <NavTab href="/marketplace" label="Market" icon={Search} />
-        <NavTab href="/blocks" label="Blocks" icon={LayoutGrid} />
 
         {/* Create — primary action, distinguished by a circular glass affordance
             (monochrome), not color. Never shows an "active" state. */}
@@ -86,7 +86,7 @@ export function BottomTabBar({ profileHref }: { profileHref: string }) {
           <span className={cn(LABEL, "text-white/60")}>Create</span>
         </button>
 
-        <NavTab href="/notifications" label="Alerts" icon={Bell} />
+        <NavTab href="/blocks" label="Blocks" icon={LayoutGrid} />
         <NavTab href={profileHref} label="Profile" icon={CircleUser} />
       </div>
     </nav>

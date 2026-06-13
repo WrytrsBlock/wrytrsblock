@@ -18,12 +18,13 @@ export function ShowcaseAddButton({
   className?: string;
   variant?: "outline" | "primary" | "ghost";
 }) {
+  // Liquid-glass pills (mockup): primary = blue glass, default = white glass.
   const styles =
     variant === "primary"
-      ? "bg-grad-accent text-white border border-accent/40 shadow-glow hover:opacity-95"
+      ? "lg-btn lg-btn-p"
       : variant === "ghost"
-        ? "border border-transparent text-accent hover:bg-accent/10"
-        : "border border-line bg-transparent text-ink hover:bg-surface-2 hover:border-line-strong";
+        ? "inline-flex h-10 items-center justify-center gap-1.5 rounded-full px-4 text-[13px] font-medium border border-transparent text-[#A9BEFF] hover:bg-white/[0.08] transition-colors"
+        : "lg-btn";
   return (
     <button
       type="button"
@@ -33,11 +34,7 @@ export function ShowcaseAddButton({
         )
       }
       style={variant === "primary" ? { color: "#FFFFFF" } : undefined}
-      className={cn(
-        "inline-flex h-10 items-center justify-center gap-1.5 rounded-lg px-4 text-[13px] font-medium transition-colors",
-        styles,
-        className
-      )}
+      className={cn(styles, className)}
     >
       <Plus size={14} /> {label}
     </button>

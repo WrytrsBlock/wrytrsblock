@@ -3,7 +3,13 @@
 import { useEffect, useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { MessageSquare, Search, Send } from "lucide-react";
+import {
+  CircleUser,
+  Flag,
+  MessageSquare,
+  Search,
+  Send,
+} from "lucide-react";
 import { Avatar, Input } from "@/components/ui/primitives";
 import { cn } from "@/lib/cn";
 import { useRealtimeTable } from "@/hooks/use-realtime";
@@ -97,155 +103,173 @@ export function MessagesView({
     : conversations;
 
   return (
-    <div className="flex flex-1 min-h-0">
-      {/* Conversations */}
-      <div
-        className={cn(
-          "flex-col w-full md:w-[300px] shrink-0 border-r border-line bg-surface/30",
-          active ? "hidden md:flex" : "flex"
-        )}
-      >
-        <div className="px-4 pt-5 pb-2">
-          <h2 className="font-display text-xl text-ink tracking-tight">
-            Messages
-          </h2>
-        </div>
-        <div className="mx-3 mb-3">
+    <div className="flex-1 min-h-0 page-fluid pt-4 pb-4">
+      <div className="grid h-full min-h-0 gap-3 md:grid-cols-[280px_1fr]">
+        {/* Conversations — glass chat list (mockup "Block chats") */}
+        <div
+          className={cn(
+            "min-h-0 flex-col gap-2",
+            active ? "hidden md:flex" : "flex"
+          )}
+        >
+          <p className="text-[11.5px] text-white/60">Chats</p>
           <div className="relative">
             <Search
               size={12}
-              className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted pointer-events-none"
+              className="absolute left-3 top-1/2 -translate-y-1/2 text-white/60 pointer-events-none"
             />
             <Input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Search messages"
-              className="!h-8 pl-7 !text-[12px]"
+              className="!h-8 pl-8 !text-[12px] !rounded-full !bg-white/[0.06] !border-white/[0.16] !text-white placeholder:!text-white/60"
             />
+          </div>
+
+          <div className="flex-1 overflow-y-auto">
+            {filtered.length === 0 ? (
+              <p className="px-3 py-6 text-center text-[12.5px] text-white/60">
+                No conversations yet. Message a creator from the Block Market.
+              </p>
+            ) : (
+              <ul className="space-y-2">
+                {filtered.map((c) => {
+                  const isActive = c.id === activeId;
+                  return (
+                    <li key={c.id}>
+                      <Link
+                        href={`/messages?c=${c.id}`}
+                        scroll={false}
+                        className="lg-glass2 flex w-full items-center gap-2.5 p-2.5 transition-colors hover:bg-white/[0.1]"
+                        style={
+                          isActive
+                            ? {
+                                borderColor: "rgba(120,150,255,0.45)",
+                                background: "rgba(59,102,246,0.14)",
+                              }
+                            : undefined
+                        }
+                      >
+                        <Avatar src={c.other.avatar} name={c.other.name} size={32} />
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="truncate text-[12.5px] font-semibold text-white">
+                              {c.other.name}
+                            </span>
+                            {c.lastAt && (
+                              <span className="shrink-0 text-[10px] text-white/50">
+                                {c.lastAt}
+                              </span>
+                            )}
+                          </div>
+                          <p className="mt-px truncate text-[11px] text-white/60">
+                            {c.lastMessage ?? `@${c.other.handle}`}
+                          </p>
+                        </div>
+                      </Link>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
           </div>
         </div>
 
-        <div className="px-2 overflow-y-auto pb-4">
-          {filtered.length === 0 ? (
-            <p className="px-3 py-6 text-center text-[12.5px] text-muted">
-              No conversations yet. Message a creator from the Marketplace.
-            </p>
-          ) : (
-            <ul className="space-y-px">
-              {filtered.map((c) => {
-                const isActive = c.id === activeId;
-                return (
-                  <li key={c.id}>
-                    <Link
-                      href={`/messages?c=${c.id}`}
-                      scroll={false}
-                      className={cn(
-                        "w-full flex items-center gap-2.5 px-2.5 h-14 rounded-lg transition-colors",
-                        isActive
-                          ? "bg-surface-2"
-                          : "hover:bg-surface-2/60"
-                      )}
-                    >
-                      <Avatar src={c.other.avatar} name={c.other.name} size={36} />
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center justify-between gap-2">
-                          <span className="text-[13px] font-medium text-ink truncate">
-                            {c.other.name}
-                          </span>
-                          {c.lastAt && (
-                            <span className="text-[10px] text-muted shrink-0">
-                              {c.lastAt}
-                            </span>
-                          )}
-                        </div>
-                        <p className="text-[11.5px] text-muted truncate">
-                          {c.lastMessage ?? `@${c.other.handle}`}
-                        </p>
-                      </div>
-                    </Link>
-                  </li>
-                );
-              })}
-            </ul>
+        {/* Thread — the Block is the room (mockup screen 4) */}
+        <div
+          className={cn(
+            "lg-glass min-h-0 min-w-0 flex-col overflow-hidden",
+            active ? "flex" : "hidden md:flex"
           )}
-        </div>
-      </div>
-
-      {/* Thread */}
-      <div
-        className={cn(
-          "flex-1 min-w-0 flex-col",
-          active ? "flex" : "hidden md:flex"
-        )}
-      >
-        {active ? (
-          <>
-            <div className="h-14 px-5 border-b border-line flex items-center gap-3">
-              <Link
-                href="/messages"
-                className="md:hidden text-muted hover:text-ink"
-              >
-                ←
-              </Link>
-              <Avatar
-                src={active.other.avatar}
-                name={active.other.name}
-                size={32}
-              />
-              <div className="min-w-0">
+        >
+          {active ? (
+            <>
+              <div className="flex items-center gap-2.5 border-b border-white/[0.12] px-3.5 py-2.5">
+                <Link
+                  href="/messages"
+                  className="md:hidden text-white/65 hover:text-white"
+                >
+                  ←
+                </Link>
+                <Avatar
+                  src={active.other.avatar}
+                  name={active.other.name}
+                  size={28}
+                />
                 <Link
                   href={`/profile/${active.other.handle}`}
-                  className="text-[13.5px] font-semibold text-ink hover:text-accent transition-colors truncate block"
+                  className="truncate text-[13.5px] font-semibold text-white transition-colors hover:text-[#A9BEFF]"
                 >
                   {active.other.name}
                 </Link>
-                <p className="text-[11px] text-muted truncate">
-                  @{active.other.handle}
-                </p>
+                <span className="flex-1" />
+                <Link
+                  href={`/profile/${active.other.handle}`}
+                  aria-label={`Open ${active.other.name}'s profile`}
+                  title="View profile"
+                  className="text-white/70 hover:text-white"
+                >
+                  <CircleUser size={15} />
+                </Link>
+                <a
+                  href={`mailto:support@wrytrsblock.com?subject=${encodeURIComponent(
+                    `Report conversation with @${active.other.handle}`
+                  )}&body=${encodeURIComponent(
+                    `I want to report my conversation with @${active.other.handle} on WrytrsBlock.\n\nWhat happened:\n`
+                  )}`}
+                  title="Report conversation"
+                  aria-label="Report conversation"
+                  className="text-white/70 hover:text-[#FFD98A] transition-colors"
+                >
+                  <Flag size={14} />
+                </a>
               </div>
-            </div>
 
-            <div
-              ref={scrollRef}
-              className="flex-1 overflow-y-auto px-5 py-5 space-y-3"
-            >
-              {local.length === 0 && (
-                <p className="text-center text-[12.5px] text-muted py-8">
-                  Say hello 👋
-                </p>
-              )}
-              {local.map((m) => {
-                const mine = m.senderId === meId;
-                return (
-                  <div
-                    key={m.id}
-                    className={cn("flex", mine ? "justify-end" : "justify-start")}
-                  >
+              <div
+                ref={scrollRef}
+                className="flex-1 space-y-2.5 overflow-y-auto px-3.5 py-3.5"
+              >
+                {local.length === 0 && (
+                  <p className="py-8 text-center text-[12.5px] text-white/60">
+                    Say hello 👋
+                  </p>
+                )}
+                {local.map((m) => {
+                  const mine = m.senderId === meId;
+                  return (
                     <div
+                      key={m.id}
                       className={cn(
-                        "max-w-[78%] rounded-2xl px-3.5 py-2 text-[13px] leading-relaxed",
-                        mine
-                          ? "bg-grad-accent text-white rounded-br-sm"
-                          : "bg-surface-2 text-ink border border-line rounded-bl-sm"
+                        "flex items-end gap-2",
+                        mine ? "justify-end" : "justify-start"
                       )}
                     >
-                      {m.body}
-                      <span
+                      {!mine && (
+                        <Avatar
+                          src={active.other.avatar}
+                          name={active.other.name}
+                          size={27}
+                        />
+                      )}
+                      <div
                         className={cn(
-                          "ml-2 align-baseline text-[9.5px]",
-                          mine ? "text-white/70" : "text-muted"
+                          "max-w-[78%] px-3 py-2 text-[12.5px] leading-relaxed text-white",
+                          mine
+                            ? "rounded-[14px_14px_4px_14px] border border-[rgba(140,170,255,0.5)] bg-[rgba(59,102,246,0.6)] backdrop-blur-[10px]"
+                            : "lg-glass2 !rounded-[14px_14px_14px_4px]"
                         )}
                       >
-                        {m.at}
-                      </span>
+                        {m.body}
+                        <span className="ml-2 align-baseline text-[9.5px] text-white/60">
+                          {m.at}
+                        </span>
+                      </div>
                     </div>
-                  </div>
-                );
-              })}
-            </div>
+                  );
+                })}
+              </div>
 
-            <div className="px-5 pb-5">
-              <div className="flex items-end gap-2 rounded-2xl border border-line bg-surface p-2 shadow-soft focus-within:shadow-elevated transition-shadow">
+              <div className="lg-glass2 mx-3 mb-3 flex items-center gap-2 !rounded-full px-3.5 py-1.5">
                 <textarea
                   rows={1}
                   value={input}
@@ -256,40 +280,37 @@ export function MessagesView({
                       send();
                     }
                   }}
-                  placeholder={`Message ${active.other.name}`}
-                  className="flex-1 resize-none bg-transparent text-[13px] text-ink placeholder:text-muted/70 focus:outline-none px-2 py-1.5 max-h-32"
+                  placeholder={`Message ${active.other.name}…`}
+                  className="max-h-32 flex-1 resize-none bg-transparent px-1 py-1.5 text-[12.5px] text-white placeholder:text-white/60 focus:outline-none"
                 />
                 <button
                   onClick={send}
                   disabled={!input.trim() || pending}
                   aria-label="Send message"
-                  className="inline-flex items-center justify-center h-9 w-9 rounded-xl bg-grad-accent text-white shadow-glow hover:opacity-95 transition-opacity disabled:opacity-40"
+                  className="inline-flex h-8 w-8 items-center justify-center rounded-full text-[#8FA8FF] transition-colors hover:bg-white/[0.1] disabled:opacity-40"
                 >
                   <Send size={15} />
                 </button>
               </div>
+            </>
+          ) : (
+            <div className="flex flex-1 flex-col items-center justify-center px-6 text-center">
+              <span className="lg-glass2 inline-flex h-12 w-12 items-center justify-center text-white/70">
+                <MessageSquare size={20} />
+              </span>
+              <p className="mt-4 text-[14px] font-medium text-white">
+                Your messages
+              </p>
+              <p className="mt-1 max-w-xs text-[12.5px] text-white/60">
+                Find a creator in the Block Market and hit Message to start a
+                conversation.
+              </p>
+              <Link href="/marketplace" className="lg-btn lg-btn-p mt-4">
+                Browse creators
+              </Link>
             </div>
-          </>
-        ) : (
-          <div className="flex-1 flex flex-col items-center justify-center text-center px-6">
-            <span className="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-surface-2 border border-line text-muted">
-              <MessageSquare size={20} />
-            </span>
-            <p className="mt-4 text-[14px] font-medium text-ink">
-              Your messages
-            </p>
-            <p className="mt-1 text-[12.5px] text-muted max-w-xs">
-              Find a creator in the Marketplace and hit Message to start a
-              conversation.
-            </p>
-            <Link
-              href="/marketplace"
-              className="mt-4 inline-flex items-center h-9 px-4 rounded-lg bg-grad-accent text-white text-[12.5px] font-medium shadow-glow"
-            >
-              Browse creators
-            </Link>
-          </div>
-        )}
+          )}
+        </div>
       </div>
     </div>
   );

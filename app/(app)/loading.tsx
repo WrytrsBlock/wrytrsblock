@@ -12,7 +12,7 @@ export default function AppLoading() {
       </div>
 
       {/* Content placeholder */}
-      <div className="flex-1 overflow-hidden px-8 py-8 max-w-[1400px] w-full">
+      <div className="flex-1 overflow-hidden page-fluid py-8">
         <Skeleton className="h-3 w-24" />
         <Skeleton className="mt-3 h-9 w-64" />
         <Skeleton className="mt-2 h-3 w-80" />

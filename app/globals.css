@@ -253,6 +253,182 @@
     );
   }
 
+  /* ── Liquid Glass app shell — ported 1:1 from
+     wrytrsblock-mockups/wrytrsblock-liquid-glass-mockups.html. Fixed
+     white-alpha values (not theme tokens): these surfaces are designed for
+     the dark ambient canvas and must not shift with the light theme. ── */
+  .lg-canvas {
+    background-color: #07080d;
+  }
+  .lg-glass {
+    background: rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(18px) saturate(160%);
+    -webkit-backdrop-filter: blur(18px) saturate(160%);
+    border: 1px solid rgba(255, 255, 255, 0.22);
+    border-top-color: rgba(255, 255, 255, 0.4);
+    border-radius: 18px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.35);
+  }
+  .lg-glass2 {
+    background: rgba(255, 255, 255, 0.06);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    border-top-color: rgba(255, 255, 255, 0.32);
+    border-radius: 14px;
+  }
+  .lg-nav {
+    background: rgba(255, 255, 255, 0.09);
+    backdrop-filter: blur(20px) saturate(160%);
+    -webkit-backdrop-filter: blur(20px) saturate(160%);
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    border-top-color: rgba(255, 255, 255, 0.45);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  }
+  .lg-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    border-radius: 99px;
+    padding: 8px 17px;
+    font-size: 12.5px;
+    font-weight: 500;
+    color: #fff;
+    background: rgba(255, 255, 255, 0.12);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.28);
+    border-top-color: rgba(255, 255, 255, 0.5);
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background-color 180ms ease, border-color 180ms ease;
+  }
+  .lg-btn:hover {
+    background: rgba(255, 255, 255, 0.18);
+  }
+  .lg-btn:disabled {
+    opacity: 0.55;
+    pointer-events: none;
+  }
+  .lg-btn-p {
+    background: rgba(59, 102, 246, 0.55);
+    border-color: rgba(140, 170, 255, 0.6);
+    box-shadow: 0 4px 18px rgba(59, 102, 246, 0.35);
+  }
+  .lg-btn-p:hover {
+    background: rgba(59, 102, 246, 0.7);
+  }
+  .lg-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    border-radius: 99px;
+    padding: 3px 11px;
+    font-size: 11px;
+    font-weight: 600;
+    white-space: nowrap;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+  }
+  .lg-pill-w {
+    background: rgba(255, 255, 255, 0.14);
+    color: #fff;
+    border: 1px solid rgba(255, 255, 255, 0.25);
+  }
+  .lg-pill-g {
+    background: rgba(43, 196, 138, 0.2);
+    color: #7bedc4;
+    border: 1px solid rgba(43, 196, 138, 0.45);
+  }
+  .lg-pill-y {
+    background: rgba(232, 180, 58, 0.2);
+    color: #ffd98a;
+    border: 1px solid rgba(232, 180, 58, 0.45);
+  }
+  .lg-pill-b {
+    background: rgba(59, 102, 246, 0.25);
+    color: #a9beff;
+    border: 1px solid rgba(120, 150, 255, 0.5);
+  }
+  .lg-prog {
+    height: 5px;
+    border-radius: 3px;
+    background: rgba(255, 255, 255, 0.14);
+    overflow: hidden;
+  }
+  .lg-prog > * {
+    height: 5px;
+    border-radius: 3px;
+    background: linear-gradient(90deg, #3b66f6, #7f9cff);
+    transition: width 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .lg-bar {
+    flex: 1;
+    border-radius: 5px 5px 2px 2px;
+    background: linear-gradient(
+      180deg,
+      rgba(127, 156, 255, 0.9),
+      rgba(59, 102, 246, 0.45)
+    );
+    border: 1px solid rgba(140, 170, 255, 0.4);
+    border-bottom: none;
+  }
+  /* ── Workspace layout system ─────────────────────────────────────────
+     Authenticated pages are a fluid, full-width workspace (Spotify /
+     Notion / Figma): content expands across the available canvas with
+     comfortable, viewport-scaled padding. Only auth, onboarding,
+     settings, and legal pages use a constrained centered column. */
+  .page-fluid {
+    width: 100%;
+    padding-left: clamp(20px, 3vw, 56px);
+    padding-right: clamp(20px, 3vw, 56px);
+  }
+  .page-constrained {
+    width: 100%;
+    max-width: 880px;
+    margin-left: auto;
+    margin-right: auto;
+    padding-left: 20px;
+    padding-right: 20px;
+  }
+
+  /* Ambient radial-gradient backdrops — one per screen, from the mockup.
+     Gradient sizes are scaled up ~1.8x from the mockup's ~920px scenes so the
+     washes fill a full-viewport canvas without hard falloff edges. */
+  .lg-amb-home {
+    background:
+      radial-gradient(900px 540px at 12% 12%, #23386f 0%, transparent 60%),
+      radial-gradient(830px 500px at 90% 28%, #4a2160 0%, transparent 58%),
+      radial-gradient(900px 580px at 55% 100%, #0e4f46 0%, transparent 60%),
+      #07080d;
+  }
+  .lg-amb-profile {
+    background:
+      radial-gradient(860px 500px at 18% 22%, #2a3c7e 0%, transparent 60%),
+      radial-gradient(760px 470px at 85% 15%, #5a2e6e 0%, transparent 55%),
+      radial-gradient(830px 540px at 60% 95%, #0e4f46 0%, transparent 60%),
+      #07080d;
+  }
+  .lg-amb-blocks {
+    background:
+      radial-gradient(790px 470px at 80% 10%, #23386f 0%, transparent 60%),
+      radial-gradient(720px 470px at 8% 80%, #4a2160 0%, transparent 60%),
+      #07080d;
+  }
+  .lg-amb-market {
+    background:
+      radial-gradient(830px 500px at 15% 15%, #0e4f46 0%, transparent 60%),
+      radial-gradient(830px 500px at 88% 75%, #23386f 0%, transparent 60%),
+      #07080d;
+  }
+  .lg-amb-messages {
+    background:
+      radial-gradient(830px 500px at 75% 12%, #4a2160 0%, transparent 60%),
+      radial-gradient(790px 500px at 10% 85%, #23386f 0%, transparent 60%),
+      #07080d;
+  }
+
   @keyframes fade-up {
     from {
       opacity: 0;

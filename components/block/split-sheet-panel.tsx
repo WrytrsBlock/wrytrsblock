@@ -71,7 +71,7 @@ export function SplitSheetPanel({ block }: { block: Block }) {
     status === "signed" ? "success" : status === "circulated" ? "warning" : "soft";
 
   return (
-    <div className="px-8 py-7 space-y-5 max-w-[1000px] animate-fade-up">
+    <div className="page-fluid py-7 space-y-5 animate-fade-up">
       <div className="flex items-end justify-between gap-4">
         <div>
           <SectionLabel className="flex items-center gap-2">

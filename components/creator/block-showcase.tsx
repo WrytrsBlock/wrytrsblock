@@ -19,6 +19,7 @@ import {
   Quote,
   Star,
   Trash2,
+  Undo2,
   X,
 } from "lucide-react";
 import { cn } from "@/lib/cn";
@@ -64,6 +65,12 @@ export function BlockShowcase({
   );
   const [saving, startSave] = useTransition();
   const [saveError, setSaveError] = useState<string | null>(null);
+  // Forgiving removal: the tile disappears immediately, but the save waits
+  // behind a short Undo window.
+  const [pendingRemove, setPendingRemove] = useState<{
+    prev: FeaturedContentItem[];
+  } | null>(null);
+  const removeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Pre-selected type when the editor is opened from an external button
   // (e.g. "Add Content" / "Add Service" / "Add Demo" below the banner).
   const [presetType, setPresetType] = useState<ContentType | undefined>();
@@ -85,7 +92,17 @@ export function BlockShowcase({
     return () => window.removeEventListener("wb:showcase-add", onAdd);
   }, [isOwner]);
 
+  // Drop any pending-remove timer. A follow-up persist() saves the current
+  // items (which already exclude the removed tile), so committing separately
+  // would be redundant.
+  function clearPendingRemove() {
+    if (removeTimer.current) clearTimeout(removeTimer.current);
+    removeTimer.current = null;
+    setPendingRemove(null);
+  }
+
   function persist(next: FeaturedContentItem[]) {
+    clearPendingRemove();
     const sorted = sortShowcase(next).slice(0, SLOTS);
     setItems(sorted);
     setSaveError(null);
@@ -101,7 +118,27 @@ export function BlockShowcase({
     setEditing(null);
   }
   function remove(id: string) {
-    persist(items.filter((i) => i.id !== id));
+    clearPendingRemove();
+    const prev = items;
+    const next = sortShowcase(items.filter((i) => i.id !== id)).slice(0, SLOTS);
+    setItems(next);
+    setPendingRemove({ prev });
+    removeTimer.current = setTimeout(() => {
+      removeTimer.current = null;
+      setPendingRemove(null);
+      setSaveError(null);
+      startSave(async () => {
+        const res = await updateShowcaseAction(next);
+        if (!res.ok) setSaveError(res.error);
+      });
+    }, 6000);
+  }
+
+  function undoRemove() {
+    if (!pendingRemove) return;
+    const { prev } = pendingRemove;
+    clearPendingRemove();
+    setItems(prev);
   }
   function togglePin(id: string) {
     persist(items.map((i) => (i.id === id ? { ...i, pinned: !i.pinned } : i)));
@@ -125,7 +162,7 @@ export function BlockShowcase({
 
   return (
     <div className="relative w-full">
-      <div className="grid w-full grid-cols-3 gap-1.5">
+      <div className="grid w-full grid-cols-3 gap-[7px]">
         {slots.map((item, i) =>
           item ? (
             <Tile
@@ -163,25 +200,39 @@ export function BlockShowcase({
         )}
       </div>
 
-      {/* Save status (owner only) — an overlay so it never changes grid height */}
-      {isOwner && (saving || saveError) && (
+      {/* Save / undo status (owner only) — an overlay so it never changes grid
+          height */}
+      {isOwner && (saving || saveError || pendingRemove) && (
         <div className="pointer-events-none absolute inset-x-1 bottom-1.5 z-20 flex justify-center">
-          <span
-            className={cn(
-              "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10.5px] backdrop-blur-sm",
-              saveError
-                ? "border-danger/40 bg-danger/25 text-white"
-                : "border-white/15 bg-black/65 text-white/85"
-            )}
-          >
-            {saving ? (
-              <>
-                <Loader2 size={11} className="animate-spin" /> Saving…
-              </>
-            ) : (
-              saveError
-            )}
-          </span>
+          {pendingRemove ? (
+            <span className="pointer-events-auto inline-flex items-center gap-2 rounded-full border border-white/20 bg-black/70 px-3 py-1.5 text-[10.5px] text-white/85 backdrop-blur-sm">
+              Tile removed
+              <button
+                type="button"
+                onClick={undoRemove}
+                className="inline-flex items-center gap-1 font-semibold text-[#A9BEFF] hover:text-white transition-colors"
+              >
+                <Undo2 size={11} /> Undo
+              </button>
+            </span>
+          ) : (
+            <span
+              className={cn(
+                "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10.5px] backdrop-blur-sm",
+                saveError
+                  ? "border-danger/40 bg-danger/25 text-white"
+                  : "border-white/15 bg-black/65 text-white/85"
+              )}
+            >
+              {saving ? (
+                <>
+                  <Loader2 size={11} className="animate-spin" /> Saving…
+                </>
+              ) : (
+                saveError
+              )}
+            </span>
+          )}
         </div>
       )}
 
@@ -390,14 +441,15 @@ function EmptyTile({
       <div className="aspect-square rounded-xl border border-dashed border-white/10 bg-white/[0.015]" />
     );
   }
+  // Mockup "Add" tile: dashed glass2, plus icon over an 11px label.
   return (
     <button
       type="button"
       onClick={onAdd}
-      className="group flex aspect-square flex-col items-center justify-center gap-1 rounded-xl border border-dashed border-white/20 bg-white/[0.03] text-white/55 transition-colors hover:border-accent/60 hover:bg-accent/10 hover:text-white"
+      className="lg-glass2 flex aspect-square flex-col items-center justify-center gap-[2px] !rounded-xl !border-dashed text-[11px] text-white/70 transition-colors hover:bg-white/[0.1] hover:text-white"
     >
-      <Plus size={16} />
-      <span className="text-[10px] font-semibold">Add Content</span>
+      <Plus size={14} />
+      Add
     </button>
   );
 }

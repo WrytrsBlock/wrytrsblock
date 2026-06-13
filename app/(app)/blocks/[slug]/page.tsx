@@ -1,7 +1,6 @@
 import { notFound } from "next/navigation";
 import { TopBar } from "@/components/shell/topbar";
 import { BlockHeader } from "@/components/block/block-header";
-import { BlockTabs } from "@/components/block/block-tabs";
 import {
   tabsForType,
   type BlockTabId,
@@ -115,11 +114,10 @@ export default async function BlockPage({
           { label: block.title },
         ]}
       />
-      <BlockHeader block={block} />
+      <BlockHeader block={block} tab={tab} />
       {myMembership?.status === "invited" && (
         <InvitationBanner slug={block.slug} />
       )}
-      <BlockTabs active={tab} blockType={block.blockType} />
       <div
         className={cn(
           "flex-1 min-h-0",

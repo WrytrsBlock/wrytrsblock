@@ -1,84 +1,40 @@
 "use client";
 
-import Link from "next/link";
-import { ChevronRight, MessageSquare, Search } from "lucide-react";
-import { Avatar, Kbd } from "@/components/ui/primitives";
-import { ThemeToggle } from "@/components/ui/theme-toggle";
-import { NotificationsMenu } from "./notifications-menu";
-import { useCurrentProfile } from "./profile-context";
+import { Search } from "lucide-react";
+import { Kbd } from "@/components/ui/primitives";
 import { openCommandPalette } from "@/lib/ui-events";
 
-export function TopBar({
-  crumbs,
-  onToggleContext,
-}: {
-  crumbs: { label: string; href?: string }[];
+// The single global search experience: a centered, floating liquid-glass pill
+// at the top of the content area (Apple Liquid Glass treatment). Clicking — or
+// ⌘K from anywhere — opens the command palette. Navigation lives in the left
+// sidebar; this component deliberately carries no nav, bell, or avatar. The
+// old breadcrumb props are accepted but unused so call sites keep working.
+export function TopBar(_props: {
+  crumbs?: { label: string; href?: string }[];
   onToggleContext?: () => void;
 }) {
-  const me = useCurrentProfile();
   return (
-    <header className="h-12 shrink-0 glass-strong border-b border-line flex items-center gap-2 px-4 md:px-5 z-30">
-      {/* Breadcrumbs */}
-      <nav className="flex items-center gap-1 text-[12px] min-w-0">
-        {crumbs.map((c, i) => (
-          <span key={i} className="flex items-center gap-1 min-w-0">
-            <span
-              className={
-                i === crumbs.length - 1
-                  ? "text-ink font-medium truncate"
-                  : "text-muted hover:text-ink cursor-pointer truncate transition-colors"
-              }
-            >
-              {c.label}
-            </span>
-            {i < crumbs.length - 1 && (
-              <ChevronRight
-                size={11}
-                className="text-muted/60 shrink-0"
-                strokeWidth={2}
-              />
-            )}
-          </span>
-        ))}
-      </nav>
-
-      <div className="flex-1" />
-
-      {/* Global search */}
+    <header className="shrink-0 z-40 flex justify-center px-5 pt-5 md:pt-7">
       <button
+        type="button"
         onClick={() => openCommandPalette()}
-        className="hidden md:flex items-center gap-2 h-7 px-2.5 rounded-md bg-surface-2 border border-line text-muted hover:text-ink hover:border-line-strong transition-all duration-200"
+        aria-label="Search creators, blocks, services, skills, genres"
+        className="lg-nav group flex w-full max-w-[620px] items-center gap-3 rounded-full px-5 py-[11px] text-left transition-colors hover:bg-white/[0.13]"
+        style={{
+          boxShadow:
+            "0 8px 24px rgba(0,0,0,0.4), 0 0 42px rgba(59,102,246,0.16)",
+        }}
       >
-        <Search size={12} strokeWidth={1.75} />
-        <span className="text-[11.5px]">Search creators…</span>
+        <Search
+          size={15}
+          strokeWidth={1.9}
+          className="shrink-0 text-white/60 transition-colors group-hover:text-white"
+        />
+        <span className="min-w-0 flex-1 truncate text-[13px] text-white/60 transition-colors group-hover:text-white/80">
+          Search creators, blocks, services, skills, genres…
+        </span>
         <Kbd>⌘K</Kbd>
       </button>
-
-      {/* Secondary: Messages (always reachable) */}
-      <Link
-        href="/messages"
-        aria-label="Messages"
-        title="Messages"
-        className="inline-flex items-center justify-center h-8 w-8 rounded-lg text-ink hover:bg-surface-2 transition-colors"
-      >
-        <MessageSquare size={15} strokeWidth={1.75} />
-      </Link>
-
-      <NotificationsMenu />
-
-      <ThemeToggle />
-
-      {/* My Profile — one click from anywhere */}
-      {me && (
-        <Link
-          href="/profile"
-          title="My Profile"
-          aria-label="My Profile"
-          className="ml-1 rounded-full hover:ring-2 hover:ring-accent/40 transition-shadow"
-        >
-          <Avatar src={me.avatar} name={me.name} size={26} online />
-        </Link>
-      )}
     </header>
   );
 }

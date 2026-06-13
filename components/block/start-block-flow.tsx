@@ -3,9 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowUpRight, Check, Loader2, Plus, X } from "lucide-react";
-import { Button } from "@/components/ui/primitives";
-import { cn } from "@/lib/cn";
+import { ArrowUpRight, Check, Loader2, Plus, Send, X } from "lucide-react";
 import {
   acceptBlockRequestAction,
   declineBlockRequestAction,
@@ -58,18 +56,21 @@ export function StartBlockFlow({
   if (view === "active") {
     return (
       <div className="flex flex-wrap items-center gap-2.5">
-        <StatusPill tone="green" label="Active Block" />
+        <span className="lg-pill lg-pill-g">
+          <span className="h-[5px] w-[5px] rounded-full bg-[#2BC48A]" />
+          Active Block
+        </span>
         {activeSlug ? (
-          <Link href={`/blocks/${activeSlug}`}>
-            <Button variant="primary" size="lg" style={{ color: "#FFFFFF" }}>
-              Open Block <ArrowUpRight size={14} />
-            </Button>
+          <Link
+            href={`/blocks/${activeSlug}`}
+            className="lg-btn lg-btn-p"
+            style={{ color: "#FFFFFF" }}
+          >
+            Open Block <ArrowUpRight size={14} />
           </Link>
         ) : (
-          <Link href="/blocks">
-            <Button variant="outline" size="lg">
-              View Blocks
-            </Button>
+          <Link href="/blocks" className="lg-btn">
+            View Blocks
           </Link>
         )}
       </div>
@@ -99,17 +100,20 @@ export function StartBlockFlow({
       } else setError(res.error);
     };
     return (
-      <div className="max-w-md space-y-2.5 rounded-2xl border border-warning/30 bg-warning/[0.06] p-4">
-        <p className="text-[13.5px] font-semibold text-ink">
+      <div
+        className="lg-glass max-w-md space-y-2.5 p-4"
+        style={{ borderColor: "rgba(232,180,58,0.4)" }}
+      >
+        <p className="text-[13.5px] font-semibold text-white">
           {name} wants to start a Block with you
         </p>
         <Participants a={them} b={me} status="Pending acceptance" />
         <div className="flex gap-2 pt-1">
-          <Button
-            variant="primary"
-            size="lg"
+          <button
+            type="button"
             onClick={accept}
             disabled={busy}
+            className="lg-btn lg-btn-p"
             style={{ color: "#FFFFFF" }}
           >
             {busy ? (
@@ -118,10 +122,15 @@ export function StartBlockFlow({
               <Check size={14} />
             )}{" "}
             Accept
-          </Button>
-          <Button variant="outline" size="lg" onClick={decline} disabled={busy}>
+          </button>
+          <button
+            type="button"
+            onClick={decline}
+            disabled={busy}
+            className="lg-btn"
+          >
             <X size={14} /> Decline
-          </Button>
+          </button>
         </div>
         {error && <p className="text-[12px] text-danger">{error}</p>}
       </div>
@@ -131,22 +140,28 @@ export function StartBlockFlow({
   // ── Request sent — the success / pending state ────────────────────────────
   if (view === "request_sent") {
     return (
-      <div className="max-w-md rounded-2xl border border-warning/30 bg-warning/[0.06] p-4">
+      <div
+        className="lg-glass max-w-md p-4"
+        style={{ borderColor: "rgba(232,180,58,0.4)" }}
+      >
         <div className="flex items-center gap-2">
-          <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-success/20 text-success">
-            <Check size={13} />
+          <span className="inline-flex h-[21px] w-[21px] items-center justify-center rounded-full border border-[rgba(43,196,138,0.5)] bg-[rgba(43,196,138,0.25)] text-[#7BEDC4]">
+            <Check size={12} />
           </span>
-          <p className="text-[14px] font-semibold text-ink">
+          <p className="text-[14px] font-semibold text-white">
             Block Request Sent
           </p>
         </div>
-        <p className="mt-1 text-[12.5px] text-muted">
+        <p className="mt-1.5 text-[12.5px] text-white/60">
           Request sent to{" "}
-          <span className="font-medium text-ink">{name}</span>. Waiting for
+          <span className="font-medium text-white">{name}</span>. Waiting for
           response.
         </p>
-        <div className="mt-3">
-          <Participants a={me} b={them} status="Pending acceptance" />
+        <div className="mt-3 flex flex-wrap items-center gap-2.5">
+          <span className="lg-pill lg-pill-y">
+            <span className="h-[5px] w-[5px] rounded-full bg-[#E8B43A]" />
+            Pending acceptance
+          </span>
         </div>
       </div>
     );
@@ -173,15 +188,14 @@ export function StartBlockFlow({
 
   return (
     <>
-      <Button
-        variant="primary"
-        size="lg"
+      <button
+        type="button"
         onClick={() => setOpen(true)}
-        className="text-[#FFFFFF] [&_svg]:text-[#FFFFFF]"
+        className="lg-btn lg-btn-p"
         style={{ color: "#FFFFFF" }}
       >
         <Plus size={14} /> Start Block
-      </Button>
+      </button>
 
       {open && (
         <div
@@ -191,18 +205,19 @@ export function StartBlockFlow({
           aria-modal="true"
         >
           <div
-            className="w-full max-w-md overflow-hidden rounded-2xl border border-white/12 bg-surface shadow-2xl"
+            className="lg-glass w-full max-w-md overflow-hidden shadow-2xl"
+            style={{ background: "rgba(22,25,34,0.82)" }}
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-center justify-between border-b border-line px-5 py-3.5">
-              <h3 className="text-[15px] font-semibold text-ink">
+            <div className="flex items-center justify-between border-b border-white/[0.12] px-5 py-3.5">
+              <h3 className="text-[15px] font-semibold text-white">
                 Start a Block with {name}
               </h3>
               <button
                 type="button"
                 onClick={() => !busy && setOpen(false)}
                 aria-label="Close"
-                className="inline-flex h-7 w-7 items-center justify-center rounded-lg text-muted hover:bg-white/[0.06] hover:text-ink"
+                className="inline-flex h-7 w-7 items-center justify-center rounded-lg text-white/60 hover:bg-white/[0.08] hover:text-white"
               >
                 <X size={16} />
               </button>
@@ -219,7 +234,7 @@ export function StartBlockFlow({
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
                   placeholder={`Collab with ${name}`}
-                  className="w-full rounded-lg border border-line bg-surface-2 px-3.5 py-2.5 text-[13px] text-ink placeholder:text-muted/70 focus:border-accent focus:outline-none"
+                  className="w-full rounded-[14px] border border-white/[0.16] border-t-white/[0.32] bg-white/[0.06] px-3.5 py-2.5 text-[13px] text-white placeholder:text-white/60 focus:border-white/40 focus:outline-none"
                 />
               </div>
               <div>
@@ -231,17 +246,17 @@ export function StartBlockFlow({
                   onChange={(e) => setIntro(e.target.value)}
                   rows={3}
                   placeholder={`Tell ${name} what you have in mind…`}
-                  className="w-full resize-none rounded-lg border border-line bg-surface-2 px-3.5 py-2.5 text-[13px] leading-relaxed text-ink placeholder:text-muted/70 focus:border-accent focus:outline-none"
+                  className="w-full resize-none rounded-[14px] border border-white/[0.16] border-t-white/[0.32] bg-white/[0.06] px-3.5 py-2.5 text-[13px] leading-relaxed text-white placeholder:text-white/60 focus:border-white/40 focus:outline-none"
                 />
               </div>
               {error && <p className="text-[12px] text-danger">{error}</p>}
             </div>
 
-            <div className="flex items-center justify-end gap-2 border-t border-line px-5 py-3.5">
+            <div className="flex items-center justify-end gap-2 border-t border-white/[0.12] px-5 py-3.5">
               <button
                 type="button"
                 onClick={() => !busy && setOpen(false)}
-                className="h-9 rounded-lg px-4 text-[13px] font-medium text-muted hover:text-ink"
+                className="h-9 rounded-full px-4 text-[13px] font-medium text-white/60 hover:text-white"
               >
                 Cancel
               </button>
@@ -250,12 +265,12 @@ export function StartBlockFlow({
                 onClick={send}
                 disabled={busy}
                 style={{ color: "#FFFFFF" }}
-                className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-accent px-4 text-[13px] font-semibold text-white hover:bg-accent/90 disabled:opacity-60"
+                className="lg-btn lg-btn-p"
               >
                 {busy ? (
                   <Loader2 size={14} className="animate-spin" />
                 ) : (
-                  <Plus size={14} />
+                  <Send size={14} />
                 )}
                 Send Block Request
               </button>
@@ -283,8 +298,8 @@ function Participants({
       <span className="text-[15px] font-semibold text-muted">+</span>
       <PersonChip person={b} />
       {status && (
-        <span className="ml-1 inline-flex items-center gap-1.5 text-[11.5px] font-medium text-warning">
-          <span className="h-1.5 w-1.5 rounded-full bg-warning" />
+        <span className="ml-1 inline-flex items-center gap-1.5 text-[11.5px] font-medium text-[#FFD98A]">
+          <span className="h-1.5 w-1.5 rounded-full bg-[#E8B43A]" />
           {status}
         </span>
       )}
@@ -295,7 +310,7 @@ function Participants({
 function PersonChip({ person }: { person: Person }) {
   const real = person.avatar && !person.avatar.includes("dicebear");
   return (
-    <span className="inline-flex items-center gap-1.5 rounded-full border border-line bg-surface-2 py-1 pl-1 pr-3">
+    <span className="inline-flex items-center gap-1.5 rounded-full border border-white/25 bg-white/[0.14] py-1 pl-1 pr-3 backdrop-blur-sm">
       {real ? (
         // eslint-disable-next-line @next/next/no-img-element
         <img
@@ -304,43 +319,12 @@ function PersonChip({ person }: { person: Person }) {
           className="h-6 w-6 rounded-full object-cover"
         />
       ) : (
-        <span className="flex h-6 w-6 items-center justify-center rounded-full bg-accent/20 text-[11px] font-bold text-accent">
+        <span className="flex h-6 w-6 items-center justify-center rounded-full bg-[#3B66F6] text-[11px] font-bold text-white">
           {person.name.slice(0, 1).toUpperCase()}
         </span>
       )}
-      <span className="text-[12px] font-medium text-ink">{person.name}</span>
+      <span className="text-[12px] font-semibold text-white">{person.name}</span>
     </span>
   );
 }
 
-function StatusPill({
-  tone,
-  label,
-}: {
-  tone: "yellow" | "green" | "red";
-  label: string;
-}) {
-  const tones = {
-    yellow: "border-warning/40 bg-warning/15 text-warning",
-    green: "border-success/40 bg-success/15 text-success",
-    red: "border-danger/40 bg-danger/15 text-danger",
-  };
-  return (
-    <span
-      className={cn(
-        "inline-flex h-7 items-center gap-1.5 rounded-full border px-3 text-[12px] font-semibold",
-        tones[tone]
-      )}
-    >
-      <span
-        className={cn(
-          "h-1.5 w-1.5 rounded-full",
-          tone === "yellow" && "bg-warning",
-          tone === "green" && "bg-success",
-          tone === "red" && "bg-danger"
-        )}
-      />
-      {label}
-    </span>
-  );
-}

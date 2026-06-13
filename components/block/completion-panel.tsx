@@ -54,7 +54,7 @@ export function CompletionPanel({ block }: { block: Block }) {
     : Math.round((passed / gates.length) * 100);
 
   return (
-    <div className="px-8 py-7 space-y-5 max-w-[820px] animate-fade-up">
+    <div className="page-fluid py-7 space-y-5 animate-fade-up">
       <div>
         <SectionLabel>Wrap up</SectionLabel>
         <h2 className="mt-1.5 font-display text-3xl text-ink tracking-tight">

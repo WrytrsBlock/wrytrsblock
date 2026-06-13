@@ -6,13 +6,13 @@ import { createPortal } from "react-dom";
 import {
   ChevronDown,
   Headphones,
-  MapPin,
   Play,
   Plus,
   Search,
   SlidersHorizontal,
   X,
 } from "lucide-react";
+import { blockMatchForCreator, matchTier } from "@/lib/block-match";
 import { cn } from "@/lib/cn";
 import { type CreatorProfile, type Person } from "@/lib/mock";
 import { FeaturedCreator } from "@/components/marketplace/featured-creator";
@@ -154,10 +154,10 @@ function FilterSelect({
         onChange={(e) => onChange(e.target.value)}
         aria-label={label}
         className={cn(
-          "appearance-none cursor-pointer h-9 pl-3.5 pr-8 rounded-full text-[12.5px] font-medium border backdrop-blur-sm transition-colors focus:outline-none focus:border-accent/50",
+          "appearance-none cursor-pointer h-9 pl-3.5 pr-8 rounded-full text-[12px] font-semibold border backdrop-blur-sm transition-colors focus:outline-none focus:border-white/40",
           active
-            ? "bg-accent/15 border-accent/50 text-accent font-semibold"
-            : "bg-white/[0.04] border-white/10 text-muted hover:text-ink hover:border-white/20"
+            ? "bg-[rgba(59,102,246,0.25)] border-[rgba(120,150,255,0.5)] text-[#A9BEFF]"
+            : "bg-white/[0.14] border-white/25 text-white hover:bg-white/[0.2]"
         )}
       >
         <option value="All">{label}</option>
@@ -180,7 +180,7 @@ function FilterSelect({
         size={13}
         className={cn(
           "absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none",
-          active ? "text-accent" : "text-muted"
+          active ? "text-[#A9BEFF]" : "text-white/70"
         )}
       />
     </div>
@@ -297,18 +297,25 @@ export function CreatorMarketplace({
 
   return (
     <div className="space-y-4">
-      {/* Search — the primary "find a creator now" tool */}
-      <div className="relative">
-        <Search
-          size={17}
-          className="absolute left-4 top-1/2 -translate-y-1/2 text-muted pointer-events-none"
-        />
-        <input
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder="Search creators by name, type, or skill…"
-          className="w-full h-12 pl-11 pr-3.5 rounded-2xl bg-white/[0.04] border border-white/10 backdrop-blur-sm text-ink text-[14.5px] placeholder:text-muted/70 focus:outline-none focus:border-accent/50 focus:bg-white/[0.06] transition-colors"
-        />
+      {/* Search — this page's single search experience: the same centered
+          liquid-glass pill as the global bar, but it live-filters the grid. */}
+      <div className="flex justify-center">
+        <div className="relative w-full max-w-[620px]">
+          <Search
+            size={15}
+            className="absolute left-5 top-1/2 -translate-y-1/2 text-white/60 pointer-events-none"
+          />
+          <input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search creators, blocks, services, skills, genres…"
+            className="lg-nav w-full h-[42px] pl-11 pr-5 !rounded-full text-white text-[13px] placeholder:text-white/60 focus:outline-none focus:bg-white/[0.13] transition-colors"
+            style={{
+              boxShadow:
+                "0 8px 24px rgba(0,0,0,0.4), 0 0 42px rgba(59,102,246,0.16)",
+            }}
+          />
+        </div>
       </div>
 
       {/* Primary filter row — Creator Type · Location · Genre · Advanced */}
@@ -337,10 +344,10 @@ export function CreatorMarketplace({
           type="button"
           onClick={() => setDrawerOpen(true)}
           className={cn(
-            "shrink-0 inline-flex items-center gap-1.5 h-9 pl-3 pr-3.5 rounded-full text-[12.5px] font-medium border backdrop-blur-sm transition-colors",
+            "shrink-0 inline-flex items-center gap-1.5 h-9 pl-3 pr-3.5 rounded-full text-[12px] font-semibold border backdrop-blur-sm transition-colors",
             advancedCount > 0
-              ? "bg-accent/15 border-accent/50 text-accent font-semibold"
-              : "bg-white/[0.04] border-white/10 text-muted hover:text-ink hover:border-white/20"
+              ? "bg-[rgba(59,102,246,0.25)] border-[rgba(120,150,255,0.5)] text-[#A9BEFF]"
+              : "bg-white/[0.14] border-white/25 text-white hover:bg-white/[0.2]"
           )}
         >
           <SlidersHorizontal size={13} /> Filters
@@ -393,7 +400,7 @@ export function CreatorMarketplace({
           )}
         </div>
       ) : (
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 md:gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 min-[1920px]:grid-cols-6 gap-3 md:gap-4">
           {filtered.map(({ person, profile }, i) => (
             <CreatorCard key={person.id} person={person} profile={profile} index={i} />
           ))}
@@ -582,8 +589,10 @@ function DrawerField({
   );
 }
 
-// ── Compact, information-dense creator card ─────────────────────────────────
-// Photo · Name · Creator type · Location · Status badge · Start Block CTA.
+// ── Liquid-glass creator card ───────────────────────────────────────────────
+// Photo-forward: the creator's image fills the whole card. A translucent
+// gradient band sits low at the bottom (you can see the picture through it) with
+// the name + skill, and a square Start Block button on the right.
 function CreatorCard({
   person,
   profile,
@@ -595,36 +604,41 @@ function CreatorCard({
 }) {
   const href = `/profile/${person.handle}`;
   const { image, mediaIcon } = cardMedia(profile, person);
-  const roles = profile.roles.slice(0, 2).join(" · ");
+  const role = profile.roles[0] ?? "Creator";
+  const match = blockMatchForCreator(profile);
 
-  // Identity is the creator's pinned Featured Content (or photo) — a full-bleed
-  // background with a dark frosted-glass panel over the lower portion. No avatar
-  // circles, no secondary metadata; just name, role, location, and Start Block.
   return (
     <article
-      className="group relative aspect-[4/5] rounded-2xl overflow-hidden glass-tile glass-hover animate-fade-up"
+      className="group relative aspect-[4/5] overflow-hidden rounded-2xl glass-tile glass-hover animate-fade-up"
       style={{ animationDelay: `${Math.min(index, 10) * 30}ms` }}
     >
-      {/* Full-bleed Featured Content / image */}
-      {image && (
+      {/* Full-bleed creator image */}
+      {image ? (
         // eslint-disable-next-line @next/next/no-img-element
         <img
           src={image}
           alt=""
           className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.05]"
         />
+      ) : (
+        <div className="absolute inset-0 bg-[linear-gradient(150deg,#33457E,#1B2647)]" />
       )}
 
-      {/* Whole image taps through to the profile (sits beneath the glass panel) */}
+      {/* Whole card taps through to the profile (sits beneath the overlay) */}
       <Link
         href={href}
         aria-label={`View ${person.name}'s profile`}
         className="absolute inset-0 z-0"
       />
 
-      {/* Small monochrome media indicator for video / audio Featured Content */}
+      {/* Top corner chips */}
+      {person.online && (
+        <span className="lg-pill lg-pill-g absolute top-2 left-2 z-10 pointer-events-none">
+          Available
+        </span>
+      )}
       {mediaIcon && (
-        <span className="absolute top-2 right-2 z-10 inline-flex h-7 w-7 items-center justify-center rounded-full bg-black/45 backdrop-blur-sm border border-white/20 text-white">
+        <span className="absolute top-2 right-2 z-10 inline-flex h-7 w-7 items-center justify-center rounded-full bg-black/45 backdrop-blur-sm border border-white/20 text-white pointer-events-none">
           {mediaIcon === "audio" ? (
             <Headphones size={13} />
           ) : (
@@ -633,40 +647,35 @@ function CreatorCard({
         </span>
       )}
 
-      {/* Frosted glass gradient band across the lower portion — a translucent
-          gradient (lighter at top → frosted-dark at bottom) with a subtle top
-          highlight, like a premium artist card. */}
-      <div className="absolute inset-x-0 bottom-0 z-10 bg-gradient-to-t from-black/65 via-black/40 to-black/15 backdrop-blur-md border-t border-white/15 shadow-[inset_0_1px_0_rgb(255_255_255/0.12)]">
-        <div className="relative px-3.5 pt-2 pb-2.5">
-          {/* Creator name — the primary visual element */}
-          <Link href={href} className="block">
-            <h3 className="font-display text-[18px] md:text-[21px] text-white leading-none tracking-tight truncate">
+      {/* Bottom overlay — translucent gradient low on the card so the photo
+          shows through. Name + skill on the left, square Start Block on the
+          right. pointer-events-none so taps fall through to the profile link;
+          the name and button re-enable their own clicks. */}
+      <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 flex items-end justify-between gap-2 bg-gradient-to-t from-black/70 via-black/25 to-transparent px-3 pb-3 pt-12">
+        <div className="min-w-0">
+          <Link href={href} className="pointer-events-auto block">
+            <h3 className="truncate font-display text-[16px] md:text-[17px] leading-tight tracking-tight text-white drop-shadow-[0_1px_4px_rgb(0_0_0/0.5)]">
               {person.name}
             </h3>
           </Link>
-
-          {/* Role(s) */}
-          <p className="mt-0.5 text-[12px] md:text-[12.5px] font-medium text-white/85 truncate">
-            {roles}
-          </p>
-
-          {/* Location — smaller, secondary */}
-          <p className="mt-0.5 flex items-center gap-1 text-[11px] text-white/55 leading-tight min-w-0">
-            <MapPin size={10} className="shrink-0" />
-            <span className="truncate">{profile.location}</span>
-          </p>
-
-          {/* Start Block — the single action */}
-          <button
-            type="button"
-            onClick={() => openNewBlock(undefined, person.handle)}
-            aria-label={`Start a Block with ${person.name}`}
-            className="mt-2 w-full inline-flex items-center justify-center gap-1.5 h-8 rounded-lg text-[12.5px] font-semibold text-white bg-white/[0.16] border border-white/25 hover:bg-accent hover:border-accent transition-colors"
-            style={{ color: "#FFFFFF" }}
+          <p
+            className="mt-0.5 truncate text-[11.5px] text-white/80 drop-shadow-[0_1px_3px_rgb(0_0_0/0.6)]"
+            title={`Block Match estimates how well ${person.name} fits you — based on their creator type, creative interests, experience, location, and collaboration preferences. ${matchTier(match).label}.`}
           >
-            <Plus size={14} /> Start Block
-          </button>
+            {role} · {match}% Block Match
+          </p>
         </div>
+
+        <button
+          type="button"
+          onClick={() => openNewBlock(undefined, person.handle)}
+          aria-label={`Start a Block with ${person.name}`}
+          title="Start Block"
+          className="pointer-events-auto inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-[rgba(140,170,255,0.6)] border-t-[rgba(185,205,255,0.75)] bg-[rgba(59,102,246,0.55)] text-white shadow-[0_4px_18px_rgba(59,102,246,0.4)] backdrop-blur-md transition-colors hover:bg-[rgba(59,102,246,0.78)]"
+          style={{ color: "#FFFFFF" }}
+        >
+          <Plus size={19} strokeWidth={2.4} />
+        </button>
       </div>
     </article>
   );

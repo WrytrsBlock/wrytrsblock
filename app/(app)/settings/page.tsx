@@ -1,6 +1,5 @@
 import { redirect } from "next/navigation";
 import { TopBar } from "@/components/shell/topbar";
-import { SectionLabel } from "@/components/ui/primitives";
 import { SettingsView } from "@/components/settings/settings-view";
 import { getCurrentProfile } from "@/lib/data";
 import { supabaseConfigured } from "@/lib/env";
@@ -30,13 +29,12 @@ export default async function SettingsPage() {
     <>
       <TopBar crumbs={[{ label: "The CR8TV Collectv" }, { label: "Settings" }]} />
       <div className="flex-1 overflow-y-auto">
-        <div className="px-5 sm:px-6 md:px-8 py-8 max-w-[880px] w-full animate-fade-up">
-          <div className="mb-7">
-            <SectionLabel>Account</SectionLabel>
-            <h1 className="mt-2 font-display text-4xl text-ink tracking-tight">
+        <div className="page-constrained pb-10 pt-5 md:pt-6 animate-fade-up">
+          <div className="mb-4">
+            <h1 className="text-[18px] md:text-[21px] font-semibold text-white">
               Settings
             </h1>
-            <p className="text-[13px] text-muted mt-1.5">
+            <p className="mt-1 text-[12.5px] text-white/60">
               Manage your account, notifications, privacy, Featured Content, and
               the legal basics.
             </p>

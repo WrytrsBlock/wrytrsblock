@@ -43,10 +43,7 @@ export function ShareProfileButton({
     <button
       type="button"
       onClick={share}
-      className={cn(
-        "inline-flex h-10 items-center gap-2 rounded-lg border border-line bg-transparent px-4 text-[13px] font-medium text-ink transition-colors hover:bg-surface-2 hover:border-line-strong",
-        className
-      )}
+      className={cn("lg-btn", className)}
     >
       {copied ? (
         <>

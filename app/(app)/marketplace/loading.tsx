@@ -9,7 +9,7 @@ export default function Loading() {
         crumbs={[{ label: "The CR8TV Collectv" }, { label: "Block Market" }]}
       />
       <div className="flex-1 overflow-y-auto">
-        <div className="px-5 md:px-8 py-6 md:py-7 max-w-[1280px] w-full space-y-5 animate-pulse">
+        <div className="page-fluid py-6 md:py-7 space-y-5 animate-pulse">
           {/* Header */}
           <div className="space-y-2.5">
             <div className="h-3 w-40 rounded bg-white/[0.06]" />

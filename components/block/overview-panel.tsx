@@ -1,90 +1,95 @@
 import Link from "next/link";
-import {
-  ArrowUpRight,
-  Folder,
-  ListChecks,
-  MessagesSquare,
-  PieChart,
-} from "lucide-react";
-import { Badge, Card, SectionLabel } from "@/components/ui/primitives";
+import { Badge } from "@/components/ui/primitives";
 import { TeamRoster } from "./team-roster";
-import { BlockJourney } from "./block-journey";
+import { tabsForType } from "./block-tabs.config";
 import { getPerson, type Block } from "@/lib/mock";
 
-// Clean, calm Overview. Answers: who's involved, and where everything lives.
-// (What the project is + how to invite are answered by the always-visible header.)
+// You're inside the Block. Everything happens here. The Overview is a single
+// contained surface — no stacked partition cards. A row of plain icons launches
+// each task (Files, Tasks, Split Sheet, Messages, Team); below them, who's
+// involved. The journey lives as a percent up in the header.
 export function OverviewPanel({ block }: { block: Block }) {
   const lead = getPerson(block.leadId);
 
-  const jump = [
-    { label: "Files", icon: Folder, href: `/blocks/${block.slug}?tab=files`, hint: `${block.files.length} items` },
-    { label: "Split Sheet", icon: PieChart, href: `/blocks/${block.slug}?tab=splits`, hint: block.splits ? block.splits.status : "not started" },
-    { label: "Messages", icon: MessagesSquare, href: `/blocks/${block.slug}?tab=messages`, hint: `${block.threads.length} threads` },
-    { label: "Tasks", icon: ListChecks, href: `/blocks/${block.slug}?tab=tasks`, hint: "board" },
-  ];
+  // The launcher IS the Block's navigation — there's no top tab strip anymore.
+  // It mirrors the Block's tabs (everything except Overview itself, which is
+  // this page), so every task — Files, Tasks, Splits, Messages, Team, Settings —
+  // opens straight from here.
+  const launch = tabsForType(block.blockType).filter(
+    (t) => t.id !== "overview"
+  );
+
+  const hintFor = (id: string): number | undefined => {
+    if (id === "files") return block.files.length;
+    if (id === "messages") return block.threads.length;
+    if (id === "team") return block.team.length;
+    return undefined;
+  };
 
   return (
-    <div className="px-5 md:px-8 py-6 md:py-8 max-w-[900px] space-y-6 animate-fade-up">
-      {/* Connect → Collaborate → Complete */}
-      <BlockJourney block={block} />
-
-      {/* Who's involved */}
-      <Card className="p-6">
-        <div className="flex items-center justify-between">
-          <SectionLabel>Who's involved</SectionLabel>
-          {lead && (
-            <span className="text-[11px] text-muted">
-              Lead · <span className="text-ink">{lead.name}</span>
-            </span>
-          )}
-        </div>
-
-        {block.seeking && block.seeking.length > 0 && (
-          <div className="mt-4 flex items-center gap-2 flex-wrap">
-            <span className="text-[11px] text-muted">Looking for</span>
-            {block.seeking.map((s) => (
-              <Badge key={s} tone="soft">
-                {s}
-              </Badge>
-            ))}
-          </div>
-        )}
-
-        <div className="mt-4">
-          <TeamRoster ids={block.team} blockSlug={block.slug} />
-        </div>
-      </Card>
-
-      {/* Jump to */}
-      <section>
-        <SectionLabel>Jump to</SectionLabel>
-        <div className="mt-3 grid grid-cols-2 md:grid-cols-4 gap-3">
-          {jump.map((j) => {
-            const Icon = j.icon;
-            return (
-              <Link key={j.label} href={j.href} className="group block">
-                <Card hover className="p-4 h-full">
-                  <div className="flex items-start justify-between">
-                    <span className="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-surface-2 border border-line text-accent">
-                      <Icon size={16} strokeWidth={1.75} />
-                    </span>
-                    <ArrowUpRight
-                      size={14}
-                      className="text-muted/60 group-hover:text-ink transition-colors"
-                    />
-                  </div>
-                  <p className="mt-3 text-[13px] font-medium text-ink">
+    <div className="page-fluid py-6 md:py-8 animate-fade-up">
+      <div className="lg-glass p-6 md:p-8 space-y-8">
+        {/* Launcher — just icons; each opens its task */}
+        <div>
+          <p className="mb-5 text-[11px] uppercase tracking-[0.14em] text-white/45">
+            Inside this Block
+          </p>
+          <div className="flex flex-wrap gap-x-6 gap-y-5 sm:gap-x-8">
+            {launch.map((j) => {
+              const Icon = j.icon;
+              const hint = hintFor(j.id);
+              return (
+                <Link
+                  key={j.id}
+                  href={`/blocks/${block.slug}?tab=${j.id}`}
+                  className="group flex w-[60px] flex-col items-center gap-2 text-center"
+                >
+                  <span className="relative inline-flex h-[58px] w-[58px] items-center justify-center rounded-2xl border border-white/[0.14] bg-white/[0.06] text-white/80 transition-all duration-200 group-hover:-translate-y-0.5 group-hover:border-[rgba(140,170,255,0.5)] group-hover:bg-[rgba(59,102,246,0.28)] group-hover:text-white">
+                    <Icon size={22} strokeWidth={1.8} />
+                    {hint !== undefined && hint > 0 && (
+                      <span className="absolute -right-1.5 -top-1.5 inline-flex h-[18px] min-w-[18px] items-center justify-center rounded-full border border-white/20 bg-[#07080d] px-1 text-[10px] font-semibold tabular-nums text-white/85">
+                        {hint}
+                      </span>
+                    )}
+                  </span>
+                  <span className="text-[11.5px] leading-tight text-white/65 transition-colors group-hover:text-white">
                     {j.label}
-                  </p>
-                  <p className="text-[10.5px] text-muted mt-0.5 capitalize">
-                    {j.hint}
-                  </p>
-                </Card>
-              </Link>
-            );
-          })}
+                  </span>
+                </Link>
+              );
+            })}
+          </div>
         </div>
-      </section>
+
+        {/* Who's involved — same surface, just a divider */}
+        <div className="border-t border-white/[0.08] pt-6">
+          <div className="flex items-center justify-between">
+            <p className="text-[11px] uppercase tracking-[0.14em] text-white/45">
+              Who&rsquo;s involved
+            </p>
+            {lead && (
+              <span className="text-[11px] text-white/50">
+                Lead · <span className="text-white/80">{lead.name}</span>
+              </span>
+            )}
+          </div>
+
+          {block.seeking && block.seeking.length > 0 && (
+            <div className="mt-4 flex flex-wrap items-center gap-2">
+              <span className="text-[11px] text-white/50">Looking for</span>
+              {block.seeking.map((s) => (
+                <Badge key={s} tone="soft">
+                  {s}
+                </Badge>
+              ))}
+            </div>
+          )}
+
+          <div className="mt-4">
+            <TeamRoster ids={block.team} blockSlug={block.slug} />
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

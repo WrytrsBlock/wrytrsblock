@@ -1,13 +1,15 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Check, Target, X } from "lucide-react";
+import { Check, Target, Undo2, X } from "lucide-react";
 import { cn } from "@/lib/cn";
 import {
   acceptBlockRequestAction,
   declineBlockRequestAction,
 } from "@/app/actions/block-requests";
+
+const UNDO_MS = 6000;
 
 export type IncomingRequest = {
   id: string;
@@ -30,9 +32,14 @@ export function BlockRequestInbox({
   const [busyId, setBusyId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [hidden, setHidden] = useState<Set<string>>(() => new Set());
+  const [pendingUndo, setPendingUndo] = useState<{
+    id: string;
+    name: string;
+  } | null>(null);
+  const undoTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const visible = requests.filter((r) => !hidden.has(r.id));
-  if (visible.length === 0) return null;
+  if (visible.length === 0 && !pendingUndo) return null;
 
   async function accept(id: string) {
     setBusyId(id);
@@ -46,17 +53,43 @@ export function BlockRequestInbox({
     }
   }
 
-  async function decline(id: string) {
-    setBusyId(id);
+  // Forgiving decline: hide immediately, commit after a short Undo window.
+  function decline(id: string, name: string) {
+    if (undoTimer.current) clearTimeout(undoTimer.current);
     setError(null);
+    setHidden((s) => new Set(s).add(id));
+    setPendingUndo({ id, name });
+    undoTimer.current = setTimeout(() => void commitDecline(id), UNDO_MS);
+  }
+
+  async function commitDecline(id: string) {
+    undoTimer.current = null;
+    setPendingUndo(null);
     const res = await declineBlockRequestAction(id);
-    setBusyId(null);
     if (res.ok) {
-      setHidden((s) => new Set(s).add(id));
       router.refresh();
     } else {
+      setHidden((s) => {
+        const n = new Set(s);
+        n.delete(id);
+        return n;
+      });
       setError(res.error);
     }
+  }
+
+  function undoDecline() {
+    if (undoTimer.current) clearTimeout(undoTimer.current);
+    undoTimer.current = null;
+    if (pendingUndo) {
+      const { id } = pendingUndo;
+      setHidden((s) => {
+        const n = new Set(s);
+        n.delete(id);
+        return n;
+      });
+    }
+    setPendingUndo(null);
   }
 
   return (
@@ -74,6 +107,21 @@ export function BlockRequestInbox({
         <p className="mb-3 text-[12px] text-danger bg-danger/10 border border-danger/30 rounded-md px-3 py-2">
           {error}
         </p>
+      )}
+
+      {pendingUndo && (
+        <div className="mb-3 flex items-center gap-2 rounded-[14px] border border-white/[0.16] bg-white/[0.06] px-3.5 py-2.5">
+          <p className="min-w-0 flex-1 truncate text-[12.5px] text-white/70">
+            Request from {pendingUndo.name} declined.
+          </p>
+          <button
+            type="button"
+            onClick={undoDecline}
+            className="inline-flex shrink-0 items-center gap-1 text-[12.5px] font-semibold text-[#A9BEFF] hover:text-white transition-colors"
+          >
+            <Undo2 size={13} /> Undo
+          </button>
+        </div>
       )}
 
       <div className="space-y-2.5">
@@ -135,7 +183,7 @@ export function BlockRequestInbox({
                 </button>
                 <button
                   type="button"
-                  onClick={() => decline(r.id)}
+                  onClick={() => decline(r.id, r.requesterName)}
                   disabled={busy}
                   className="inline-flex items-center justify-center gap-1.5 h-9 px-3.5 rounded-lg text-[12.5px] font-medium text-muted hover:text-ink bg-transparent border border-line hover:border-line-strong transition-colors disabled:opacity-60"
                 >

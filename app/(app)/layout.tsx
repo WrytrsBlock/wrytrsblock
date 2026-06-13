@@ -1,6 +1,7 @@
 import { Sidebar } from "@/components/shell/sidebar";
 import { BottomTabBar } from "@/components/shell/bottom-tab-bar";
 import { CommandPalette } from "@/components/shell/command-palette";
+import { Ambient } from "@/components/shell/ambient";
 import { NewBlockDialog } from "@/components/block/new-block-dialog";
 import { InviteDialog } from "@/components/block/invite-dialog";
 import { ProfileProvider } from "@/components/shell/profile-context";
@@ -33,14 +34,18 @@ export default async function AppLayout({
         role: profile.role,
       }}
     >
-      <div className="flex h-screen bg-bg overflow-hidden">
-        {/* Desktop: left rail. Mobile: bottom tab bar (rendered in <main>). */}
+      {/* Hybrid shell: the always-dark liquid-glass canvas with per-route
+          ambient washes, a translucent left sidebar as the primary desktop
+          navigation, and a single centered glass search pill (rendered by each
+          page via <TopBar/>). Mobile keeps the floating dock. */}
+      <div className="dark relative flex h-screen lg-canvas text-ink overflow-hidden">
+        <Ambient />
         <Sidebar
           profile={profile}
           blocks={blocks}
           unreadMessages={unreadMessages}
         />
-        <main className="flex-1 min-w-0 flex flex-col">
+        <main className="relative flex-1 min-w-0 flex flex-col">
           {children}
           <BottomTabBar profileHref="/profile" />
         </main>

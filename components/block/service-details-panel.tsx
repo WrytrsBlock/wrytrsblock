@@ -105,7 +105,7 @@ export function ServiceDetailsPanel({ block }: { block: Block }) {
   // ---- Empty state -------------------------------------------------------
   if (!hasDetails(service)) {
     return (
-      <div className="px-8 py-7 max-w-[900px] animate-fade-up">
+      <div className="page-fluid py-7 animate-fade-up">
         <EmptyState
           icon={Tag}
           title="Define your service"
@@ -131,7 +131,7 @@ export function ServiceDetailsPanel({ block }: { block: Block }) {
 
   // ---- Populated view ----------------------------------------------------
   return (
-    <div className="px-8 py-7 space-y-5 max-w-[1000px] animate-fade-up">
+    <div className="page-fluid py-7 space-y-5 animate-fade-up">
       <div className="flex items-center justify-between gap-4">
         <div>
           <SectionLabel>{service.category ?? block.kind} · Service</SectionLabel>

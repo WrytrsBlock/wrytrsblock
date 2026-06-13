@@ -156,7 +156,7 @@ export function CommandPalette({ blocks }: { blocks: Block[] }) {
               setActive(0);
             }}
             onKeyDown={onKeyDown}
-            placeholder="Search Blocks, jump to anywhere, run a command…"
+            placeholder="Search creators, blocks, services, skills, genres…"
             className="flex-1 h-12 bg-transparent text-[14px] text-ink placeholder:text-muted/70 focus:outline-none py-4"
           />
           <Kbd>esc</Kbd>

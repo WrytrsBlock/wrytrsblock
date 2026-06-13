@@ -63,7 +63,7 @@ export function PartyOverviewPanel({ block }: { block: Block }) {
   ];
 
   return (
-    <div className="px-5 md:px-8 py-6 md:py-8 max-w-[900px] space-y-6 animate-fade-up">
+    <div className="page-fluid py-6 md:py-8 space-y-6 animate-fade-up">
       {/* Event status + headline */}
       <Card className="p-6">
         <div className="flex flex-wrap items-center gap-2">
