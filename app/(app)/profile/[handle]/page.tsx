@@ -160,6 +160,11 @@ export default async function ProfilePage({
               ) : (
                 <div className="absolute inset-0 bg-[linear-gradient(160deg,#26345C_0%,#1A2440_45%,#101524_100%)]" />
               )}
+              {/* Scrim — keeps the identity panel legible over bright covers */}
+              <div
+                aria-hidden
+                className="pointer-events-none absolute inset-x-0 bottom-0 h-2/3 bg-gradient-to-t from-black/80 via-black/30 to-transparent"
+              />
               {/* Owner prompt when there's no cover yet */}
               {!heroImage && isMe && (
                 <div className="absolute inset-x-0 top-7 flex flex-col items-center gap-2.5 px-6 text-center">
@@ -182,8 +187,9 @@ export default async function ProfilePage({
                 </div>
               )}
 
-              {/* Identity — a floating liquid-glass panel pinned to the bottom */}
-              <div className="absolute inset-x-[11px] bottom-[11px] z-10 lg-glass">
+              {/* Identity — dark liquid-glass panel pinned to the bottom, so the
+                  name + roles stay high-contrast over any cover image */}
+              <div className="absolute inset-x-[11px] bottom-[11px] z-10 rounded-[18px] border border-white/20 border-t-white/30 bg-[rgba(9,11,16,0.62)] shadow-[0_8px_32px_rgba(0,0,0,0.45)] backdrop-blur-2xl">
                 <div className="flex items-center gap-3 px-[15px] py-[13px]">
                   {avatar ? (
                     // eslint-disable-next-line @next/next/no-img-element
@@ -201,7 +207,7 @@ export default async function ProfilePage({
                     </span>
                   )}
                   <div className="min-w-0 flex-1">
-                    <h1 className="truncate text-[22px] md:text-[25px] font-semibold leading-[1.05] text-white">
+                    <h1 className="truncate text-[22px] md:text-[25px] font-semibold leading-[1.05] text-white drop-shadow-[0_1px_4px_rgb(0_0_0/0.5)]">
                       {person.name}
                     </h1>
                     <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
@@ -210,7 +216,7 @@ export default async function ProfilePage({
                           {r}
                         </span>
                       ))}
-                      <span className="inline-flex items-center gap-1 text-[11.5px] text-white/60">
+                      <span className="inline-flex items-center gap-1 text-[11.5px] text-white/75">
                         <MapPin size={12} className="shrink-0" />
                         {profile.location}
                       </span>
