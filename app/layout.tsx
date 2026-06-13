@@ -1,5 +1,5 @@
 import "./globals.css";
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { ThemeProvider } from "@/components/theme-provider";
 
 export const metadata: Metadata = {
@@ -12,6 +12,19 @@ export const metadata: Metadata = {
   metadataBase: new URL(
     process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000"
   ),
+  // PWA manifest. The favicon (app/icon.png) and Apple Touch Icon
+  // (app/apple-icon.png) are auto-detected by Next from the app/ directory —
+  // both are the WrytrsBlock W mark on royal blue.
+  manifest: "/manifest.webmanifest",
+  appleWebApp: {
+    capable: true,
+    title: "WrytrsBlock",
+    statusBarStyle: "black-translucent",
+  },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#07080D",
 };
 
 const themeBootstrap = `
