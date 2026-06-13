@@ -10,8 +10,9 @@ export const config = {
     /*
      * Match all request paths except:
      * - _next/static, _next/image, favicon
+     * - the PWA manifest (must be publicly fetchable)
      * - any file with a static extension (images, fonts, etc)
      */
-    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|woff2?)$).*)",
+    "/((?!_next/static|_next/image|favicon.ico|manifest.webmanifest|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|woff2?|webmanifest)$).*)",
   ],
 };
