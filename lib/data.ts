@@ -520,6 +520,161 @@ export async function getBlockMembers(slug: string): Promise<BlockMemberView[]> 
   }
 }
 
+// ---------- Profile: collaboration network (real data) ----------
+
+export type ProfileBlock = {
+  slug: string;
+  title: string;
+  blockType: "collaboration" | "service" | "block_party";
+  completionStatus: "open" | "active" | "in_review" | "completed";
+  cover?: string;
+};
+export type ProfileCollaborator = {
+  id: string;
+  name: string;
+  handle: string;
+  avatar: string;
+  role: string;
+};
+export type CreatorCollab = {
+  blocks: ProfileBlock[];
+  collaborators: ProfileCollaborator[];
+  completedBlocks: number;
+  totalBlocks: number;
+  completionRate: number;
+};
+
+function finalizeCollab(
+  blocks: ProfileBlock[],
+  collaborators: ProfileCollaborator[]
+): CreatorCollab {
+  const completedBlocks = blocks.filter(
+    (b) => b.completionStatus === "completed"
+  ).length;
+  const engaged = blocks.filter((b) => b.completionStatus !== "open");
+  const completionRate =
+    engaged.length === 0
+      ? 0
+      : Math.round((completedBlocks / engaged.length) * 100);
+  return {
+    blocks,
+    collaborators,
+    completedBlocks,
+    totalBlocks: blocks.length,
+    completionRate,
+  };
+}
+
+// A creator's real Blocks + the unique creators they've collaborated with,
+// derived from block_members (Supabase) or the mock graph in demo mode. Powers
+// the profile's "Active Blocks", "Worked With" wall, and trust metrics. Only
+// shows what RLS permits — full for your own profile, shared Blocks for others.
+export async function getCreatorCollab(userId: string): Promise<CreatorCollab> {
+  if (!supabaseConfigured) {
+    const mine = mockBlocks.filter((b) => b.team.includes(userId));
+    const blocks: ProfileBlock[] = mine.map((b) => ({
+      slug: b.slug,
+      title: b.title,
+      blockType: b.blockType,
+      completionStatus: b.completion.status,
+      cover: b.cover,
+    }));
+    const ids = new Set<string>();
+    for (const b of mine)
+      for (const t of b.team) if (t !== userId) ids.add(t);
+    const collaborators = [...ids]
+      .map((id) => mockPeople.find((p) => p.id === id))
+      .filter((p): p is (typeof mockPeople)[number] => Boolean(p))
+      .map((p) => ({
+        id: p.id,
+        name: p.name,
+        handle: p.handle,
+        avatar: p.avatar,
+        role: p.role,
+      }));
+    return finalizeCollab(blocks, collaborators);
+  }
+
+  const supabase = createSupabaseServerClient();
+  try {
+    const { data: mem } = await supabase
+      .from("block_members")
+      .select(
+        "blocks(id, slug, title, block_type, completion_status, cover_url)"
+      )
+      .eq("user_id", userId)
+      .eq("status", "accepted");
+
+    // Supabase types embedded to-one relations as arrays; at runtime each is a
+    // single row, so cast through unknown.
+    const rows = ((mem ?? []) as unknown as { blocks: BlockJoin | null }[])
+      .map((m) => m.blocks)
+      .filter((b): b is BlockJoin => Boolean(b));
+
+    const blocks: ProfileBlock[] = rows.map((b) => ({
+      slug: b.slug,
+      title: b.title,
+      blockType: b.block_type as ProfileBlock["blockType"],
+      completionStatus: b.completion_status as ProfileBlock["completionStatus"],
+      cover: b.cover_url ?? undefined,
+    }));
+
+    const blockIds = rows.map((b) => b.id);
+    const collaborators: ProfileCollaborator[] = [];
+    if (blockIds.length) {
+      const { data: co } = await supabase
+        .from("block_members")
+        .select(
+          "user_id, profile:profiles(id, display_name, handle, role, avatar_url)"
+        )
+        .in("block_id", blockIds)
+        .eq("status", "accepted")
+        .neq("user_id", userId);
+      const seen = new Set<string>();
+      for (const r of (co ?? []) as unknown as CollabJoin[]) {
+        if (!r.user_id || seen.has(r.user_id)) continue;
+        seen.add(r.user_id);
+        const p = r.profile;
+        collaborators.push({
+          id: r.user_id,
+          name: p?.display_name ?? p?.handle ?? "Creator",
+          handle: p?.handle ?? r.user_id.slice(0, 8),
+          avatar: p?.avatar_url ?? avatarFor(r.user_id),
+          role: p?.role ?? "Creator",
+        });
+      }
+    }
+    return finalizeCollab(blocks, collaborators);
+  } catch {
+    return {
+      blocks: [],
+      collaborators: [],
+      completedBlocks: 0,
+      totalBlocks: 0,
+      completionRate: 0,
+    };
+  }
+}
+
+type BlockJoin = {
+  id: string;
+  slug: string;
+  title: string;
+  block_type: string;
+  completion_status: string;
+  cover_url: string | null;
+};
+type CollabJoin = {
+  user_id: string;
+  profile: {
+    id: string;
+    display_name: string | null;
+    handle: string | null;
+    role: string | null;
+    avatar_url: string | null;
+  } | null;
+};
+
 // The signed-in user's invitation/membership status on a Block (for the banner).
 export async function getMyBlockMembership(
   slug: string

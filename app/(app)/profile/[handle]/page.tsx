@@ -11,21 +11,24 @@ import {
   Pencil,
 } from "lucide-react";
 import { TopBar } from "@/components/shell/topbar";
-import { Badge, Button, Progress } from "@/components/ui/primitives";
+import { Badge, Button } from "@/components/ui/primitives";
 import { StartBlockFlow } from "@/components/block/start-block-flow";
 import { BlockShowcase } from "@/components/creator/block-showcase";
+import { BlockCover } from "@/components/block/block-cover";
 import { ShareProfileButton } from "@/components/creator/share-profile-button";
 import { ShowcaseAddButton } from "@/components/creator/showcase-add-button";
 import { MediaPlayer } from "@/components/creator/media-player";
 import { NetworkStats } from "@/components/creator/network-stats";
 import { MutualCreators } from "@/components/creator/mutual-creators";
-import { blocksForPerson, tracksForCreator } from "@/lib/mock";
-import { creatorNetwork, mutualCreators } from "@/lib/network";
+import { WorkedWith } from "@/components/creator/worked-with";
+import { tracksForCreator } from "@/lib/mock";
+import { mutualCreators } from "@/lib/network";
 import { lgAvColor } from "@/lib/lg";
 import { heroImageFor, realAvatar } from "@/lib/creator-image";
 import {
   getBlockRelationship,
   getCreator,
+  getCreatorCollab,
   getCurrentProfile,
 } from "@/lib/data";
 
@@ -37,6 +40,13 @@ const SOCIAL_LABEL: Record<string, string> = {
   spotify: "Spotify",
   linkedin: "LinkedIn",
   website: "Website",
+};
+
+const STATUS_LABEL: Record<string, string> = {
+  open: "Recruiting",
+  active: "Active",
+  in_review: "In review",
+  completed: "Completed",
 };
 
 function socialUrl(platform: string, value: string): string {
@@ -65,7 +75,6 @@ export default async function ProfilePage({
   const data = await getCreator(params.handle);
   if (!data) notFound();
   const { person, profile } = data;
-  const activeBlocks = blocksForPerson(person.id);
   const tracks = tracksForCreator(profile);
   // Cover/hero image (cover → featured image → real photo → portfolio). Never a
   // dicebear avatar or random stock — undefined ⇒ branded gradient instead.
@@ -79,9 +88,19 @@ export default async function ProfilePage({
   // active). Only needed when viewing someone else's profile.
   const relationship = isMe ? null : await getBlockRelationship(person.handle);
 
-  // Collaboration-first reputation, derived from who this creator has actually
-  // made Blocks with — not a gamified score.
-  const network = creatorNetwork(person.id);
+  // Collaboration-first reputation, derived from the creator's REAL Blocks and
+  // co-collaborators (Supabase; mock graph in demo mode) — not a gamified score.
+  const collab = await getCreatorCollab(person.id);
+  const network = {
+    creatorsConnected: collab.collaborators,
+    completedBlocks: collab.completedBlocks,
+    totalBlocks: collab.totalBlocks,
+    completionRate: collab.completionRate,
+  };
+  // What they're working on now (everything not yet completed).
+  const activeBlocks = collab.blocks.filter(
+    (b) => b.completionStatus !== "completed"
+  );
   // Mutual creators between the viewer and this profile (identities only).
   const mutual = me && !isMe ? mutualCreators(me.id, person.id) : [];
 
@@ -330,26 +349,21 @@ export default async function ProfilePage({
             </section>
           )}
 
-          {/* Blocks — real Blocks only; no sample/placeholder filler */}
+          {/* Active Blocks — what this creator is working on now (real data) */}
           {activeBlocks.length > 0 && (
             <section>
               <h2 className="font-display text-xl text-ink tracking-tight">
-                Blocks
+                Active Blocks
               </h2>
               <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                 {activeBlocks.map((b) => (
                   <Link
-                    key={b.id}
+                    key={b.slug}
                     href={`/blocks/${b.slug}`}
                     className="group glass-card glass-hover flex flex-col rounded-2xl overflow-hidden"
                   >
                     <div className="relative aspect-[16/9] overflow-hidden">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        src={b.cover}
-                        alt=""
-                        className="h-full w-full object-cover group-hover:scale-[1.03] transition-transform duration-300"
-                      />
+                      <BlockCover src={b.cover} type={b.blockType} />
                       <span className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
                       <span className="absolute top-2.5 left-2.5">
                         <Badge
@@ -365,7 +379,7 @@ export default async function ProfilePage({
                             ? "Service"
                             : b.blockType === "block_party"
                               ? "Block Party"
-                              : b.category ?? "Collaboration"}
+                              : "Collaboration"}
                         </Badge>
                       </span>
                     </div>
@@ -373,24 +387,19 @@ export default async function ProfilePage({
                       <p className="text-[13.5px] font-semibold text-ink tracking-tight truncate">
                         {b.title}
                       </p>
-                      <p className="text-[11.5px] text-muted truncate mt-0.5">
-                        {b.kind} · {b.tagline}
+                      <p className="mt-1 inline-flex items-center gap-1.5 text-[11.5px] text-white/55">
+                        <span className="h-1.5 w-1.5 rounded-full bg-[#7BEDC4]" />
+                        {STATUS_LABEL[b.completionStatus] ?? b.completionStatus}
                       </p>
-                      <div className="mt-3 pt-3 border-t border-line">
-                        <div className="flex items-center justify-between text-[10.5px] text-muted mb-1.5">
-                          <span>{b.completion.status}</span>
-                          <span className="tabular-nums">
-                            {b.completion.percent}%
-                          </span>
-                        </div>
-                        <Progress value={b.completion.percent} />
-                      </div>
                     </div>
                   </Link>
                 ))}
               </div>
             </section>
           )}
+
+          {/* Worked With — the creators behind the collaboration count */}
+          <WorkedWith collaborators={collab.collaborators} />
 
           {/* History */}
           {profile.credits.length > 0 && (
