@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "publish": "bash scripts/publish.sh"
   },
   "dependencies": {
     "next": "14.2.18",
