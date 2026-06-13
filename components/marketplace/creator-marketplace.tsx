@@ -318,6 +318,16 @@ export function CreatorMarketplace({
         </div>
       </div>
 
+      {/* Page title — underneath the top-center search bar (matches My Blocks) */}
+      <div>
+        <h1 className="font-display text-4xl md:text-5xl text-white tracking-tight">
+          Block Market
+        </h1>
+        <p className="mt-2 text-[13px] text-white/55">
+          Find a creator and start a Block.
+        </p>
+      </div>
+
       {/* Primary filter row — Creator Type · Location · Genre · Advanced */}
       <div className="flex items-center gap-1.5 flex-wrap">
         <FilterSelect

@@ -16,7 +16,9 @@ export default async function MarketplacePage() {
       {/* No global <TopBar/> pill here — the marketplace's own live search IS
           this page's single search experience, styled as the same centered
           glass pill. */}
-      <div className="page-fluid pb-16 pt-5 md:pt-7 animate-fade-up">
+      <div className="page-fluid pb-16 pt-8 md:pt-10 animate-fade-up">
+        {/* Search bar sits top-center; the "Block Market" title renders
+            underneath it inside the component (matches My Blocks / Profile). */}
         <CreatorMarketplace creators={ranked} />
       </div>
     </div>

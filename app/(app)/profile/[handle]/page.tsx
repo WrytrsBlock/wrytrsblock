@@ -112,6 +112,12 @@ export default async function ProfilePage({
       {/* min-h-0 is required so this flex child actually scrolls (esp. iOS
           Safari) instead of growing to its content height and clipping. */}
       <div className="flex-1 min-h-0 overflow-y-auto">
+        {/* Page title — matches My Blocks / Block Market */}
+        <div className="page-fluid pt-8 md:pt-10">
+          <h1 className="font-display text-4xl md:text-5xl text-white tracking-tight">
+            Profile
+          </h1>
+        </div>
         {/* ── Identity banner — the cover with a floating glass identity panel.
             The Block Showcase sits beside it only when there's content (or you
             own the profile); otherwise the cover spans full width. ── */}
