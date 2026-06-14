@@ -1,32 +1,27 @@
 import Link from "next/link";
-import {
-  Bolt,
-  Briefcase,
-  Coins,
-  Layers,
-  Mail,
-  Music,
-  PartyPopper,
-} from "lucide-react";
+import type { ReactNode } from "react";
+import { ArrowRight, Bolt, Layers, Mail, MapPin, Sparkles } from "lucide-react";
 import { TopBar } from "@/components/shell/topbar";
 import { LgNewBlockButton } from "@/components/ui/lg-button";
 import { NeedsReply } from "@/components/home/needs-reply";
-import { Avatar } from "@/components/ui/primitives";
-import { lgProgress, lgStatus, lgTileGradient } from "@/lib/lg";
-import { getPerson, type Block } from "@/lib/mock";
+import { MyBlockCard } from "@/components/block/my-block-card";
+import { cardCoverFor } from "@/lib/creator-image";
+import { blockMatchForCreator } from "@/lib/block-match";
+import {
+  creatorProfiles,
+  getPerson,
+  type CreatorProfile,
+  type Person,
+} from "@/lib/mock";
 import {
   getBlocks,
   getCreator,
+  getCreators,
   getCurrentProfile,
   getIncomingBlockRequests,
-  getMyCreatorProfileHandle,
 } from "@/lib/data";
 
 export const dynamic = "force-dynamic";
-
-// Demo earnings series — there's no earnings model yet, so the dashboard
-// mirrors the mockup's chart until payouts ship.
-const EARNINGS_BARS = [30, 42, 36, 55, 48, 70, 62, 92];
 
 function greeting(): string {
   const h = new Date().getHours();
@@ -35,233 +30,280 @@ function greeting(): string {
   return "Good evening";
 }
 
-function BlockIcon({ block }: { block: Block }) {
-  const Icon =
-    block.blockType === "service"
-      ? Briefcase
-      : block.blockType === "block_party"
-        ? PartyPopper
-        : Music;
-  return <Icon size={14} />;
-}
+// A curated set of discovery categories → the Block Market.
+const VIBES = [
+  "Producers",
+  "Vocalists",
+  "Hip Hop",
+  "R&B",
+  "Afrobeat",
+  "Engineers",
+  "Pop",
+  "Videographers",
+  "Photographers",
+  "Designers",
+];
 
 export default async function HomePage() {
-  const [profile, blocks, requests, myHandle] = await Promise.all([
+  const [profile, blocks, requests, creators] = await Promise.all([
     getCurrentProfile(),
     getBlocks(),
     getIncomingBlockRequests(),
-    getMyCreatorProfileHandle(),
+    getCreators(),
   ]);
-  const creator = myHandle ? await getCreator(myHandle) : null;
 
+  const myCreator = profile ? await getCreator(profile.handle) : null;
   const firstName = profile?.name.split(" ")[0] ?? "Creator";
-  const open = blocks.filter((b) => b.completion.status !== "completed");
-  const inReview = open.filter(
-    (b) => b.completion.status === "in_review"
-  ).length;
-  const attention = inReview + requests.length;
-  const inMotion = open.slice(0, 3);
 
-  // Recent activity across all of my Blocks (newest entries first per Block).
-  const activity = blocks
-    .flatMap((b) => b.activity.map((a) => ({ ...a, blockTitle: b.title })))
-    .slice(0, 3);
+  // Discovery pool — everyone but me, available-first then best Block Score.
+  const discover = creators
+    .filter((c) => c.person.handle !== profile?.handle)
+    .sort(
+      (a, b) =>
+        Number(!!b.person.online) - Number(!!a.person.online) ||
+        b.profile.blockScore - a.profile.blockScore
+    );
+  const spotlight = discover[0];
+  const rail = discover.slice(1, 13);
+
+  const inMotion = blocks
+    .filter((b) => b.completion.status !== "completed")
+    .slice(0, 10);
+  const open = blocks.filter((b) => b.completion.status !== "completed");
+  const inReview = open.filter((b) => b.completion.status === "in_review").length;
 
   return (
     <>
       <TopBar />
       <div className="flex-1 min-h-0 overflow-y-auto">
-        <div className="page-fluid pb-12 animate-fade-up">
-          {/* Greeting + Start Block */}
+        <div className="page-fluid pb-16 animate-fade-up">
+          {/* Greeting — light, an invitation not a dashboard */}
           <div className="flex items-center gap-3 pt-5 md:pt-6">
-            <div>
-              <h1 className="text-[24px] font-semibold text-white md:text-[28px]">
+            <div className="min-w-0">
+              <h1 className="text-[22px] md:text-[26px] font-semibold text-white">
                 {greeting()}, {firstName}
               </h1>
               <p className="mt-1 text-[12.5px] text-white/60">
-                {attention > 0
-                  ? `${attention} Block${attention === 1 ? "" : "s"} need${attention === 1 ? "s" : ""} your attention today`
-                  : "All quiet — a good day to start something"}
+                Discover creators and start something today.
               </p>
             </div>
             <span className="flex-1" />
             <LgNewBlockButton label="Start Block" />
           </div>
 
-          {/* Stat cards */}
-          <div className="mt-4 grid grid-cols-2 gap-2.5 md:grid-cols-4">
-            <div className="lg-glass px-3.5 py-3">
-              <p className="flex items-center gap-1.5 text-[11.5px] text-white/60">
-                <Bolt size={13} /> Block Score
-              </p>
-              <p className="mt-1.5 text-[23px] font-semibold text-white">
-                {creator?.profile.blockScore ?? "—"}
-              </p>
-              <p className="mt-0.5 text-[11px] text-white/60">
-                {creator ? `${creator.profile.rating} ★ rating` : "build it with Blocks"}
-              </p>
-            </div>
-            <div className="lg-glass px-3.5 py-3">
-              <p className="flex items-center gap-1.5 text-[11.5px] text-white/60">
-                <Layers size={13} /> Active Blocks
-              </p>
-              <p className="mt-1.5 text-[23px] font-semibold text-white">
-                {open.length}
-              </p>
-              <p className="mt-0.5 text-[11px] text-white/60">
-                {inReview} in review
-              </p>
-            </div>
-            <div className="lg-glass px-3.5 py-3">
-              <p className="flex items-center gap-1.5 text-[11.5px] text-white/60">
-                <Mail size={13} /> Requests
-              </p>
-              <p className="mt-1.5 text-[23px] font-semibold text-white">
-                {requests.length}
-              </p>
-              <p className="mt-0.5 text-[11px] text-[#FFD98A]">
-                {requests.length > 0 ? "awaiting reply" : "all caught up"}
-              </p>
-            </div>
-            <div className="lg-glass px-3.5 py-3">
-              <p className="flex items-center gap-1.5 text-[11.5px] text-white/60">
-                <Coins size={13} /> Earnings
-                <span className="lg-pill lg-pill-w ml-auto !px-2 !text-[9px]">
-                  Demo
+          {/* ── Featured creator spotlight — the inspiring first visual ── */}
+          {spotlight && (
+            <Link
+              href={`/profile/${spotlight.person.handle}`}
+              className="group relative mt-5 block aspect-[16/10] sm:aspect-[21/9] overflow-hidden rounded-3xl glass-tile glass-hover"
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={cardCoverFor(spotlight.person, spotlight.profile)}
+                alt=""
+                className="absolute inset-0 h-full w-full object-cover object-center transition-transform duration-700 group-hover:scale-[1.04]"
+              />
+              <span className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/35 to-black/10" />
+              <span className="absolute inset-0 bg-gradient-to-r from-black/55 to-transparent" />
+              <div className="absolute inset-x-0 bottom-0 p-5 md:p-7">
+                <span className="lg-pill lg-pill-w mb-3 inline-flex">
+                  <Sparkles size={12} /> Featured creator
                 </span>
-              </p>
-              <p className="mt-1.5 text-[23px] font-semibold text-white">
-                $1,240
-              </p>
-              <p className="mt-0.5 text-[11px] text-white/60">
-                payouts coming soon
-              </p>
-            </div>
-          </div>
-
-          {/* Main grid */}
-          <div className="mt-3 grid gap-3 lg:grid-cols-[1.45fr_1fr]">
-            <div className="flex flex-col gap-3">
-              {/* In motion */}
-              <div className="lg-glass p-3.5">
-                <div className="mb-2 flex items-center">
-                  <p className="flex-1 text-[13.5px] font-semibold text-white">
-                    In motion
-                  </p>
-                  <Link
-                    href="/blocks"
-                    className="text-[11.5px] text-white/60 transition-colors hover:text-white"
-                  >
-                    My Blocks →
-                  </Link>
-                </div>
-                {inMotion.length === 0 ? (
-                  <p className="py-3 text-[12px] text-white/60">
-                    Nothing in motion yet — start a Block to get moving.
-                  </p>
-                ) : (
-                  inMotion.map((b, i) => {
-                    const status = lgStatus(b);
-                    return (
-                      <Link
-                        key={b.id}
-                        href={`/blocks/${b.slug}`}
-                        className={`flex items-center gap-3 py-2 ${
-                          i < inMotion.length - 1
-                            ? "border-b border-white/[0.09]"
-                            : ""
-                        }`}
-                      >
-                        <span
-                          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[9px] border border-white/25 text-white"
-                          style={{ background: lgTileGradient(b) }}
-                        >
-                          <BlockIcon block={b} />
-                        </span>
-                        <span className="min-w-0 flex-1">
-                          <span className="block truncate text-[13px] font-semibold text-white">
-                            {b.title}
-                          </span>
-                          <span className="lg-prog mt-1.5 block max-w-[185px]">
-                            <span
-                              className="block"
-                              style={{ width: `${lgProgress(b)}%` }}
-                            />
-                          </span>
-                        </span>
-                        <span className={`lg-pill ${status.cls}`}>
-                          {status.label}
-                        </span>
-                      </Link>
-                    );
-                  })
-                )}
-              </div>
-
-              {/* Earnings — demo data until payouts ship */}
-              <div className="lg-glass p-3.5">
-                <div className="mb-2 flex items-center gap-2">
-                  <p className="flex-1 text-[13.5px] font-semibold text-white">
-                    Earnings · last 8 weeks
-                  </p>
-                  <span className="lg-pill lg-pill-w !px-2 !text-[9px]">
-                    Sample data
+                <h2 className="font-display text-[30px] md:text-[44px] font-bold leading-[1.0] tracking-tight text-white drop-shadow-[0_2px_10px_rgb(0_0_0/0.5)]">
+                  {spotlight.person.name}
+                </h2>
+                <p className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-[13px] text-white/80">
+                  <span className="font-medium text-white/90">
+                    {spotlight.profile.roles.slice(0, 2).join(" · ")}
                   </span>
-                  <span className="text-[11.5px] text-white/60">$1,240</span>
-                </div>
-                <div className="flex h-[84px] items-end gap-[7px]">
-                  {EARNINGS_BARS.map((h, i) => (
-                    <div key={i} className="lg-bar" style={{ height: `${h}%` }} />
-                  ))}
-                </div>
-                <div className="mt-1.5 flex justify-between">
-                  <span className="text-[10.5px] text-white/60">Apr 14</span>
-                  <span className="text-[10.5px] text-white/60">Jun 8</span>
-                </div>
-              </div>
-            </div>
-
-            <div className="flex flex-col gap-3">
-              {/* Needs your reply — incoming Block Requests */}
-              <NeedsReply requests={requests} />
-
-              {/* Activity */}
-              <div className="lg-glass flex-1 p-3.5">
-                <p className="mb-2.5 text-[13.5px] font-semibold text-white">
-                  Activity
+                  <span className="inline-flex items-center gap-1">
+                    <MapPin size={12} /> {spotlight.profile.location}
+                  </span>
                 </p>
-                {activity.length === 0 ? (
-                  <p className="text-[12px] text-white/60">
-                    No recent activity in your Blocks.
-                  </p>
-                ) : (
-                  activity.map((a) => {
-                    const actor = getPerson(a.actorId);
-                    return (
-                      <div
-                        key={`${a.blockTitle}-${a.id}`}
-                        className="mb-2.5 flex items-start gap-2.5 last:mb-0"
-                      >
-                        <Avatar
-                          src={actor?.avatar}
-                          name={actor?.name ?? "?"}
-                          size={23}
-                        />
-                        <p className="text-[12px] leading-[1.45] text-white/60">
-                          <span className="font-semibold text-white">
-                            {actor?.name ?? "Someone"}
-                          </span>{" "}
-                          {a.text} · {a.blockTitle}
-                        </p>
-                      </div>
-                    );
-                  })
-                )}
+                <span className="lg-btn lg-btn-p mt-4 inline-flex" style={{ color: "#FFFFFF" }}>
+                  Explore profile <ArrowRight size={14} />
+                </span>
               </div>
+            </Link>
+          )}
+
+          {/* ── Browse by vibe ── */}
+          <Section title="Browse by vibe">
+            <div className="flex flex-wrap gap-2">
+              {VIBES.map((v) => (
+                <Link
+                  key={v}
+                  href="/marketplace"
+                  className="lg-glass2 inline-flex h-9 items-center rounded-full px-4 text-[12.5px] font-medium text-white/85 transition-colors hover:bg-white/[0.12] hover:text-white"
+                >
+                  {v}
+                </Link>
+              ))}
             </div>
+          </Section>
+
+          {/* ── Discover creators ── */}
+          {rail.length > 0 && (
+            <Section title="Discover creators" cta="Block Market" href="/marketplace">
+              <Rail>
+                {rail.map((c) => (
+                  <CreatorMini
+                    key={c.person.id}
+                    person={c.person}
+                    profile={c.profile}
+                  />
+                ))}
+              </Rail>
+            </Section>
+          )}
+
+          {/* ── Your Blocks in motion ── */}
+          {inMotion.length > 0 && (
+            <Section title="Pick up where you left off" cta="My Blocks" href="/blocks">
+              <Rail>
+                {inMotion.map((b, i) => (
+                  <div key={b.id} className="w-[160px] shrink-0 snap-start sm:w-[180px]">
+                    <MyBlockCard
+                      block={b}
+                      lead={getPerson(b.leadId) ?? null}
+                      score={creatorProfiles[b.leadId]?.blockScore}
+                      index={i}
+                    />
+                  </div>
+                ))}
+              </Rail>
+            </Section>
+          )}
+
+          {/* ── Wants to collaborate with you ── */}
+          {requests.length > 0 && (
+            <Section title="Wants to collaborate with you">
+              <NeedsReply requests={requests} />
+            </Section>
+          )}
+
+          {/* ── Secondary: your numbers, quietly at the bottom ── */}
+          <div className="mt-10 flex flex-wrap gap-2.5">
+            <StatPill
+              icon={<Bolt size={13} />}
+              label="Block Score"
+              value={myCreator ? `${myCreator.profile.blockScore}` : "—"}
+            />
+            <StatPill
+              icon={<Layers size={13} />}
+              label="Active Blocks"
+              value={`${open.length}`}
+              sub={inReview > 0 ? `${inReview} in review` : undefined}
+            />
+            <StatPill
+              icon={<Mail size={13} />}
+              label="Requests"
+              value={`${requests.length}`}
+            />
           </div>
         </div>
       </div>
     </>
+  );
+}
+
+// ── Section header + horizontal rail ────────────────────────────────────────
+function Section({
+  title,
+  cta,
+  href,
+  children,
+}: {
+  title: string;
+  cta?: string;
+  href?: string;
+  children: ReactNode;
+}) {
+  return (
+    <section className="mt-7 md:mt-8">
+      <div className="mb-3 flex items-end justify-between gap-3">
+        <h2 className="font-display text-xl md:text-2xl font-semibold tracking-tight text-white">
+          {title}
+        </h2>
+        {href && cta && (
+          <Link
+            href={href}
+            className="inline-flex shrink-0 items-center gap-1 text-[12px] text-white/55 transition-colors hover:text-white"
+          >
+            {cta} <ArrowRight size={12} />
+          </Link>
+        )}
+      </div>
+      {children}
+    </section>
+  );
+}
+
+function Rail({ children }: { children: ReactNode }) {
+  return (
+    <div className="flex snap-x gap-3 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+      {children}
+    </div>
+  );
+}
+
+// ── Discovery creator card (photo-forward, taps to the profile) ─────────────
+function CreatorMini({
+  person,
+  profile,
+}: {
+  person: Person;
+  profile: CreatorProfile;
+}) {
+  const img = cardCoverFor(person, profile);
+  const role = profile.roles[0] ?? "Creator";
+  const match = blockMatchForCreator(profile);
+  return (
+    <Link
+      href={`/profile/${person.handle}`}
+      className="group relative aspect-[4/5] w-[150px] shrink-0 snap-start overflow-hidden rounded-2xl glass-tile glass-hover sm:w-[168px]"
+    >
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={img}
+        alt=""
+        className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.06]"
+      />
+      <span className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/20 to-transparent" />
+      {person.online && (
+        <span className="lg-pill lg-pill-g absolute left-2 top-2">Available</span>
+      )}
+      <div className="absolute inset-x-0 bottom-0 p-2.5">
+        <p className="truncate font-display text-[14.5px] font-semibold leading-tight text-white drop-shadow">
+          {person.name}
+        </p>
+        <p className="mt-0.5 truncate text-[10.5px] text-white/70">
+          {role} · {match}% match
+        </p>
+      </div>
+    </Link>
+  );
+}
+
+function StatPill({
+  icon,
+  label,
+  value,
+  sub,
+}: {
+  icon: ReactNode;
+  label: string;
+  value: string;
+  sub?: string;
+}) {
+  return (
+    <div className="lg-glass2 inline-flex items-center gap-2.5 rounded-full px-4 py-2">
+      <span className="text-[#A9BEFF]">{icon}</span>
+      <span className="text-[12px] text-white/60">{label}</span>
+      <span className="text-[13px] font-semibold tabular-nums text-white">
+        {value}
+      </span>
+      {sub && <span className="text-[11px] text-white/45">· {sub}</span>}
+    </div>
   );
 }
