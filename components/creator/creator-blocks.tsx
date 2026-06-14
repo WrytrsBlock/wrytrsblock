@@ -69,22 +69,40 @@ export function CreatorBlocks(props: CreatorBlocksData) {
   const videos = props.featured.filter(VIDEO);
   const photos = props.featured.filter(PHOTO);
 
+  const thumb = (i?: FeaturedContentItem) => (i ? tileThumb(i) : null);
   const tiles: {
     id: BlockId;
     label: string;
     icon: typeof Sparkles;
     count: number;
     accent: string;
+    image?: string | null;
+    playable?: boolean;
+    text?: string;
+    chips?: string[];
+    stat?: string;
   }[] = [
-    { id: "featured", label: "Featured Work", icon: Sparkles, count: props.featured.length, accent: "text-[#A9BEFF]" },
-    { id: "videos", label: "Videos", icon: Play, count: videos.length, accent: "text-[#FF8FB0]" },
-    { id: "photos", label: "Photos", icon: ImageIcon, count: photos.length, accent: "text-[#7BEDC4]" },
-    { id: "demos", label: "Demos", icon: Headphones, count: props.tracks.length, accent: "text-[#FFD98A]" },
-    { id: "services", label: "Services", icon: Briefcase, count: props.services.length, accent: "text-[#A9BEFF]" },
-    { id: "looking", label: "Looking For", icon: Target, count: props.seeking.length || props.openTo.length, accent: "text-[#7BEDC4]" },
-    { id: "story", label: "Story", icon: BookOpen, count: props.bio ? 1 : 0, accent: "text-[#FF8FB0]" },
-    { id: "inspiration", label: "Inspiration", icon: Flame, count: props.skills.length, accent: "text-[#FFD98A]" },
-    { id: "experience", label: "Experience", icon: Trophy, count: props.credits.length || props.completedBlocks, accent: "text-[#A9BEFF]" },
+    { id: "featured", label: "Featured Work", icon: Sparkles, count: props.featured.length, accent: "text-[#A9BEFF]", image: thumb(props.featured[0]) },
+    { id: "videos", label: "Videos", icon: Play, count: videos.length, accent: "text-[#FF8FB0]", image: thumb(videos[0]), playable: true },
+    { id: "photos", label: "Photos", icon: ImageIcon, count: photos.length, accent: "text-[#7BEDC4]", image: thumb(photos[0]) },
+    { id: "demos", label: "Demos", icon: Headphones, count: props.tracks.length, accent: "text-[#FFD98A]", text: props.tracks[0]?.name },
+    { id: "services", label: "Services", icon: Briefcase, count: props.services.length, accent: "text-[#A9BEFF]", text: props.services[0]?.title },
+    { id: "looking", label: "Looking For", icon: Target, count: props.seeking.length || props.openTo.length, accent: "text-[#7BEDC4]", text: props.openTo[0] ?? props.seeking[0] },
+    { id: "story", label: "Story", icon: BookOpen, count: props.bio ? 1 : 0, accent: "text-[#FF8FB0]", text: props.bio || props.tagline },
+    { id: "inspiration", label: "Inspiration", icon: Flame, count: props.skills.length, accent: "text-[#FFD98A]", chips: props.skills.slice(0, 3) },
+    {
+      id: "experience",
+      label: "Experience",
+      icon: Trophy,
+      count: props.credits.length || props.completedBlocks,
+      accent: "text-[#A9BEFF]",
+      stat:
+        props.completedBlocks > 0
+          ? `${props.completedBlocks} completed`
+          : props.collaborators.length > 0
+            ? `${props.collaborators.length} collaborators`
+            : props.credits[0]?.title,
+    },
   ];
 
   return (
@@ -93,32 +111,78 @@ export function CreatorBlocks(props: CreatorBlocksData) {
         {tiles.map((t, i) => {
           const Icon = t.icon;
           const has = t.count > 0;
+          const hasImage = !!t.image;
           return (
             <button
               key={t.id}
               type="button"
               onClick={() => setOpen(t.id)}
               style={{ animationDelay: `${Math.min(i, 9) * 35}ms` }}
-              className="group lg-glass animate-fade-up relative flex aspect-square flex-col items-start justify-between overflow-hidden p-3 text-left transition-all duration-200 hover:-translate-y-0.5 hover:bg-white/[0.13] active:scale-[0.97]"
+              className="group lg-glass animate-fade-up relative aspect-square overflow-hidden text-left transition-all duration-200 hover:-translate-y-0.5 hover:bg-white/[0.13] active:scale-[0.97]"
             >
-              <span
-                className={cn(
-                  "inline-flex h-9 w-9 items-center justify-center rounded-xl border border-white/[0.14] bg-white/[0.07]",
-                  t.accent
-                )}
-              >
-                <Icon size={17} strokeWidth={1.9} />
-              </span>
-              <span className="w-full">
-                <span className="block text-[12.5px] font-semibold leading-tight text-white">
-                  {t.label}
+              {/* Media preview as the tile background */}
+              {hasImage && (
+                <>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={t.image!}
+                    alt=""
+                    className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.06]"
+                  />
+                  <span className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/85 via-black/30 to-black/5" />
+                  {t.playable && (
+                    <span className="pointer-events-none absolute inset-0 flex items-center justify-center">
+                      <span className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-white/25 bg-black/45 text-white backdrop-blur-sm">
+                        <Play size={14} className="ml-0.5 fill-current" />
+                      </span>
+                    </span>
+                  )}
+                </>
+              )}
+
+              <span className="relative flex h-full flex-col justify-between p-3">
+                <span
+                  className={cn(
+                    "inline-flex h-8 w-8 items-center justify-center rounded-lg border border-white/15 backdrop-blur-sm",
+                    hasImage ? "bg-black/35" : "bg-white/[0.07]",
+                    t.accent
+                  )}
+                >
+                  <Icon size={16} strokeWidth={1.9} />
                 </span>
-                <span className="mt-0.5 block text-[10.5px] text-white/50">
-                  {has ? `${t.count} item${t.count === 1 ? "" : "s"}` : "Explore"}
+                <span className="w-full">
+                  <span className="block text-[12.5px] font-semibold leading-tight text-white drop-shadow">
+                    {t.label}
+                  </span>
+                  {!hasImage && t.chips && t.chips.length > 0 ? (
+                    <span className="mt-1 flex flex-wrap gap-1">
+                      {t.chips.map((c) => (
+                        <span
+                          key={c}
+                          className="rounded-full border border-white/10 bg-white/[0.06] px-1.5 py-0.5 text-[9px] text-white/70"
+                        >
+                          {c}
+                        </span>
+                      ))}
+                    </span>
+                  ) : !hasImage && t.text ? (
+                    <span className="mt-0.5 line-clamp-2 block text-[10px] leading-snug text-white/55">
+                      {t.text}
+                    </span>
+                  ) : !hasImage && t.stat ? (
+                    <span className="mt-0.5 block text-[10.5px] text-white/55">
+                      {t.stat}
+                    </span>
+                  ) : (
+                    <span className="mt-0.5 block text-[10.5px] text-white/60 drop-shadow">
+                      {has ? `${t.count} item${t.count === 1 ? "" : "s"}` : "Explore"}
+                    </span>
+                  )}
                 </span>
               </span>
+
               {has && (
-                <span className="absolute right-2 top-2 inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-[rgba(59,102,246,0.5)] px-1.5 text-[10px] font-bold tabular-nums text-white">
+                <span className="absolute right-2 top-2 z-10 inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-[rgba(59,102,246,0.6)] px-1.5 text-[10px] font-bold tabular-nums text-white backdrop-blur-sm">
                   {t.count}
                 </span>
               )}

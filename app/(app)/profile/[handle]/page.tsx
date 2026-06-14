@@ -9,7 +9,6 @@ import {
   Sparkles,
   Users,
 } from "lucide-react";
-import { TopBar } from "@/components/shell/topbar";
 import { StartBlockFlow } from "@/components/block/start-block-flow";
 import { ShareProfileButton } from "@/components/creator/share-profile-button";
 import { CreatorBlocks } from "@/components/creator/creator-blocks";
@@ -87,18 +86,12 @@ export default async function ProfilePage({
   if (profile.openTo.includes("service")) availability.push("Open to Services");
 
   return (
-    <>
-      <TopBar
-        crumbs={[
-          { label: "Block Market", href: "/marketplace" },
-          { label: person.name },
-        ]}
-      />
-      {/* min-h-0 keeps this flex child scrollable (esp. iOS Safari). */}
-      <div className="flex-1 min-h-0 overflow-y-auto">
+    // No search bar on the profile — the hero leads. min-h-0 keeps this flex
+    // child scrollable (esp. iOS Safari).
+    <div className="flex-1 min-h-0 overflow-y-auto">
         {/* ── HERO — the dominant visual. Photo (or branded gradient), a minimal
             identity overlay at the bottom, no floating card. ── */}
-        <section className="relative w-full h-[48vh] min-h-[340px] md:h-[460px] overflow-hidden">
+        <section className="relative w-full h-[48vh] min-h-[340px] md:h-[640px] overflow-hidden">
           {heroImage ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
@@ -131,7 +124,7 @@ export default async function ProfilePage({
 
           {/* Identity overlay — name, types, location, open-to. Minimal. */}
           <div className="page-fluid absolute inset-x-0 bottom-0 pb-5 md:pb-7">
-            <h1 className="font-display text-[30px] md:text-[46px] font-semibold leading-[1.02] tracking-tight text-white drop-shadow-[0_2px_10px_rgb(0_0_0/0.55)]">
+            <h1 className="font-display text-[30px] md:text-[68px] font-semibold md:font-bold leading-[1.02] md:leading-[0.98] tracking-tight text-white drop-shadow-[0_2px_12px_rgb(0_0_0/0.6)]">
               {person.name}
             </h1>
             <div className="mt-2.5 flex flex-wrap items-center gap-2">
@@ -155,7 +148,7 @@ export default async function ProfilePage({
         </section>
 
         {/* ── Actions + compact stats (no LinkedIn panel) ── */}
-        <div className="page-fluid pt-4 md:pt-5">
+        <div className="page-fluid pt-4 md:pt-3">
           <div className="flex flex-wrap items-center gap-2.5">
             {isMe ? (
               <Link href="/profile/edit" className="lg-btn lg-btn-p">
@@ -231,7 +224,7 @@ export default async function ProfilePage({
 
         {/* ── CREATOR BLOCKS — the centerpiece. Explore this creator through
             their blocks. ── */}
-        <div className="page-fluid pt-5 md:pt-6 pb-16 animate-fade-up">
+        <div className="page-fluid pt-5 md:pt-4 pb-16 animate-fade-up">
           <CreatorBlocks
             isOwner={isMe}
             name={person.name}
@@ -251,7 +244,6 @@ export default async function ProfilePage({
             completedBlocks={collab.completedBlocks}
           />
         </div>
-      </div>
-    </>
+    </div>
   );
 }
