@@ -5,12 +5,12 @@ import Link from "next/link";
 import { createPortal } from "react-dom";
 import {
   ArrowUpRight,
-  BookOpen,
   Briefcase,
   Flame,
   Headphones,
   Image as ImageIcon,
   Loader2,
+  Music,
   Play,
   Plus,
   Sparkles,
@@ -19,6 +19,7 @@ import {
   Trash2,
   Trophy,
   Upload,
+  User,
   X,
 } from "lucide-react";
 import { cn } from "@/lib/cn";
