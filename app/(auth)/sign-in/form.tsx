@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { ArrowRight, Mail } from "lucide-react";
+import { ArrowLeft, ArrowRight, Mail } from "lucide-react";
 import { Button, Input, Label } from "@/components/ui/primitives";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { supabaseConfigured } from "@/lib/env";
@@ -16,12 +16,36 @@ export function SignInForm() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
   const [magic, setMagic] = useState(false);
+  const [reset, setReset] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
+    setNotice(null);
     setLoading(true);
+
+    // Forgot-password flow: email the user a reset link, then stop here. The
+    // link returns through /auth/callback and lands on Settings, where they can
+    // set a new password.
+    if (reset) {
+      if (!supabaseConfigured) {
+        setNotice("Check your email for a password reset link.");
+        setLoading(false);
+        return;
+      }
+      const supabase = createSupabaseBrowserClient();
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(
+          "/settings"
+        )}`,
+      });
+      if (error) setError(error.message);
+      else setNotice("Check your email for a password reset link.");
+      setLoading(false);
+      return;
+    }
 
     if (!supabaseConfigured) {
       // Local-dev fallback: skip auth.
@@ -79,6 +103,13 @@ export function SignInForm() {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
+      {reset && (
+        <p className="text-[12px] leading-relaxed text-muted">
+          Enter your account email and we&apos;ll send you a link to reset your
+          password.
+        </p>
+      )}
+
       <div>
         <Label htmlFor="email">Email</Label>
         <Input
@@ -92,7 +123,7 @@ export function SignInForm() {
         />
       </div>
 
-      {!magic && (
+      {!magic && !reset && (
         <div>
           <div className="flex items-center justify-between mb-1.5">
             <Label htmlFor="password" className="mb-0">
@@ -100,6 +131,12 @@ export function SignInForm() {
             </Label>
             <button
               type="button"
+              onClick={() => {
+                setReset(true);
+                setMagic(false);
+                setError(null);
+                setNotice(null);
+              }}
               className="text-[11px] text-muted hover:text-ink transition-colors"
             >
               Forgot?
@@ -123,6 +160,12 @@ export function SignInForm() {
         </p>
       )}
 
+      {notice && (
+        <p className="text-[12px] text-success bg-success/10 border border-success/30 rounded-md px-3 py-2">
+          {notice}
+        </p>
+      )}
+
       <Button
         variant="primary"
         size="lg"
@@ -130,18 +173,40 @@ export function SignInForm() {
         className="w-full justify-between"
         disabled={loading}
       >
-        {loading ? "Signing in…" : magic ? "Send magic link" : "Sign in"}
+        {loading
+          ? reset
+            ? "Sending…"
+            : "Signing in…"
+          : reset
+            ? "Send reset link"
+            : magic
+              ? "Send magic link"
+              : "Sign in"}
         <ArrowRight size={14} />
       </Button>
 
-      <button
-        type="button"
-        onClick={() => setMagic(!magic)}
-        className="w-full inline-flex items-center justify-center gap-2 text-[12px] text-muted hover:text-ink transition-colors py-2"
-      >
-        <Mail size={12} />
-        {magic ? "Use password instead" : "Sign in with a magic link"}
-      </button>
+      {reset ? (
+        <button
+          type="button"
+          onClick={() => {
+            setReset(false);
+            setError(null);
+            setNotice(null);
+          }}
+          className="w-full inline-flex items-center justify-center gap-2 text-[12px] text-muted hover:text-ink transition-colors py-2"
+        >
+          <ArrowLeft size={12} /> Back to sign in
+        </button>
+      ) : (
+        <button
+          type="button"
+          onClick={() => setMagic(!magic)}
+          className="w-full inline-flex items-center justify-center gap-2 text-[12px] text-muted hover:text-ink transition-colors py-2"
+        >
+          <Mail size={12} />
+          {magic ? "Use password instead" : "Sign in with a magic link"}
+        </button>
+      )}
     </form>
   );
 }

@@ -113,8 +113,8 @@ export function CreatorBlocks(props: CreatorBlocksData) {
     { id: "demos", label: "Demos", icon: Headphones, count: demoCount, accent: "text-[#FFD98A]", desc: "Upload songs, rough mixes, beats, and works in progress.", image: thumb(demos[0]), text: demos[0] ? itemTitle(demos[0]) : props.tracks[0]?.name },
     { id: "services", label: "Services", icon: Briefcase, count: props.services.length, accent: "text-[#A9BEFF]", desc: "Offer mixing, production, songwriting, photography, and more.", text: props.services[0]?.title },
     { id: "looking", label: "Looking For", icon: Target, count: props.seeking.length || props.openTo.length, accent: "text-[#7BEDC4]", desc: "Tell creators who you want to collaborate with.", text: props.openTo[0] ?? props.seeking[0] },
-    { id: "story", label: "About Me", icon: BookOpen, count: props.bio ? 1 : 0, accent: "text-[#FF8FB0]", desc: "Your biography, background, and what drives you as a creator.", text: props.bio || props.tagline },
-    { id: "inspiration", label: "Genres & Influences", icon: Flame, count: props.skills.length, accent: "text-[#FFD98A]", desc: "Showcase your genres and the artists who influence you.", chips: props.skills.slice(0, 3) },
+    { id: "story", label: "About Me", icon: User, count: props.bio ? 1 : 0, accent: "text-[#FF8FB0]", desc: "Tell people who you are, your background, and your creative journey." },
+    { id: "inspiration", label: "Genres & Influences", icon: Music, count: props.skills.length, accent: "text-[#FFD98A]", desc: "Add your genres and key creative influences." },
     {
       id: "experience",
       label: "Experience",
@@ -138,13 +138,11 @@ export function CreatorBlocks(props: CreatorBlocksData) {
           const Icon = t.icon;
           const has = t.count > 0;
           const hasImage = !!t.image;
-          // Does this tile have a textual preview to fill the body (bio text,
-          // genre chips, a stat)? If not — and there's no cover image — the
-          // icon becomes the centered hero, even when the block has items but
-          // no artwork (e.g. Featured Work / Videos / Photos without thumbs).
-          const hasPreview =
-            !!t.text || (t.chips && t.chips.length > 0) || !!t.stat;
-          const iconHero = !hasImage && !hasPreview;
+          // Every block without a cover image uses the same centered icon hero
+          // (icon → title → description), so all nine read identically. Only a
+          // real cover image overrides it. Content (bio, genres, demos…) lives
+          // inside the opened block, never on the tile preview.
+          const iconHero = !hasImage;
           const isEmpty = iconHero && t.count === 0;
           return (
             <button
@@ -199,15 +197,9 @@ export function CreatorBlocks(props: CreatorBlocksData) {
                     <span className="block text-[13px] md:text-[16px] font-semibold leading-tight text-white">
                       {t.label}
                     </span>
-                    {has ? (
-                      <span className="block text-[10px] font-medium text-white/55 md:text-[12px]">
-                        {t.count} item{t.count === 1 ? "" : "s"}
-                      </span>
-                    ) : (
-                      <span className="line-clamp-2 block max-w-[200px] text-[9.5px] leading-snug text-white/45 md:text-[11.5px]">
-                        {t.desc}
-                      </span>
-                    )}
+                    <span className="line-clamp-2 block max-w-[200px] text-[9.5px] leading-snug text-white/45 md:text-[11.5px]">
+                      {t.desc}
+                    </span>
                   </span>
                 </>
               ) : (
