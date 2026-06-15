@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ArrowLeft, ArrowRight, Mail } from "lucide-react";
 import { Button, Input, Label } from "@/components/ui/primitives";
@@ -19,6 +19,16 @@ export function SignInForm() {
   const [notice, setNotice] = useState<string | null>(null);
   const [magic, setMagic] = useState(false);
   const [reset, setReset] = useState(false);
+
+  // Surface auth-callback errors (e.g. an expired reset link) and drop the user
+  // straight into the reset flow so they can request a fresh email.
+  useEffect(() => {
+    const authError = params.get("autherror");
+    if (authError) {
+      setError(authError);
+      setReset(true);
+    }
+  }, [params]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
