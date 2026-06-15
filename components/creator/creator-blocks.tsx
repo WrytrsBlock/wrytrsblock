@@ -76,26 +76,28 @@ export function CreatorBlocks(props: CreatorBlocksData) {
     icon: typeof Sparkles;
     count: number;
     accent: string;
+    desc: string;
     image?: string | null;
     playable?: boolean;
     text?: string;
     chips?: string[];
     stat?: string;
   }[] = [
-    { id: "featured", label: "Featured Work", icon: Sparkles, count: props.featured.length, accent: "text-[#A9BEFF]", image: thumb(props.featured[0]) },
-    { id: "videos", label: "Videos", icon: Play, count: videos.length, accent: "text-[#FF8FB0]", image: thumb(videos[0]), playable: true },
-    { id: "photos", label: "Photos", icon: ImageIcon, count: photos.length, accent: "text-[#7BEDC4]", image: thumb(photos[0]) },
-    { id: "demos", label: "Demos", icon: Headphones, count: props.tracks.length, accent: "text-[#FFD98A]", text: props.tracks[0]?.name },
-    { id: "services", label: "Services", icon: Briefcase, count: props.services.length, accent: "text-[#A9BEFF]", text: props.services[0]?.title },
-    { id: "looking", label: "Looking For", icon: Target, count: props.seeking.length || props.openTo.length, accent: "text-[#7BEDC4]", text: props.openTo[0] ?? props.seeking[0] },
-    { id: "story", label: "Story", icon: BookOpen, count: props.bio ? 1 : 0, accent: "text-[#FF8FB0]", text: props.bio || props.tagline },
-    { id: "inspiration", label: "Inspiration", icon: Flame, count: props.skills.length, accent: "text-[#FFD98A]", chips: props.skills.slice(0, 3) },
+    { id: "featured", label: "Featured Work", icon: Sparkles, count: props.featured.length, accent: "text-[#A9BEFF]", desc: "Showcase your best creative projects.", image: thumb(props.featured[0]) },
+    { id: "videos", label: "Videos", icon: Play, count: videos.length, accent: "text-[#FF8FB0]", desc: "Upload performances, music videos, and reels.", image: thumb(videos[0]), playable: true },
+    { id: "photos", label: "Photos", icon: ImageIcon, count: photos.length, accent: "text-[#7BEDC4]", desc: "Share studio shots, artwork, and behind-the-scenes moments.", image: thumb(photos[0]) },
+    { id: "demos", label: "Demos", icon: Headphones, count: props.tracks.length, accent: "text-[#FFD98A]", desc: "Upload songs, rough mixes, beats, and works in progress.", text: props.tracks[0]?.name },
+    { id: "services", label: "Services", icon: Briefcase, count: props.services.length, accent: "text-[#A9BEFF]", desc: "Offer mixing, production, songwriting, photography, and more.", text: props.services[0]?.title },
+    { id: "looking", label: "Looking For", icon: Target, count: props.seeking.length || props.openTo.length, accent: "text-[#7BEDC4]", desc: "Tell creators who you want to collaborate with.", text: props.openTo[0] ?? props.seeking[0] },
+    { id: "story", label: "Story", icon: BookOpen, count: props.bio ? 1 : 0, accent: "text-[#FF8FB0]", desc: "Share your journey, your sound, and what drives you.", text: props.bio || props.tagline },
+    { id: "inspiration", label: "Inspiration", icon: Flame, count: props.skills.length, accent: "text-[#FFD98A]", desc: "Add the genres and artists that shape your sound.", chips: props.skills.slice(0, 3) },
     {
       id: "experience",
       label: "Experience",
       icon: Trophy,
       count: props.credits.length || props.completedBlocks,
       accent: "text-[#A9BEFF]",
+      desc: "Your completed Blocks and collaborations land here.",
       stat:
         props.completedBlocks > 0
           ? `${props.completedBlocks} completed`
@@ -112,13 +114,14 @@ export function CreatorBlocks(props: CreatorBlocksData) {
           const Icon = t.icon;
           const has = t.count > 0;
           const hasImage = !!t.image;
+          const isEmpty = !hasImage && t.count === 0;
           return (
             <button
               key={t.id}
               type="button"
               onClick={() => setOpen(t.id)}
               style={{ animationDelay: `${Math.min(i, 9) * 35}ms` }}
-              className="group lg-glass animate-fade-up relative aspect-square overflow-hidden text-left transition-all duration-200 hover:-translate-y-0.5 hover:bg-white/[0.13] active:scale-[0.97]"
+              className="group lg-glass animate-fade-up relative aspect-square overflow-hidden text-left transition-all duration-200 hover:-translate-y-1 hover:border-white/30 hover:bg-white/[0.12] hover:shadow-[0_14px_40px_-12px_rgba(0,0,0,0.6)] active:scale-[0.97]"
             >
               {/* Media preview as the tile background */}
               {hasImage && (
@@ -140,46 +143,76 @@ export function CreatorBlocks(props: CreatorBlocksData) {
                 </>
               )}
 
-              <span className="relative flex h-full flex-col justify-between p-3">
-                <span
-                  className={cn(
-                    "inline-flex h-8 w-8 items-center justify-center rounded-lg border border-white/15 backdrop-blur-sm",
-                    hasImage ? "bg-black/35" : "bg-white/[0.07]",
-                    t.accent
+              {isEmpty ? (
+                // ── Empty state — the icon becomes the hero: large, centered,
+                // on a soft glass/gradient, with title + description. An
+                // invitation to create, not a broken tile. ──
+                <>
+                  <span className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_40%,rgba(99,118,229,0.18),transparent_62%)]" />
+                  {props.isOwner && (
+                    <span className="absolute right-2.5 top-2.5 z-10 inline-flex h-6 w-6 items-center justify-center rounded-full border border-white/20 bg-white/[0.12] text-white opacity-0 backdrop-blur-sm transition-opacity duration-200 group-hover:opacity-100">
+                      <Plus size={14} strokeWidth={2.4} />
+                    </span>
                   )}
-                >
-                  <Icon size={16} strokeWidth={1.9} />
-                </span>
-                <span className="w-full">
-                  <span className="block text-[12.5px] font-semibold leading-tight text-white drop-shadow">
-                    {t.label}
+                  <span className="relative flex h-full flex-col items-center justify-center gap-2 px-2.5 text-center">
+                    <span
+                      className={cn(
+                        "inline-flex h-[62px] w-[62px] items-center justify-center rounded-[22px] border border-white/[0.12] bg-white/[0.05] shadow-[inset_0_1px_0_rgb(255_255_255/0.1)] transition-transform duration-300 group-hover:scale-[1.06] md:h-[104px] md:w-[104px]",
+                        t.accent
+                      )}
+                    >
+                      <Icon className="h-8 w-8 md:h-14 md:w-14" strokeWidth={1.3} />
+                    </span>
+                    <span className="block text-[13px] md:text-[16px] font-semibold leading-tight text-white">
+                      {t.label}
+                    </span>
+                    <span className="line-clamp-2 block max-w-[200px] text-[9.5px] leading-snug text-white/45 md:text-[11.5px]">
+                      {t.desc}
+                    </span>
                   </span>
-                  {!hasImage && t.chips && t.chips.length > 0 ? (
-                    <span className="mt-1 flex flex-wrap gap-1">
-                      {t.chips.map((c) => (
-                        <span
-                          key={c}
-                          className="rounded-full border border-white/10 bg-white/[0.06] px-1.5 py-0.5 text-[9px] text-white/70"
-                        >
-                          {c}
-                        </span>
-                      ))}
+                </>
+              ) : (
+                <span className="relative flex h-full flex-col justify-between p-3">
+                  <span
+                    className={cn(
+                      "inline-flex h-8 w-8 items-center justify-center rounded-lg border border-white/15 backdrop-blur-sm",
+                      hasImage ? "bg-black/35" : "bg-white/[0.07]",
+                      t.accent
+                    )}
+                  >
+                    <Icon size={16} strokeWidth={1.9} />
+                  </span>
+                  <span className="w-full">
+                    <span className="block text-[12.5px] font-semibold leading-tight text-white drop-shadow">
+                      {t.label}
                     </span>
-                  ) : !hasImage && t.text ? (
-                    <span className="mt-0.5 line-clamp-2 block text-[10px] leading-snug text-white/55">
-                      {t.text}
-                    </span>
-                  ) : !hasImage && t.stat ? (
-                    <span className="mt-0.5 block text-[10.5px] text-white/55">
-                      {t.stat}
-                    </span>
-                  ) : (
-                    <span className="mt-0.5 block text-[10.5px] text-white/60 drop-shadow">
-                      {has ? `${t.count} item${t.count === 1 ? "" : "s"}` : "Explore"}
-                    </span>
-                  )}
+                    {!hasImage && t.chips && t.chips.length > 0 ? (
+                      <span className="mt-1 flex flex-wrap gap-1">
+                        {t.chips.map((c) => (
+                          <span
+                            key={c}
+                            className="rounded-full border border-white/10 bg-white/[0.06] px-1.5 py-0.5 text-[9px] text-white/70"
+                          >
+                            {c}
+                          </span>
+                        ))}
+                      </span>
+                    ) : !hasImage && t.text ? (
+                      <span className="mt-0.5 line-clamp-2 block text-[10px] leading-snug text-white/55">
+                        {t.text}
+                      </span>
+                    ) : !hasImage && t.stat ? (
+                      <span className="mt-0.5 block text-[10.5px] text-white/55">
+                        {t.stat}
+                      </span>
+                    ) : (
+                      <span className="mt-0.5 block text-[10.5px] text-white/60 drop-shadow">
+                        {has ? `${t.count} item${t.count === 1 ? "" : "s"}` : "Explore"}
+                      </span>
+                    )}
+                  </span>
                 </span>
-              </span>
+              )}
 
               {has && (
                 <span className="absolute right-2 top-2 z-10 inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-[rgba(59,102,246,0.6)] px-1.5 text-[10px] font-bold tabular-nums text-white backdrop-blur-sm">
