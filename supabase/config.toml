@@ -22,6 +22,41 @@ enable_signup = true
 double_confirm_changes = true
 enable_confirmations = false
 
+# Custom SMTP — required to change the "From" name to WrytrsBlock. Supabase's
+# built-in email service always sends as "Supabase Auth". Fill these in (or set
+# the equivalent fields in Dashboard → Authentication → Emails → SMTP Settings)
+# to brand the sender. Values reference env vars so secrets stay out of git.
+# [auth.email.smtp]
+# enabled = true
+# host = "smtp.resend.com"
+# port = 465
+# user = "resend"
+# pass = "env(SMTP_PASS)"
+# admin_email = "no-reply@wrytrsblock.com"
+# sender_name = "WrytrsBlock"
+
+# Branded WrytrsBlock email templates. Subjects + bodies override Supabase's
+# generic defaults. content_path is resolved from the project root.
+[auth.email.template.recovery]
+subject = "Reset your WrytrsBlock password"
+content_path = "./supabase/templates/recovery.html"
+
+[auth.email.template.magic_link]
+subject = "Your WrytrsBlock sign-in link"
+content_path = "./supabase/templates/magic_link.html"
+
+[auth.email.template.confirmation]
+subject = "Confirm your WrytrsBlock email"
+content_path = "./supabase/templates/confirmation.html"
+
+[auth.email.template.invite]
+subject = "You're invited to WrytrsBlock"
+content_path = "./supabase/templates/invite.html"
+
+[auth.email.template.email_change]
+subject = "Confirm your new WrytrsBlock email"
+content_path = "./supabase/templates/email_change.html"
+
 [storage]
 enabled = true
 file_size_limit = "500MiB"
