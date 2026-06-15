@@ -166,7 +166,7 @@ export function EditProfileForm({
 
   return (
     <div className="flex-1 overflow-y-auto">
-      <div className="mx-auto w-full max-w-[680px] px-5 md:px-8 py-7 space-y-6 animate-fade-up">
+      <div className="mx-auto w-full max-w-[1180px] px-5 md:px-8 py-7 space-y-6 animate-fade-up">
         <div className="flex items-center justify-between gap-3">
           <button
             type="button"
@@ -180,6 +180,10 @@ export function EditProfileForm({
           </h1>
         </div>
 
+        {/* Top: images (left) + identity (right) on desktop; stacked on mobile */}
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,400px)_minmax(0,1fr)]">
+          {/* LEFT — cover, profile photo, upload controls */}
+          <div className="space-y-6">
         {/* Cover image — the large image shown at the top of the profile. */}
         <Field label="Cover image">
           <button
@@ -257,7 +261,10 @@ export function EditProfileForm({
             and fills your profile hero if you haven&rsquo;t added a cover image.
           </p>
         </Field>
+          </div>
 
+          {/* RIGHT — display name, username, bio, country, city */}
+          <div className="space-y-5">
         {/* Identity — display name + username */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
           <Field label="Display name">
@@ -313,7 +320,11 @@ export function EditProfileForm({
             />
           </Field>
         </div>
+          </div>
+        </div>
 
+        {/* Full-width longer sections below the two-column header */}
+        <div className="space-y-6">
         {/* Creator types */}
         <Field label="Creator roles">
           <div className="flex flex-wrap gap-2">
@@ -429,6 +440,7 @@ export function EditProfileForm({
               profile.
             </p>
           </Field>
+        </div>
         </div>
 
         {error && (
