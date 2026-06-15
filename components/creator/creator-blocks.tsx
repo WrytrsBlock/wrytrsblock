@@ -137,7 +137,14 @@ export function CreatorBlocks(props: CreatorBlocksData) {
           const Icon = t.icon;
           const has = t.count > 0;
           const hasImage = !!t.image;
-          const isEmpty = !hasImage && t.count === 0;
+          // Does this tile have a textual preview to fill the body (bio text,
+          // genre chips, a stat)? If not — and there's no cover image — the
+          // icon becomes the centered hero, even when the block has items but
+          // no artwork (e.g. Featured Work / Videos / Photos without thumbs).
+          const hasPreview =
+            !!t.text || (t.chips && t.chips.length > 0) || !!t.stat;
+          const iconHero = !hasImage && !hasPreview;
+          const isEmpty = iconHero && t.count === 0;
           return (
             <button
               key={t.id}
@@ -166,13 +173,15 @@ export function CreatorBlocks(props: CreatorBlocksData) {
                 </>
               )}
 
-              {isEmpty ? (
-                // ── Empty state — the icon becomes the hero: large, centered,
-                // on a soft glass/gradient, with title + description. An
-                // invitation to create, not a broken tile. ──
+              {iconHero ? (
+                // ── Icon hero — the icon is large + centered on a soft
+                // glass/gradient with title + sub-line. Used both for empty
+                // blocks (an invitation to create) and for blocks that hold
+                // items but no cover artwork, so every iconographic tile reads
+                // the same. ──
                 <>
                   <span className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_40%,rgba(99,118,229,0.18),transparent_62%)]" />
-                  {props.isOwner && (
+                  {props.isOwner && isEmpty && (
                     <span className="absolute right-2.5 top-2.5 z-10 inline-flex h-6 w-6 items-center justify-center rounded-full border border-white/20 bg-white/[0.12] text-white opacity-0 backdrop-blur-sm transition-opacity duration-200 group-hover:opacity-100">
                       <Plus size={14} strokeWidth={2.4} />
                     </span>
@@ -189,9 +198,15 @@ export function CreatorBlocks(props: CreatorBlocksData) {
                     <span className="block text-[13px] md:text-[16px] font-semibold leading-tight text-white">
                       {t.label}
                     </span>
-                    <span className="line-clamp-2 block max-w-[200px] text-[9.5px] leading-snug text-white/45 md:text-[11.5px]">
-                      {t.desc}
-                    </span>
+                    {has ? (
+                      <span className="block text-[10px] font-medium text-white/55 md:text-[12px]">
+                        {t.count} item{t.count === 1 ? "" : "s"}
+                      </span>
+                    ) : (
+                      <span className="line-clamp-2 block max-w-[200px] text-[9.5px] leading-snug text-white/45 md:text-[11.5px]">
+                        {t.desc}
+                      </span>
+                    )}
                   </span>
                 </>
               ) : (
