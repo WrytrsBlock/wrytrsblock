@@ -361,30 +361,27 @@ function BlockContent(
         <Empty isOwner={isOwner} name={name} thing="featured work" />
       );
 
+    // Videos & Photos share Featured Work's functionality: the owner gets the
+    // editable showcase (add / edit / reorder / pin); visitors see the filtered
+    // gallery.
     case "videos":
+      if (isOwner) {
+        return <BlockShowcase initialItems={props.featured} isOwner={true} />;
+      }
       return props.videos.length ? (
         <MediaGallery items={props.videos} />
       ) : (
-        <Empty
-          isOwner={isOwner}
-          name={name}
-          thing="videos"
-          addLabel="Add content"
-          addHref="/profile/edit"
-        />
+        <Empty isOwner={isOwner} name={name} thing="videos" />
       );
 
     case "photos":
+      if (isOwner) {
+        return <BlockShowcase initialItems={props.featured} isOwner={true} />;
+      }
       return props.photos.length ? (
         <MediaGallery items={props.photos} />
       ) : (
-        <Empty
-          isOwner={isOwner}
-          name={name}
-          thing="photos"
-          addLabel="Add content"
-          addHref="/profile/edit"
-        />
+        <Empty isOwner={isOwner} name={name} thing="photos" />
       );
 
     case "demos":
