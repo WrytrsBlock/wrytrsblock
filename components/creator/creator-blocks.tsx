@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import { useRef, useState, useTransition, type ReactNode } from "react";
 import Link from "next/link";
 import { createPortal } from "react-dom";
 import {
@@ -10,13 +10,15 @@ import {
   Flame,
   Headphones,
   Image as ImageIcon,
-  Pencil,
+  Loader2,
   Play,
   Plus,
   Sparkles,
   Star,
   Target,
+  Trash2,
   Trophy,
+  Upload,
   X,
 } from "lucide-react";
 import { cn } from "@/lib/cn";
@@ -24,10 +26,27 @@ import { Avatar } from "@/components/ui/primitives";
 import { MediaPlayer } from "@/components/creator/media-player";
 import { BlockShowcase } from "@/components/creator/block-showcase";
 import { openNewBlock } from "@/lib/ui-events";
-import { isVideoType, itemTitle, tileThumb } from "@/lib/featured-content";
+import {
+  isDirectAudio,
+  isVideoType,
+  itemTitle,
+  newContentId,
+  tileThumb,
+} from "@/lib/featured-content";
+import {
+  AUDIO_ACCEPT,
+  AUDIO_FORMATS_HINT,
+  uploadAudioToAvatars,
+  validateAudioFile,
+} from "@/lib/upload-image";
+import { updateShowcaseAction } from "@/app/actions/showcase";
 import type { FeaturedContentItem } from "@/types";
 import type { Track, ServiceOffer, Credit } from "@/lib/mock";
 import type { ProfileCollaborator } from "@/lib/data";
+
+// Audio items (uploaded demos + linked songs) are what the Demos block manages.
+const IS_DEMO = (i: FeaturedContentItem) =>
+  i.type === "audio" || i.type === "song";
 
 type BlockId =
   | "featured"
@@ -68,6 +87,10 @@ export function CreatorBlocks(props: CreatorBlocksData) {
 
   const videos = props.featured.filter(VIDEO);
   const photos = props.featured.filter(PHOTO);
+  const demos = props.featured.filter(IS_DEMO);
+  // The Demos tile counts uploaded/linked audio first, falling back to any
+  // legacy derived tracks so existing profiles still read correctly.
+  const demoCount = demos.length || props.tracks.length;
 
   const thumb = (i?: FeaturedContentItem) => (i ? tileThumb(i) : null);
   const tiles: {
@@ -86,11 +109,11 @@ export function CreatorBlocks(props: CreatorBlocksData) {
     { id: "featured", label: "Featured Work", icon: Sparkles, count: props.featured.length, accent: "text-[#A9BEFF]", desc: "Showcase your best creative projects.", image: thumb(props.featured[0]) },
     { id: "videos", label: "Videos", icon: Play, count: videos.length, accent: "text-[#FF8FB0]", desc: "Upload performances, music videos, and reels.", image: thumb(videos[0]), playable: true },
     { id: "photos", label: "Photos", icon: ImageIcon, count: photos.length, accent: "text-[#7BEDC4]", desc: "Share studio shots, artwork, and behind-the-scenes moments.", image: thumb(photos[0]) },
-    { id: "demos", label: "Demos", icon: Headphones, count: props.tracks.length, accent: "text-[#FFD98A]", desc: "Upload songs, rough mixes, beats, and works in progress.", text: props.tracks[0]?.name },
+    { id: "demos", label: "Demos", icon: Headphones, count: demoCount, accent: "text-[#FFD98A]", desc: "Upload songs, rough mixes, beats, and works in progress.", image: thumb(demos[0]), text: demos[0] ? itemTitle(demos[0]) : props.tracks[0]?.name },
     { id: "services", label: "Services", icon: Briefcase, count: props.services.length, accent: "text-[#A9BEFF]", desc: "Offer mixing, production, songwriting, photography, and more.", text: props.services[0]?.title },
     { id: "looking", label: "Looking For", icon: Target, count: props.seeking.length || props.openTo.length, accent: "text-[#7BEDC4]", desc: "Tell creators who you want to collaborate with.", text: props.openTo[0] ?? props.seeking[0] },
-    { id: "story", label: "Story", icon: BookOpen, count: props.bio ? 1 : 0, accent: "text-[#FF8FB0]", desc: "Share your journey, your sound, and what drives you.", text: props.bio || props.tagline },
-    { id: "inspiration", label: "Inspiration", icon: Flame, count: props.skills.length, accent: "text-[#FFD98A]", desc: "Add the genres and artists that shape your sound.", chips: props.skills.slice(0, 3) },
+    { id: "story", label: "About Me", icon: BookOpen, count: props.bio ? 1 : 0, accent: "text-[#FF8FB0]", desc: "Your biography, background, and what drives you as a creator.", text: props.bio || props.tagline },
+    { id: "inspiration", label: "Genres & Influences", icon: Flame, count: props.skills.length, accent: "text-[#FFD98A]", desc: "Showcase your genres and the artists who influence you.", chips: props.skills.slice(0, 3) },
     {
       id: "experience",
       label: "Experience",
@@ -230,7 +253,13 @@ export function CreatorBlocks(props: CreatorBlocksData) {
           icon={tiles.find((t) => t.id === open)!.icon}
           onClose={() => setOpen(null)}
         >
-          <BlockContent id={open} {...props} videos={videos} photos={photos} />
+          <BlockContent
+            id={open}
+            {...props}
+            videos={videos}
+            photos={photos}
+            demos={demos}
+          />
         </Sheet>
       )}
     </>
@@ -371,12 +400,188 @@ function MediaGallery({ items }: { items: FeaturedContentItem[] }) {
   );
 }
 
+// ── Demos — a focused audio library that lives entirely inside the block ─────
+// Owners upload audio files directly here (no redirect to Edit Profile), play
+// them back, and remove them. Demos persist as `audio` items in the same
+// featured_content the showcase uses, so we keep the full list and only mutate
+// the audio entries — non-audio showcase tiles pass through untouched.
+function DemosManager({
+  initial,
+  tracks,
+  isOwner,
+  name,
+}: {
+  initial: FeaturedContentItem[];
+  tracks: Track[];
+  isOwner: boolean;
+  name: string;
+}) {
+  const [items, setItems] = useState<FeaturedContentItem[]>(initial);
+  const [uploading, setUploading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [saving, startSave] = useTransition();
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  const demos = items.filter(IS_DEMO);
+
+  function persist(next: FeaturedContentItem[]) {
+    setItems(next);
+    setError(null);
+    startSave(async () => {
+      const res = await updateShowcaseAction(next);
+      if (!res.ok) setError(res.error);
+    });
+  }
+
+  async function onFile(file: File) {
+    setError(null);
+    const invalid = validateAudioFile(file);
+    if (invalid) {
+      setError(invalid);
+      return;
+    }
+    setUploading(true);
+    try {
+      const url = await uploadAudioToAvatars(file);
+      if (!url) {
+        setError("Upload didn't complete. Try again.");
+        return;
+      }
+      const item: FeaturedContentItem = {
+        id: newContentId(),
+        type: "audio",
+        url,
+        title: file.name.replace(/\.[^./\\]+$/, "").trim() || "Untitled demo",
+      };
+      persist([...items, item]);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Upload failed. Please try again.");
+    } finally {
+      setUploading(false);
+    }
+  }
+
+  function removeDemo(id: string) {
+    persist(items.filter((i) => i.id !== id));
+  }
+
+  const hasContent = demos.length > 0 || tracks.length > 0;
+
+  return (
+    <div className="space-y-4">
+      {/* Upload control (owner) — opens the picker straight away. */}
+      {isOwner && (
+        <div>
+          <button
+            type="button"
+            onClick={() => fileRef.current?.click()}
+            disabled={uploading || saving}
+            style={{ color: "#FFFFFF" }}
+            className="lg-btn lg-btn-p inline-flex w-full justify-center disabled:opacity-60"
+          >
+            {uploading ? (
+              <>
+                <Loader2 size={15} className="animate-spin" /> Uploading…
+              </>
+            ) : (
+              <>
+                <Upload size={15} /> Upload Demo
+              </>
+            )}
+          </button>
+          <p className="mt-1.5 text-center text-[11px] text-white/45">
+            {AUDIO_FORMATS_HINT}
+          </p>
+          {error && (
+            <p className="mt-1.5 text-center text-[12px] text-danger">{error}</p>
+          )}
+          <input
+            ref={fileRef}
+            type="file"
+            accept={AUDIO_ACCEPT}
+            className="hidden"
+            onChange={(e) => {
+              const f = e.target.files?.[0];
+              if (f) void onFile(f);
+              e.target.value = "";
+            }}
+          />
+        </div>
+      )}
+
+      {/* Uploaded / linked demos */}
+      {demos.length > 0 && (
+        <ul className="space-y-2.5">
+          {demos.map((d) => (
+            <li
+              key={d.id}
+              className="rounded-2xl border border-white/[0.1] bg-white/[0.04] p-3.5"
+            >
+              <div className="flex items-center gap-3">
+                {tileThumb(d) ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={tileThumb(d)!}
+                    alt=""
+                    className="h-10 w-10 shrink-0 rounded-xl object-cover"
+                  />
+                ) : (
+                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-white/15 bg-white/[0.06] text-[#FFD98A]">
+                    <Headphones size={16} />
+                  </span>
+                )}
+                <p className="min-w-0 flex-1 truncate text-[13.5px] font-medium text-white">
+                  {itemTitle(d)}
+                </p>
+                {isOwner && (
+                  <button
+                    type="button"
+                    onClick={() => removeDemo(d.id)}
+                    aria-label="Remove demo"
+                    className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-white/10 text-white/55 transition-colors hover:border-danger/40 hover:bg-danger/20 hover:text-white"
+                  >
+                    <Trash2 size={14} />
+                  </button>
+                )}
+              </div>
+              {isDirectAudio(d.url) ? (
+                <audio controls src={d.url} className="mt-2.5 w-full" />
+              ) : (
+                <a
+                  href={d.url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="mt-2 inline-flex items-center gap-1.5 text-[12.5px] font-medium text-[#A9BEFF] hover:text-white"
+                >
+                  <Play size={12} className="fill-current" /> Listen
+                </a>
+              )}
+            </li>
+          ))}
+        </ul>
+      )}
+
+      {/* Legacy derived tracks keep playing for existing profiles. */}
+      {tracks.length > 0 && <MediaPlayer tracks={tracks} />}
+
+      {!hasContent && (
+        <p className="py-6 text-center text-[13px] text-white/55">
+          {isOwner
+            ? "Upload your first demo — songs, rough mixes, beats, or works in progress."
+            : `${name} hasn't added demos yet.`}
+        </p>
+      )}
+    </div>
+  );
+}
+
 // ── Per-block content ───────────────────────────────────────────────────────
 function BlockContent(
   props: CreatorBlocksData & {
     id: BlockId;
     videos: FeaturedContentItem[];
     photos: FeaturedContentItem[];
+    demos: FeaturedContentItem[];
   }
 ) {
   const { id, isOwner, name } = props;
@@ -418,15 +623,12 @@ function BlockContent(
       );
 
     case "demos":
-      return props.tracks.length ? (
-        <MediaPlayer tracks={props.tracks} />
-      ) : (
-        <Empty
+      return (
+        <DemosManager
+          initial={props.featured}
+          tracks={props.tracks}
           isOwner={isOwner}
           name={name}
-          thing="demos"
-          addLabel="Add a demo"
-          addHref="/profile/edit"
         />
       );
 
@@ -531,8 +733,8 @@ function BlockContent(
         <Empty
           isOwner={isOwner}
           name={name}
-          thing="a story"
-          addLabel="Write your story"
+          thing="an about me"
+          addLabel="Write your bio"
           addHref="/profile/edit"
         />
       );
