@@ -54,7 +54,20 @@ export function Sidebar({ profile, blocks, unreadMessages = 0 }: Props) {
   ];
 
   return (
-    <aside className="hidden lg:flex flex-col w-[264px] shrink-0 border-r border-white/[0.07] bg-surface/45 backdrop-blur-2xl shadow-[inset_-1px_0_0_rgb(255_255_255/0.04)]">
+    <aside className="hidden lg:flex flex-col w-[264px] shrink-0 relative isolate overflow-hidden border-r border-white/[0.07] bg-surface/45 backdrop-blur-2xl shadow-[inset_-1px_0_0_rgb(255_255_255/0.04)]">
+      {/* Ghosted glass "W" — a huge, faint, cropped watermark embedded into the
+          sidebar around the lower-middle. Sits behind all nav content (-z-10
+          inside an isolated, clipped stacking context) and never intercepts
+          clicks. Lives inside the lg-only <aside>, so it hides with the sidebar
+          on mobile. */}
+      <img
+        src="/brand/wrytrsblock-symbol.svg"
+        alt=""
+        aria-hidden
+        draggable={false}
+        className="pointer-events-none absolute left-[44%] top-[63%] -z-10 w-[440px] max-w-none -translate-x-1/2 -translate-y-1/2 select-none opacity-[0.11] blur-[1.5px] dark:invert"
+      />
+
       {/* Brand */}
       <div className="px-4 pt-4 pb-2">
         <Wordmark href="/home" variant="horizontal" />
