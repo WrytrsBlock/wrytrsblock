@@ -65,7 +65,7 @@ export function Sidebar({ profile, blocks, unreadMessages = 0 }: Props) {
         alt=""
         aria-hidden
         draggable={false}
-        className="pointer-events-none absolute left-[44%] top-[63%] -z-10 w-[440px] max-w-none -translate-x-1/2 -translate-y-1/2 select-none opacity-[0.11] blur-[1.5px] dark:invert"
+        className="pointer-events-none absolute left-[44%] top-[63%] -z-10 w-[616px] max-w-none -translate-x-1/2 -translate-y-1/2 select-none opacity-[0.11] blur-[1.5px] dark:invert"
       />
 
       {/* Brand */}
