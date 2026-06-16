@@ -108,16 +108,16 @@ export function CreatorBlocks(props: CreatorBlocksData) {
     stat?: string;
   }[] = [
     { id: "featured", label: "Featured Work", icon: Sparkles, count: props.featured.length, accent: "text-[#A9BEFF]", desc: "Showcase your best creative projects.", image: thumb(props.featured[0]) },
-    { id: "videos", label: "Videos", icon: Play, count: videos.length, accent: "text-[#FF8FB0]", desc: "Upload performances, music videos, and reels.", image: thumb(videos[0]), playable: true },
-    { id: "photos", label: "Photos", icon: ImageIcon, count: photos.length, accent: "text-[#7BEDC4]", desc: "Share studio shots, artwork, and behind-the-scenes moments.", image: thumb(photos[0]) },
-    { id: "demos", label: "Demos", icon: Headphones, count: demoCount, accent: "text-[#FFD98A]", desc: "Upload songs, rough mixes, beats, and works in progress.", image: thumb(demos[0]), text: demos[0] ? itemTitle(demos[0]) : props.tracks[0]?.name },
-    { id: "services", label: "Services", icon: Briefcase, count: props.services.length, accent: "text-[#A9BEFF]", desc: "Offer mixing, production, songwriting, photography, and more.", text: props.services[0]?.title },
+    { id: "videos", label: "My Videos", icon: Play, count: videos.length, accent: "text-[#FF8FB0]", desc: "Upload performances, music videos, and reels.", image: thumb(videos[0]), playable: true },
+    { id: "photos", label: "My Photos", icon: ImageIcon, count: photos.length, accent: "text-[#7BEDC4]", desc: "Share studio shots, artwork, and behind-the-scenes moments.", image: thumb(photos[0]) },
+    { id: "demos", label: "My Demos", icon: Headphones, count: demoCount, accent: "text-[#FFD98A]", desc: "Upload songs, rough mixes, beats, and works in progress.", image: thumb(demos[0]), text: demos[0] ? itemTitle(demos[0]) : props.tracks[0]?.name },
+    { id: "services", label: "My Services", icon: Briefcase, count: props.services.length, accent: "text-[#A9BEFF]", desc: "Offer mixing, production, songwriting, photography, and more.", text: props.services[0]?.title },
     { id: "looking", label: "Looking For", icon: Target, count: props.seeking.length || props.openTo.length, accent: "text-[#7BEDC4]", desc: "Tell creators who you want to collaborate with.", text: props.openTo[0] ?? props.seeking[0] },
     { id: "story", label: "About Me", icon: User, count: props.bio ? 1 : 0, accent: "text-[#FF8FB0]", desc: "Tell people who you are, your background, and your creative journey." },
-    { id: "inspiration", label: "Genres & Influences", icon: Music, count: props.skills.length, accent: "text-[#FFD98A]", desc: "Add your genres and key creative influences." },
+    { id: "inspiration", label: "My Genres & Influences", icon: Music, count: props.skills.length, accent: "text-[#FFD98A]", desc: "Add your genres and key creative influences." },
     {
       id: "experience",
-      label: "Experience",
+      label: "My Journey",
       icon: Trophy,
       count: props.credits.length || props.completedBlocks,
       accent: "text-[#A9BEFF]",
@@ -185,20 +185,17 @@ export function CreatorBlocks(props: CreatorBlocksData) {
                       <Plus size={14} strokeWidth={2.4} />
                     </span>
                   )}
-                  <span className="relative flex h-full flex-col items-center justify-center gap-2 px-2.5 text-center">
+                  <span className="relative flex h-full flex-col items-center justify-center gap-2.5 px-2 text-center">
                     <span
                       className={cn(
-                        "inline-flex h-[62px] w-[62px] items-center justify-center rounded-[22px] border border-white/[0.12] bg-white/[0.05] shadow-[inset_0_1px_0_rgb(255_255_255/0.1)] transition-transform duration-300 group-hover:scale-[1.06] md:h-[104px] md:w-[104px]",
+                        "inline-flex h-[54px] w-[54px] items-center justify-center rounded-[20px] border border-white/[0.12] bg-white/[0.05] shadow-[inset_0_1px_0_rgb(255_255_255/0.1)] transition-transform duration-300 group-hover:scale-[1.06] md:h-[100px] md:w-[100px] md:rounded-[24px]",
                         t.accent
                       )}
                     >
-                      <Icon className="h-8 w-8 md:h-14 md:w-14" strokeWidth={1.3} />
+                      <Icon className="h-7 w-7 md:h-14 md:w-14" strokeWidth={1.3} />
                     </span>
-                    <span className="block text-[13px] md:text-[16px] font-semibold leading-tight text-white">
+                    <span className="line-clamp-2 block text-balance text-[14.5px] md:text-[20px] font-semibold leading-[1.15] tracking-tight text-white">
                       {t.label}
-                    </span>
-                    <span className="line-clamp-2 block max-w-[200px] text-[9.5px] leading-snug text-white/45 md:text-[11.5px]">
-                      {t.desc}
                     </span>
                   </span>
                 </>
