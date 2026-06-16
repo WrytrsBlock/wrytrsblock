@@ -66,7 +66,11 @@ export default async function ProfilePage({
   const avatar = realAvatar(person);
 
   const me = await getCurrentProfile();
-  const isMe = me?.handle === person.handle;
+  // Own-profile check by stable auth user id — handles can differ between the
+  // base account (profiles) and the creator profile (creator_profiles), which
+  // would otherwise hide Edit Profile + cover/photo controls on your own page.
+  // Handle match kept as a fallback (mock/dev mode).
+  const isMe = !!me && (me.id === person.id || me.handle === person.handle);
   const relationship = isMe ? null : await getBlockRelationship(person.handle);
 
   // Real Blocks + collaborators (Supabase; mock graph in demo mode).
