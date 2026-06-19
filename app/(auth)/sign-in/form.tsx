@@ -28,6 +28,9 @@ export function SignInForm() {
       setError(authError);
       setReset(true);
     }
+    if (params.get("deleted")) {
+      setNotice("Your account has been deleted. We're sorry to see you go.");
+    }
   }, [params]);
 
   async function handleSubmit(e: React.FormEvent) {

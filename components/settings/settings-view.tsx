@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useState, useTransition, type ReactNode } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   ArrowUpDown,
   AtSign,
@@ -28,6 +29,7 @@ import { Button, Input } from "@/components/ui/primitives";
 import { cn } from "@/lib/cn";
 import { supabaseConfigured } from "@/lib/env";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
+import { deleteAccountAction } from "@/app/actions/account";
 
 export function SettingsView({ email }: { email: string }) {
   return (
@@ -486,25 +488,79 @@ function DeleteAccountRow() {
           )}
         />
       </button>
-      {open && (
-        <div className="mt-3 pl-12">
-          <div className="rounded-lg border border-danger/30 bg-danger/[0.06] px-3.5 py-3">
-            <p className="text-[12.5px] text-ink leading-relaxed">
-              Deleting your account is permanent. Your Creator Profile and
-              Featured Content will be removed; content already shared inside a
-              Block may remain so your collaborators keep their records. To
-              confirm a deletion request, email us and we&apos;ll process it.
-            </p>
-            <a
-              href="mailto:support@wrytrsblock.com?subject=Delete%20my%20WrytrsBlock%20account"
-              className="mt-3 inline-flex items-center justify-center h-9 px-4 rounded-lg bg-danger text-[12.5px] font-semibold text-white hover:bg-danger/90 transition-colors"
-              style={{ color: "#FFFFFF" }}
-            >
-              Request account deletion
-            </a>
-          </div>
+      {open && <DeleteAccountConfirm />}
+    </div>
+  );
+}
+
+function DeleteAccountConfirm() {
+  const router = useRouter();
+  const [confirmText, setConfirmText] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [pending, startDelete] = useTransition();
+  const armed = confirmText.trim().toUpperCase() === "DELETE";
+
+  function onDelete() {
+    if (!armed || pending) return;
+    setError(null);
+    startDelete(async () => {
+      const res = await deleteAccountAction();
+      if (!res.ok) {
+        setError(res.error);
+        return;
+      }
+      // Account + session are gone — leave the app entirely.
+      router.replace("/sign-in?deleted=1");
+      router.refresh();
+    });
+  }
+
+  return (
+    <div className="mt-3 pl-12">
+      <div className="rounded-lg border border-danger/30 bg-danger/[0.06] px-3.5 py-3">
+        <p className="text-[12.5px] text-ink leading-relaxed">
+          Deleting your account is permanent and can&apos;t be undone. Your
+          Creator Profile and Featured Content are removed immediately; content
+          already shared inside a Block may remain so your collaborators keep
+          their records.
+        </p>
+
+        <label className="mt-3 block text-[11.5px] font-medium text-muted">
+          Type <span className="font-semibold text-danger">DELETE</span> to
+          confirm
+        </label>
+        <Input
+          value={confirmText}
+          onChange={(e) => setConfirmText(e.target.value)}
+          placeholder="DELETE"
+          autoComplete="off"
+          spellCheck={false}
+          className="mt-1.5 max-w-[220px]"
+          aria-label="Type DELETE to confirm account deletion"
+        />
+
+        <div className="mt-3 flex items-center gap-3">
+          <button
+            type="button"
+            onClick={onDelete}
+            disabled={!armed || pending}
+            style={{ color: "#FFFFFF" }}
+            className="inline-flex items-center justify-center h-9 px-4 rounded-lg bg-danger text-[12.5px] font-semibold text-white transition-colors hover:bg-danger/90 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {pending ? "Deleting…" : "Permanently delete account"}
+          </button>
+          <a
+            href="mailto:support@wrytrsblock.com?subject=Delete%20my%20WrytrsBlock%20account"
+            className="text-[11.5px] text-muted hover:text-ink transition-colors"
+          >
+            Need help? Email support
+          </a>
         </div>
-      )}
+
+        {error && (
+          <p className="mt-2.5 text-[12px] text-danger">{error}</p>
+        )}
+      </div>
     </div>
   );
 }
