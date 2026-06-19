@@ -182,6 +182,27 @@ export async function getMyCreatorProfileHandle(): Promise<string | null> {
   }
 }
 
+// True once the signed-in user has completed onboarding — i.e. a creator_profiles
+// row exists (created at the end of setup). Used to gate the app shell so an
+// incomplete user is always routed to Creator Setup and can never get stuck.
+// Existence (not a non-null handle) is the signal: the fallback path can publish
+// a row with a null handle, and that still counts as complete.
+export async function hasCompletedOnboarding(): Promise<boolean> {
+  if (!supabaseConfigured) return true; // demo/dev: never gate
+  const supabase = createSupabaseServerClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return false;
+  try {
+    const row = await getCreatorProfileById(supabase, user.id);
+    return !!row;
+  } catch {
+    // On a read error, don't trap the user in a redirect loop.
+    return true;
+  }
+}
+
 // The signed-in user's own creator_profiles row in an editable shape (for the
 // Edit Profile page). Null when signed out / no profile yet.
 export type EditableCreatorProfile = {

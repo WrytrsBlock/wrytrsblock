@@ -9,6 +9,7 @@ import {
   getBlocks,
   getCurrentProfile,
   getUnreadMessageCount,
+  hasCompletedOnboarding,
 } from "@/lib/data";
 import { redirect } from "next/navigation";
 
@@ -19,6 +20,11 @@ export default async function AppLayout({
 }) {
   const profile = await getCurrentProfile();
   if (!profile) redirect("/sign-in");
+
+  // Never let a signed-in user get stuck without a profile: if onboarding isn't
+  // complete (no creator_profiles row), always route them to Creator Setup.
+  // /onboarding lives outside this (app) group, so there's no redirect loop.
+  if (!(await hasCompletedOnboarding())) redirect("/onboarding");
 
   const [blocks, unreadMessages] = await Promise.all([
     getBlocks(),

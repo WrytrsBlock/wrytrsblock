@@ -7,12 +7,14 @@ import {
   ArrowRight,
   AtSign,
   Check,
+  CircleCheck,
   Layers,
   Mail,
   MapPin,
-  Plus,
   Sparkles,
   Star,
+  Store,
+  User as UserIcon,
   Users,
   X,
 } from "lucide-react";
@@ -69,6 +71,10 @@ export function OnboardingFlow({
   const [data, setData] = useState<OnboardingProfile>(() =>
     emptyOnboarding(initialName)
   );
+  // Setup is only "complete" once the server confirms the save+publish. We then
+  // show a dedicated confirmation screen instead of silently navigating away.
+  const [completed, setCompleted] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   // Hydrate a saved draft so a refresh doesn't lose progress (object-URL photos
   // don't survive reload — the avatar falls back to initials).
@@ -124,20 +130,56 @@ export function OnboardingFlow({
   const next = () => setStep((s) => Math.min(TOTAL_STEPS, s + 1));
   const back = () => setStep((s) => Math.max(0, s - 1));
 
-  function finish() {
+  // Complete Profile Setup — saves every field, marks onboarding complete, and
+  // publishes the creator profile (is_published=true) so it's live in the Block
+  // Market. Navigation is NOT the trigger: we only advance to the confirmation
+  // screen once the server confirms success, and surface errors otherwise so the
+  // user can retry instead of being told "you're in" when nothing saved.
+  function completeSetup() {
     const { photo: _photo, ...rest } = data;
-    try {
-      localStorage.setItem(DRAFT_KEY, JSON.stringify(rest));
-      localStorage.setItem("wb:onboarded", "1");
-    } catch {
-      /* ignore */
-    }
+    setSaveError(null);
     startTransition(async () => {
-      // data.photo is the uploaded Storage URL (set by PhotoPicker).
-      await completeOnboardingAction(rest, data.photo ?? null).catch(() => {});
-      router.push("/marketplace");
-      router.refresh();
+      try {
+        // data.photo is the uploaded Storage URL (set by PhotoPicker).
+        const res = await completeOnboardingAction(rest, data.photo ?? null);
+        if (!res.ok) {
+          console.error("Onboarding completion failed:", res.error);
+          setSaveError(
+            res.error || "Couldn't complete setup. Please try again."
+          );
+          return;
+        }
+        try {
+          localStorage.setItem(DRAFT_KEY, JSON.stringify(rest));
+          localStorage.setItem("wb:onboarded", "1");
+        } catch {
+          /* ignore */
+        }
+        // Refresh server state so the app (and Block Market) immediately see the
+        // now-published profile, then show the confirmation screen.
+        router.refresh();
+        setCompleted(true);
+      } catch (e) {
+        console.error("Onboarding completion threw:", e);
+        setSaveError("Something went wrong saving your profile. Please try again.");
+      }
     });
+  }
+
+  if (completed) {
+    return (
+      <SetupComplete
+        data={data}
+        onMarket={() => {
+          router.push("/marketplace");
+          router.refresh();
+        }}
+        onProfile={() => {
+          router.push("/profile");
+          router.refresh();
+        }}
+      />
+    );
   }
 
   return (
@@ -465,7 +507,12 @@ export function OnboardingFlow({
       // ---------- 4 · Review & Launch ----------
       default:
         return (
-          <ProfileComplete data={data} pending={pending} onEnter={finish} />
+          <ProfileComplete
+            data={data}
+            pending={pending}
+            saveError={saveError}
+            onComplete={completeSetup}
+          />
         );
     }
   }
@@ -474,11 +521,13 @@ export function OnboardingFlow({
 function ProfileComplete({
   data,
   pending,
-  onEnter,
+  saveError,
+  onComplete,
 }: {
   data: OnboardingProfile;
   pending: boolean;
-  onEnter: () => void;
+  saveError: string | null;
+  onComplete: () => void;
 }) {
   const match = blockMatchScore(data);
   const loc = locationLabel(data);
@@ -496,14 +545,14 @@ function ProfileComplete({
       {/* Community welcome */}
       <div className="text-center">
         <p className="text-[10.5px] uppercase tracking-[0.2em] text-accent font-semibold">
-          Welcome to THE CR8TV COLLECTV
+          Last step
         </p>
         <h1 className="mt-2 font-display text-[26px] md:text-[32px] text-ink tracking-tight leading-tight">
-          {firstName ? `You're in, ${firstName}.` : "You're in."}
+          {firstName ? `Looking good, ${firstName}.` : "Looking good."}
         </h1>
         <p className="mt-2 text-[13.5px] text-muted max-w-md mx-auto leading-relaxed">
-          Your creator profile is live. This is how the community will discover
-          you — set the tone, then go build.
+          Here&apos;s how the community will see you. Complete your Creator Setup
+          to publish your profile and appear in the Block Market.
         </p>
       </div>
 
@@ -644,27 +693,76 @@ function ProfileComplete({
         </ul>
       </div>
 
-      {/* Actions — stronger, community-oriented CTAs */}
-      <div className="flex flex-col sm:flex-row gap-2.5">
+      {/* Single, unambiguous completion action — this saves + publishes. */}
+      <div className="space-y-2.5">
         <Button
           variant="primary"
           size="lg"
-          onClick={onEnter}
+          onClick={onComplete}
           disabled={pending}
-          className="flex-1 h-12 text-[14px] justify-center tracking-wide"
+          className="w-full h-12 text-[14px] justify-center tracking-wide"
         >
-          {pending ? "Entering…" : "Explore Block Market"}
+          {pending ? "Publishing your profile…" : "Complete Profile Setup"}
           {!pending && <ArrowRight size={15} />}
         </Button>
-        <Button
-          variant="outline"
-          size="lg"
-          onClick={onEnter}
-          disabled={pending}
-          className="flex-1 h-12 text-[14px] justify-center"
-        >
-          <Plus size={15} /> Start a Block
-        </Button>
+        {saveError && (
+          <p className="text-center text-[12.5px] text-danger">{saveError}</p>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// Shown only after the server confirms the profile was saved + published. Makes
+// the outcome unambiguous and offers the two next steps, decoupled from the
+// publish action itself.
+function SetupComplete({
+  data,
+  onMarket,
+  onProfile,
+}: {
+  data: OnboardingProfile;
+  onMarket: () => void;
+  onProfile: () => void;
+}) {
+  const firstName = (data.name || "").trim().split(/\s+/)[0] || "";
+  return (
+    <div className="relative min-h-[100dvh] flex flex-col items-center justify-center bg-bg text-ink px-5 py-12">
+      <div className="absolute inset-0 bg-grad-mesh opacity-20 pointer-events-none" />
+      <div className="relative z-10 w-full max-w-md text-center">
+        <span className="inline-flex h-16 w-16 items-center justify-center rounded-full bg-success/15 text-success ring-1 ring-success/30">
+          <CircleCheck size={32} strokeWidth={2} />
+        </span>
+
+        <p className="mt-6 text-[10.5px] uppercase tracking-[0.2em] text-success font-semibold">
+          Profile Setup Complete
+        </p>
+        <h1 className="mt-2 font-display text-[28px] md:text-[34px] text-ink tracking-tight leading-tight">
+          {firstName ? `You're live, ${firstName}.` : "You're live."}
+        </h1>
+        <p className="mt-3 text-[14px] text-muted leading-relaxed">
+          Your creator profile is now live in the Block Market — other creators
+          can discover you right away. What&apos;s next?
+        </p>
+
+        <div className="mt-8 flex flex-col gap-2.5">
+          <Button
+            variant="primary"
+            size="lg"
+            onClick={onMarket}
+            className="w-full h-12 text-[14px] justify-center tracking-wide"
+          >
+            <Store size={16} /> Go to Block Market
+          </Button>
+          <Button
+            variant="outline"
+            size="lg"
+            onClick={onProfile}
+            className="w-full h-12 text-[14px] justify-center"
+          >
+            <UserIcon size={16} /> View My Profile
+          </Button>
+        </div>
       </div>
     </div>
   );
