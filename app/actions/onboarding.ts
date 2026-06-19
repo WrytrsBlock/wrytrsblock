@@ -53,10 +53,16 @@ export async function completeOnboardingAction(
     // Structured marketplace profile — the queryable source for Creator
     // Discovery, search/filters, and Block Match. Best-effort: a username
     // collision shouldn't block entering the app.
+    // Structured marketplace profile — the queryable source for Creator
+    // Discovery, search/filters, and Block Match. This MUST be created so the
+    // creator appears in Discovery once onboarding completes. Previously the
+    // error was swallowed (best-effort), which silently left onboarded users
+    // with NO creator_profiles row — the cause of "more auth users than
+    // marketplace profiles".
     const match = blockMatchScore({ ...profile, photo: null }).score;
-    await upsertCreatorProfile(supabase, {
+    const baseRow = {
       id: user.id,
-      handle: profile.username || null,
+      handle: profile.username?.trim() || null,
       display_name: profile.name || null,
       tagline: profile.bio ? profile.bio.slice(0, 140) : null,
       bio: profile.bio || null,
@@ -72,9 +78,45 @@ export async function completeOnboardingAction(
       age_group: profile.ageGroup,
       block_match: match,
       is_published: true,
-    }).catch((e) => {
-      console.error("creator_profiles upsert failed:", e?.message ?? e);
-    });
+    };
+
+    // A taken username (unique lower(handle)) is the common failure. Rather than
+    // drop the whole row, fall back to a disambiguated handle, then to no handle
+    // — a discoverable profile always beats a missing one. Genuine errors are
+    // surfaced so onboarding can be retried instead of silently half-completing.
+    const isHandleCollision = (e: unknown) => {
+      const err = e as { code?: string; message?: string } | null;
+      return (
+        err?.code === "23505" ||
+        /handle|duplicate key/i.test(err?.message ?? "")
+      );
+    };
+    try {
+      await upsertCreatorProfile(supabase, baseRow);
+    } catch (e1) {
+      if (baseRow.handle && isHandleCollision(e1)) {
+        const alt = `${baseRow.handle}-${user.id.slice(0, 4)}`;
+        try {
+          await upsertCreatorProfile(supabase, { ...baseRow, handle: alt });
+        } catch (e2) {
+          if (isHandleCollision(e2)) {
+            await upsertCreatorProfile(supabase, { ...baseRow, handle: null });
+          } else {
+            console.error("creator_profiles upsert failed:", e2);
+            return {
+              ok: false,
+              error: "Couldn't publish your profile. Please try again.",
+            };
+          }
+        }
+      } else {
+        console.error("creator_profiles upsert failed:", e1);
+        return {
+          ok: false,
+          error: "Couldn't publish your profile. Please try again.",
+        };
+      }
+    }
 
     revalidatePath("/marketplace");
     revalidatePath("/profile");
