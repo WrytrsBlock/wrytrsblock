@@ -128,6 +128,8 @@ export interface FeaturedContentItem {
   // Primary link (video/audio/portfolio/service/block/release/party). Optional
   // for text-only tiles (testimonial) and image tiles (url == the image).
   url: string;
+  // When "demo", the item belongs to the Demos block (not Videos / Featured).
+  scope?: "demo";
   title?: string;
   // Optional supporting label shown under the title on richer tiles.
   subtitle?: string;

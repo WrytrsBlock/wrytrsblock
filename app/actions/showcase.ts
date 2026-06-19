@@ -27,6 +27,7 @@ export async function updateShowcaseAction(
       id: i.id,
       type: i.type,
       url: (i.url ?? "").trim(),
+      ...(i.scope === "demo" ? { scope: "demo" as const } : {}),
       ...(i.title?.trim() ? { title: i.title.trim() } : {}),
       ...(i.subtitle?.trim() ? { subtitle: i.subtitle.trim() } : {}),
       ...(i.thumbnail?.trim() ? { thumbnail: i.thumbnail.trim() } : {}),

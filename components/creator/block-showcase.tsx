@@ -46,6 +46,10 @@ import { updateShowcaseAction } from "@/app/actions/showcase";
 
 const SLOTS = 9; // 3×3
 
+// Demos live in the same featured_content array but are managed in the Demos
+// block — never shown as showcase tiles.
+const isShowcaseTile = (i: FeaturedContentItem) => i.scope !== "demo";
+
 // ── Block Showcase — the profile banner's interactive 3×3 portfolio grid.
 // Visitors: click any tile to open it in a lightbox. Owners: add content into
 // empty tiles, drag to reorder, pin, edit, and remove — all persisted. ───────
@@ -56,8 +60,11 @@ export function BlockShowcase({
   initialItems: FeaturedContentItem[];
   isOwner: boolean;
 }) {
+  const demoItems = useRef(
+    initialItems.filter((i) => i.scope === "demo")
+  );
   const [items, setItems] = useState<FeaturedContentItem[]>(() =>
-    sortShowcase(initialItems).slice(0, SLOTS)
+    sortShowcase(initialItems.filter(isShowcaseTile)).slice(0, SLOTS)
   );
   const [lightbox, setLightbox] = useState<FeaturedContentItem | null>(null);
   const [editing, setEditing] = useState<FeaturedContentItem | "new" | null>(
@@ -77,6 +84,12 @@ export function BlockShowcase({
 
   const dragFrom = useRef<number | null>(null);
   const [dragOver, setDragOver] = useState<number | null>(null);
+
+  // Keep demo rows out of the grid but preserve them whenever the showcase saves.
+  useEffect(() => {
+    demoItems.current = initialItems.filter((i) => i.scope === "demo");
+    setItems(sortShowcase(initialItems.filter(isShowcaseTile)).slice(0, SLOTS));
+  }, [initialItems]);
 
   // Owner-only: let buttons elsewhere on the page open the add modal.
   useEffect(() => {
@@ -106,8 +119,9 @@ export function BlockShowcase({
     const sorted = sortShowcase(next).slice(0, SLOTS);
     setItems(sorted);
     setSaveError(null);
+    const merged = [...sorted, ...demoItems.current];
     startSave(async () => {
-      const res = await updateShowcaseAction(sorted);
+      const res = await updateShowcaseAction(merged);
       if (!res.ok) setSaveError(res.error);
     });
   }
@@ -127,8 +141,9 @@ export function BlockShowcase({
       removeTimer.current = null;
       setPendingRemove(null);
       setSaveError(null);
+      const merged = [...next, ...demoItems.current];
       startSave(async () => {
-        const res = await updateShowcaseAction(next);
+        const res = await updateShowcaseAction(merged);
         if (!res.ok) setSaveError(res.error);
       });
     }, 6000);

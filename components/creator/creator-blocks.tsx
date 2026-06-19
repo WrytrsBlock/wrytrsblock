@@ -18,7 +18,6 @@ import {
   Target,
   Trash2,
   Trophy,
-  Upload,
   User,
   X,
 } from "lucide-react";
@@ -29,6 +28,7 @@ import { BlockShowcase } from "@/components/creator/block-showcase";
 import { openNewBlock } from "@/lib/ui-events";
 import {
   isDirectAudio,
+  isDirectVideo,
   isVideoType,
   itemTitle,
   newContentId,
@@ -38,16 +38,21 @@ import {
   AUDIO_ACCEPT,
   AUDIO_FORMATS_HINT,
   uploadAudioToAvatars,
+  uploadVideoToAvatars,
   validateAudioFile,
+  validateVideoFile,
+  VIDEO_ACCEPT,
+  VIDEO_FORMATS_HINT,
 } from "@/lib/upload-image";
 import { updateShowcaseAction } from "@/app/actions/showcase";
-import type { FeaturedContentItem } from "@/types";
+import type { FeaturedContentItem, ContentType } from "@/types";
 import type { Track, ServiceOffer, Credit } from "@/lib/mock";
 import type { ProfileCollaborator } from "@/lib/data";
 
-// Audio items (uploaded demos + linked songs) are what the Demos block manages.
+// Audio / video / link items scoped to the Demos block (plus legacy audio/song).
 const IS_DEMO = (i: FeaturedContentItem) =>
-  i.type === "audio" || i.type === "song";
+  i.scope === "demo" || i.type === "audio" || i.type === "song";
+const IS_SHOWCASE = (i: FeaturedContentItem) => i.scope !== "demo";
 
 type BlockId =
   | "featured"
@@ -79,7 +84,8 @@ export type CreatorBlocksData = {
   completedBlocks: number;
 };
 
-const VIDEO = (i: FeaturedContentItem) => isVideoType(i.type) || i.type === "video";
+const VIDEO = (i: FeaturedContentItem) =>
+  (isVideoType(i.type) || i.type === "video") && i.scope !== "demo";
 const PHOTO = (i: FeaturedContentItem) => i.type === "image";
 
 // The 9 identity blocks — a creative playground you explore, not a resume.
@@ -89,6 +95,7 @@ export function CreatorBlocks(props: CreatorBlocksData) {
   const videos = props.featured.filter(VIDEO);
   const photos = props.featured.filter(PHOTO);
   const demos = props.featured.filter(IS_DEMO);
+  const showcase = props.featured.filter(IS_SHOWCASE);
   // The Demos tile counts uploaded/linked audio first, falling back to any
   // legacy derived tracks so existing profiles still read correctly.
   const demoCount = demos.length || props.tracks.length;
@@ -98,6 +105,7 @@ export function CreatorBlocks(props: CreatorBlocksData) {
     id: BlockId;
     label: string;
     icon: typeof Sparkles;
+    color: string;
     count: number;
     accent: string;
     desc: string;
@@ -107,18 +115,19 @@ export function CreatorBlocks(props: CreatorBlocksData) {
     chips?: string[];
     stat?: string;
   }[] = [
-    { id: "featured", label: "Featured Work", icon: Sparkles, count: props.featured.length, accent: "text-[#A9BEFF]", desc: "Showcase your best creative projects.", image: thumb(props.featured[0]) },
-    { id: "videos", label: "My Videos", icon: Play, count: videos.length, accent: "text-[#FF8FB0]", desc: "Upload performances, music videos, and reels.", image: thumb(videos[0]), playable: true },
-    { id: "photos", label: "My Photos", icon: ImageIcon, count: photos.length, accent: "text-[#7BEDC4]", desc: "Share studio shots, artwork, and behind-the-scenes moments.", image: thumb(photos[0]) },
-    { id: "demos", label: "My Demos", icon: Headphones, count: demoCount, accent: "text-[#FFD98A]", desc: "Upload songs, rough mixes, beats, and works in progress.", image: thumb(demos[0]), text: demos[0] ? itemTitle(demos[0]) : props.tracks[0]?.name },
-    { id: "services", label: "My Services", icon: Briefcase, count: props.services.length, accent: "text-[#A9BEFF]", desc: "Offer mixing, production, songwriting, photography, and more.", text: props.services[0]?.title },
-    { id: "looking", label: "Looking For", icon: Target, count: props.seeking.length || props.openTo.length, accent: "text-[#7BEDC4]", desc: "Tell creators who you want to collaborate with.", text: props.openTo[0] ?? props.seeking[0] },
-    { id: "story", label: "About Me", icon: User, count: props.bio ? 1 : 0, accent: "text-[#FF8FB0]", desc: "Tell people who you are, your background, and your creative journey." },
-    { id: "inspiration", label: "My Genres & Influences", icon: Music, count: props.skills.length, accent: "text-[#FFD98A]", desc: "Add your genres and key creative influences." },
+    { id: "featured", label: "Featured Work", icon: Sparkles, color: "#FF2D2D", count: showcase.length, accent: "text-[#A9BEFF]", desc: "Showcase your best creative projects.", image: thumb(showcase[0]) },
+    { id: "videos", label: "My Videos", icon: Play, color: "#1D6CFF", count: videos.length, accent: "text-[#FF8FB0]", desc: "Upload performances, music videos, and reels.", image: thumb(videos[0]), playable: true },
+    { id: "photos", label: "My Photos", icon: ImageIcon, color: "#8B3DFF", count: photos.length, accent: "text-[#7BEDC4]", desc: "Share studio shots, artwork, and behind-the-scenes moments.", image: thumb(photos[0]) },
+    { id: "demos", label: "My Demos", icon: Headphones, color: "#FF9800", count: demoCount, accent: "text-[#FFD98A]", desc: "Upload songs, rough mixes, beats, and works in progress.", image: thumb(demos[0]), text: demos[0] ? itemTitle(demos[0]) : props.tracks[0]?.name },
+    { id: "services", label: "My Services", icon: Briefcase, color: "#16A34A", count: props.services.length, accent: "text-[#A9BEFF]", desc: "Offer mixing, production, songwriting, photography, and more.", text: props.services[0]?.title },
+    { id: "looking", label: "Looking For", icon: Target, color: "#FFC107", count: props.seeking.length || props.openTo.length, accent: "text-[#7BEDC4]", desc: "Tell creators who you want to collaborate with.", text: props.openTo[0] ?? props.seeking[0] },
+    { id: "story", label: "About Me", icon: User, color: "#F8B4C9", count: props.bio ? 1 : 0, accent: "text-[#FF8FB0]", desc: "Tell people who you are, your background, and your creative journey." },
+    { id: "inspiration", label: "Genres & Influences", icon: Music, color: "#FF0A78", count: props.skills.length, accent: "text-[#FFD98A]", desc: "Add your genres and key creative influences." },
     {
       id: "experience",
       label: "My Journey",
       icon: Trophy,
+      color: "#FF6A00",
       count: props.credits.length || props.completedBlocks,
       accent: "text-[#A9BEFF]",
       desc: "Your completed Blocks and collaborations land here.",
@@ -136,117 +145,26 @@ export function CreatorBlocks(props: CreatorBlocksData) {
       <div className="grid grid-cols-3 gap-2.5 sm:gap-3">
         {tiles.map((t, i) => {
           const Icon = t.icon;
-          const has = t.count > 0;
-          const hasImage = !!t.image;
-          // Every block without a cover image uses the same centered icon hero
-          // (icon → title → description), so all nine read identically. Only a
-          // real cover image overrides it. Content (bio, genres, demos…) lives
-          // inside the opened block, never on the tile preview.
-          const iconHero = !hasImage;
-          const isEmpty = iconHero && t.count === 0;
+          // Flat color Block — a solid, opaque app-icon tile: big centered white
+          // icon, white label near the bottom. No glass, gradients, imagery,
+          // counts or badges; the colour is the identity.
           return (
             <button
               key={t.id}
               type="button"
               onClick={() => setOpen(t.id)}
-              style={{ animationDelay: `${Math.min(i, 9) * 35}ms` }}
-              className="group lg-glass animate-fade-up relative aspect-square overflow-hidden text-left transition-all duration-200 hover:-translate-y-1 hover:border-white/30 hover:bg-white/[0.12] hover:shadow-[0_14px_40px_-12px_rgba(0,0,0,0.6)] active:scale-[0.97]"
+              style={{ backgroundColor: t.color, animationDelay: `${Math.min(i, 9) * 35}ms` }}
+              className="group animate-fade-up relative aspect-square overflow-hidden rounded-[11px] transition-transform duration-200 hover:-translate-y-0.5 active:scale-[0.96]"
             >
-              {/* Media preview as the tile background */}
-              {hasImage && (
-                <>
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={t.image!}
-                    alt=""
-                    className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.06]"
-                  />
-                  <span className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/85 via-black/30 to-black/5" />
-                  {t.playable && (
-                    <span className="pointer-events-none absolute inset-0 flex items-center justify-center">
-                      <span className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-white/25 bg-black/45 text-white backdrop-blur-sm">
-                        <Play size={14} className="ml-0.5 fill-current" />
-                      </span>
-                    </span>
-                  )}
-                </>
-              )}
-
-              {iconHero ? (
-                // ── Icon hero — the icon is large + centered on a soft
-                // glass/gradient with title + sub-line. Used both for empty
-                // blocks (an invitation to create) and for blocks that hold
-                // items but no cover artwork, so every iconographic tile reads
-                // the same. ──
-                <>
-                  <span className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_40%,rgba(99,118,229,0.18),transparent_62%)]" />
-                  {props.isOwner && isEmpty && (
-                    <span className="absolute right-2.5 top-2.5 z-10 inline-flex h-6 w-6 items-center justify-center rounded-full border border-white/20 bg-white/[0.12] text-white opacity-0 backdrop-blur-sm transition-opacity duration-200 group-hover:opacity-100">
-                      <Plus size={14} strokeWidth={2.4} />
-                    </span>
-                  )}
-                  <span className="relative flex h-full flex-col items-center justify-center gap-2.5 px-2 text-center">
-                    <span
-                      className={cn(
-                        "inline-flex h-[54px] w-[54px] items-center justify-center rounded-[20px] border border-white/[0.12] bg-white/[0.05] shadow-[inset_0_1px_0_rgb(255_255_255/0.1)] transition-transform duration-300 group-hover:scale-[1.06] md:h-[100px] md:w-[100px] md:rounded-[24px]",
-                        t.accent
-                      )}
-                    >
-                      <Icon className="h-7 w-7 md:h-14 md:w-14" strokeWidth={1.3} />
-                    </span>
-                    <span className="line-clamp-2 block text-balance text-[14.5px] md:text-[20px] font-semibold leading-[1.15] tracking-tight text-white">
-                      {t.label}
-                    </span>
-                  </span>
-                </>
-              ) : (
-                <span className="relative flex h-full flex-col justify-between p-3">
-                  <span
-                    className={cn(
-                      "inline-flex h-8 w-8 items-center justify-center rounded-lg border border-white/15 backdrop-blur-sm",
-                      hasImage ? "bg-black/35" : "bg-white/[0.07]",
-                      t.accent
-                    )}
-                  >
-                    <Icon size={16} strokeWidth={1.9} />
-                  </span>
-                  <span className="w-full">
-                    <span className="block text-[12.5px] font-semibold leading-tight text-white drop-shadow">
-                      {t.label}
-                    </span>
-                    {!hasImage && t.chips && t.chips.length > 0 ? (
-                      <span className="mt-1 flex flex-wrap gap-1">
-                        {t.chips.map((c) => (
-                          <span
-                            key={c}
-                            className="rounded-full border border-white/10 bg-white/[0.06] px-1.5 py-0.5 text-[9px] text-white/70"
-                          >
-                            {c}
-                          </span>
-                        ))}
-                      </span>
-                    ) : !hasImage && t.text ? (
-                      <span className="mt-0.5 line-clamp-2 block text-[10px] leading-snug text-white/55">
-                        {t.text}
-                      </span>
-                    ) : !hasImage && t.stat ? (
-                      <span className="mt-0.5 block text-[10.5px] text-white/55">
-                        {t.stat}
-                      </span>
-                    ) : (
-                      <span className="mt-0.5 block text-[10.5px] text-white/60 drop-shadow">
-                        {has ? `${t.count} item${t.count === 1 ? "" : "s"}` : "Explore"}
-                      </span>
-                    )}
-                  </span>
-                </span>
-              )}
-
-              {has && (
-                <span className="absolute right-2 top-2 z-10 inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-[rgba(59,102,246,0.6)] px-1.5 text-[10px] font-bold tabular-nums text-white backdrop-blur-sm">
-                  {t.count}
-                </span>
-              )}
+              <span className="pointer-events-none absolute inset-0 flex items-center justify-center pb-8 md:pb-12">
+                <Icon
+                  className="h-10 w-10 text-white transition-transform duration-300 group-hover:scale-[1.06] md:h-[84px] md:w-[84px]"
+                  strokeWidth={2}
+                />
+              </span>
+              <span className="pointer-events-none absolute inset-x-0 bottom-3 line-clamp-2 px-1.5 text-center text-[13px] font-semibold leading-[1.12] tracking-tight text-white md:bottom-4 md:text-[18px]">
+                {t.label}
+              </span>
             </button>
           );
         })}
@@ -261,6 +179,7 @@ export function CreatorBlocks(props: CreatorBlocksData) {
           <BlockContent
             id={open}
             {...props}
+            showcase={showcase}
             videos={videos}
             photos={photos}
             demos={demos}
@@ -405,11 +324,67 @@ function MediaGallery({ items }: { items: FeaturedContentItem[] }) {
   );
 }
 
-// ── Demos — a focused audio library that lives entirely inside the block ─────
-// Owners upload audio files directly here (no redirect to Edit Profile), play
-// them back, and remove them. Demos persist as `audio` items in the same
-// featured_content the showcase uses, so we keep the full list and only mutate
-// the audio entries — non-audio showcase tiles pass through untouched.
+// ── Demos — add / play / remove demos entirely inside the block (no redirect) ─
+function demoAudioUrl(d: FeaturedContentItem): string | null {
+  if (isDirectAudio(d.url)) return d.url;
+  return null;
+}
+
+function demoVideoUrl(d: FeaturedContentItem): string | null {
+  if (isDirectVideo(d.url)) return d.url;
+  if (d.subtitle && isDirectVideo(d.subtitle)) return d.subtitle;
+  return null;
+}
+
+function demoExternalLink(d: FeaturedContentItem): string | null {
+  for (const c of [d.url, d.subtitle]) {
+    if (!c || isDirectAudio(c) || isDirectVideo(c)) continue;
+    if (c.trim().length >= 2) return c.trim();
+  }
+  return null;
+}
+
+function buildDemoItem(fields: {
+  title: string;
+  description: string;
+  audioUrl?: string;
+  videoUrl?: string;
+  externalLink?: string;
+}): FeaturedContentItem {
+  const title = fields.title.trim() || "Untitled demo";
+  const body = fields.description.trim() || undefined;
+  const audio = fields.audioUrl?.trim();
+  const video = fields.videoUrl?.trim();
+  const external = fields.externalLink?.trim();
+
+  let url = "";
+  let type: ContentType = "song";
+  let subtitle: string | undefined;
+
+  if (audio) {
+    url = audio;
+    type = "audio";
+    subtitle = video || external || undefined;
+  } else if (video) {
+    url = video;
+    type = "video";
+    subtitle = external || undefined;
+  } else if (external) {
+    url = external;
+    type = "song";
+  }
+
+  return {
+    id: newContentId(),
+    scope: "demo",
+    type,
+    url,
+    title,
+    body,
+    subtitle,
+  };
+}
+
 function DemosManager({
   initial,
   tracks,
@@ -422,10 +397,9 @@ function DemosManager({
   name: string;
 }) {
   const [items, setItems] = useState<FeaturedContentItem[]>(initial);
-  const [uploading, setUploading] = useState(false);
+  const [modalOpen, setModalOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [saving, startSave] = useTransition();
-  const fileRef = useRef<HTMLInputElement>(null);
 
   const demos = items.filter(IS_DEMO);
 
@@ -438,32 +412,9 @@ function DemosManager({
     });
   }
 
-  async function onFile(file: File) {
-    setError(null);
-    const invalid = validateAudioFile(file);
-    if (invalid) {
-      setError(invalid);
-      return;
-    }
-    setUploading(true);
-    try {
-      const url = await uploadAudioToAvatars(file);
-      if (!url) {
-        setError("Upload didn't complete. Try again.");
-        return;
-      }
-      const item: FeaturedContentItem = {
-        id: newContentId(),
-        type: "audio",
-        url,
-        title: file.name.replace(/\.[^./\\]+$/, "").trim() || "Untitled demo",
-      };
-      persist([...items, item]);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Upload failed. Please try again.");
-    } finally {
-      setUploading(false);
-    }
+  function addDemo(item: FeaturedContentItem) {
+    persist([...items, item]);
+    setModalOpen(false);
   }
 
   function removeDemo(id: string) {
@@ -474,109 +425,407 @@ function DemosManager({
 
   return (
     <div className="space-y-4">
-      {/* Upload control (owner) — opens the picker straight away. */}
       {isOwner && (
         <div>
           <button
             type="button"
-            onClick={() => fileRef.current?.click()}
-            disabled={uploading || saving}
+            onClick={() => setModalOpen(true)}
+            disabled={saving}
             style={{ color: "#FFFFFF" }}
             className="lg-btn lg-btn-p inline-flex w-full justify-center disabled:opacity-60"
           >
-            {uploading ? (
-              <>
-                <Loader2 size={15} className="animate-spin" /> Uploading…
-              </>
-            ) : (
-              <>
-                <Upload size={15} /> Upload Demo
-              </>
-            )}
+            <Plus size={15} /> Add Demo
           </button>
-          <p className="mt-1.5 text-center text-[11px] text-white/45">
-            {AUDIO_FORMATS_HINT}
-          </p>
           {error && (
             <p className="mt-1.5 text-center text-[12px] text-danger">{error}</p>
           )}
-          <input
-            ref={fileRef}
-            type="file"
-            accept={AUDIO_ACCEPT}
-            className="hidden"
-            onChange={(e) => {
-              const f = e.target.files?.[0];
-              if (f) void onFile(f);
-              e.target.value = "";
-            }}
-          />
         </div>
       )}
 
-      {/* Uploaded / linked demos */}
       {demos.length > 0 && (
         <ul className="space-y-2.5">
-          {demos.map((d) => (
-            <li
-              key={d.id}
-              className="rounded-2xl border border-white/[0.1] bg-white/[0.04] p-3.5"
-            >
-              <div className="flex items-center gap-3">
-                {tileThumb(d) ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={tileThumb(d)!}
-                    alt=""
-                    className="h-10 w-10 shrink-0 rounded-xl object-cover"
+          {demos.map((d) => {
+            const audio = demoAudioUrl(d);
+            const video = demoVideoUrl(d);
+            const external = demoExternalLink(d);
+            return (
+              <li
+                key={d.id}
+                className="rounded-2xl border border-white/[0.1] bg-white/[0.04] p-3.5"
+              >
+                <div className="flex items-center gap-3">
+                  {tileThumb(d) ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={tileThumb(d)!}
+                      alt=""
+                      className="h-10 w-10 shrink-0 rounded-xl object-cover"
+                    />
+                  ) : (
+                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-white/15 bg-white/[0.06] text-[#FFD98A]">
+                      <Headphones size={16} />
+                    </span>
+                  )}
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-[13.5px] font-medium text-white">
+                      {itemTitle(d)}
+                    </p>
+                    {d.body && (
+                      <p className="mt-0.5 line-clamp-2 text-[12px] leading-snug text-white/55">
+                        {d.body}
+                      </p>
+                    )}
+                  </div>
+                  {isOwner && (
+                    <button
+                      type="button"
+                      onClick={() => removeDemo(d.id)}
+                      aria-label="Remove demo"
+                      className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-white/10 text-white/55 transition-colors hover:border-danger/40 hover:bg-danger/20 hover:text-white"
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  )}
+                </div>
+                {audio && (
+                  <audio controls src={audio} className="mt-2.5 w-full" />
+                )}
+                {video && (
+                  <video
+                    controls
+                    src={video}
+                    className="mt-2.5 w-full rounded-xl"
                   />
-                ) : (
-                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-white/15 bg-white/[0.06] text-[#FFD98A]">
-                    <Headphones size={16} />
-                  </span>
                 )}
-                <p className="min-w-0 flex-1 truncate text-[13.5px] font-medium text-white">
-                  {itemTitle(d)}
-                </p>
-                {isOwner && (
-                  <button
-                    type="button"
-                    onClick={() => removeDemo(d.id)}
-                    aria-label="Remove demo"
-                    className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-white/10 text-white/55 transition-colors hover:border-danger/40 hover:bg-danger/20 hover:text-white"
+                {external && (
+                  <a
+                    href={external}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="mt-2 inline-flex items-center gap-1.5 text-[12.5px] font-medium text-[#A9BEFF] hover:text-white"
                   >
-                    <Trash2 size={14} />
-                  </button>
+                    <ArrowUpRight size={12} /> Open link
+                  </a>
                 )}
-              </div>
-              {isDirectAudio(d.url) ? (
-                <audio controls src={d.url} className="mt-2.5 w-full" />
-              ) : (
-                <a
-                  href={d.url}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="mt-2 inline-flex items-center gap-1.5 text-[12.5px] font-medium text-[#A9BEFF] hover:text-white"
-                >
-                  <Play size={12} className="fill-current" /> Listen
-                </a>
-              )}
-            </li>
-          ))}
+              </li>
+            );
+          })}
         </ul>
       )}
 
-      {/* Legacy derived tracks keep playing for existing profiles. */}
       {tracks.length > 0 && <MediaPlayer tracks={tracks} />}
 
       {!hasContent && (
         <p className="py-6 text-center text-[13px] text-white/55">
           {isOwner
-            ? "Upload your first demo — songs, rough mixes, beats, or works in progress."
+            ? "Add your first demo — songs, rough mixes, beats, or works in progress."
             : `${name} hasn't added demos yet.`}
         </p>
       )}
+
+      {modalOpen && (
+        <DemoEditorModal
+          onClose={() => setModalOpen(false)}
+          onSave={addDemo}
+        />
+      )}
     </div>
+  );
+}
+
+function DemoEditorModal({
+  onClose,
+  onSave,
+}: {
+  onClose: () => void;
+  onSave: (item: FeaturedContentItem) => void;
+}) {
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
+  const [externalLink, setExternalLink] = useState("");
+  const [audioUrl, setAudioUrl] = useState<string | null>(null);
+  const [audioName, setAudioName] = useState<string | null>(null);
+  const [videoUrl, setVideoUrl] = useState<string | null>(null);
+  const [videoName, setVideoName] = useState<string | null>(null);
+  const [uploading, setUploading] = useState<"audio" | "video" | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const audioRef = useRef<HTMLInputElement>(null);
+  const videoRef = useRef<HTMLInputElement>(null);
+
+  async function onAudioFile(file: File) {
+    setError(null);
+    const invalid = validateAudioFile(file);
+    if (invalid) {
+      setError(invalid);
+      return;
+    }
+    setUploading("audio");
+    try {
+      const url = await uploadAudioToAvatars(file);
+      if (!url) {
+        setError("Audio upload didn't complete. Try again.");
+        return;
+      }
+      setAudioUrl(url);
+      setAudioName(file.name.replace(/\.[^./\\]+$/, "").trim() || "Audio");
+      if (!title.trim()) {
+        setTitle(file.name.replace(/\.[^./\\]+$/, "").trim() || "");
+      }
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Audio upload failed.");
+    } finally {
+      setUploading(null);
+    }
+  }
+
+  async function onVideoFile(file: File) {
+    setError(null);
+    const invalid = validateVideoFile(file);
+    if (invalid) {
+      setError(invalid);
+      return;
+    }
+    setUploading("video");
+    try {
+      const url = await uploadVideoToAvatars(file);
+      if (!url) {
+        setError("Video upload didn't complete. Try again.");
+        return;
+      }
+      setVideoUrl(url);
+      setVideoName(file.name.replace(/\.[^./\\]+$/, "").trim() || "Video");
+      if (!title.trim()) {
+        setTitle(file.name.replace(/\.[^./\\]+$/, "").trim() || "");
+      }
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Video upload failed.");
+    } finally {
+      setUploading(null);
+    }
+  }
+
+  function save() {
+    const link = externalLink.trim();
+    if (!audioUrl && !videoUrl && link.length < 2) {
+      setError("Add an audio file, video file, or external link.");
+      return;
+    }
+    onSave(
+      buildDemoItem({
+        title,
+        description,
+        audioUrl: audioUrl ?? undefined,
+        videoUrl: videoUrl ?? undefined,
+        externalLink: link || undefined,
+      })
+    );
+  }
+
+  if (typeof document === "undefined") return null;
+
+  return createPortal(
+    <div
+      className="fixed inset-0 z-[130] flex items-end justify-center bg-black/70 p-4 backdrop-blur-sm md:items-center"
+      onClick={onClose}
+      role="dialog"
+      aria-modal="true"
+      aria-label="Add demo"
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className="lg-glass flex max-h-[90vh] w-full max-w-lg flex-col overflow-hidden !rounded-t-3xl md:!rounded-3xl"
+        style={{ background: "rgba(14,16,22,0.92)" }}
+      >
+        <div className="flex shrink-0 items-center justify-between border-b border-white/[0.1] px-5 py-3.5">
+          <h3 className="text-[15px] font-semibold text-white">Add Demo</h3>
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Close"
+            className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-white/60 transition-colors hover:bg-white/[0.08] hover:text-white"
+          >
+            <X size={18} />
+          </button>
+        </div>
+
+        <div className="space-y-4 overflow-y-auto px-5 py-4">
+          <div>
+            <label className="mb-1.5 block text-[11px] font-semibold uppercase tracking-wide text-white/45">
+              Demo title
+            </label>
+            <input
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder="Untitled demo"
+              className="w-full rounded-xl border border-white/10 bg-white/[0.04] px-3.5 py-2.5 text-[13px] text-white placeholder:text-white/35 focus:border-[#A9BEFF]/60 focus:outline-none"
+            />
+          </div>
+
+          <div>
+            <label className="mb-1.5 block text-[11px] font-semibold uppercase tracking-wide text-white/45">
+              Audio upload
+            </label>
+            <button
+              type="button"
+              onClick={() => audioRef.current?.click()}
+              disabled={uploading !== null}
+              className="flex w-full items-center justify-between gap-2 rounded-xl border border-dashed border-white/20 bg-white/[0.03] px-3.5 py-3 text-left transition-colors hover:border-white/35 hover:bg-white/[0.06] disabled:opacity-60"
+            >
+              <span className="inline-flex items-center gap-2 text-[13px] text-white/80">
+                {uploading === "audio" ? (
+                  <Loader2 size={15} className="animate-spin text-[#FFD98A]" />
+                ) : (
+                  <Headphones size={15} className="text-[#FFD98A]" />
+                )}
+                {audioName ?? "Choose an audio file"}
+              </span>
+              {audioUrl && (
+                <span
+                  role="button"
+                  tabIndex={0}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setAudioUrl(null);
+                    setAudioName(null);
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      setAudioUrl(null);
+                      setAudioName(null);
+                    }
+                  }}
+                  className="text-[11px] text-white/45 hover:text-danger"
+                >
+                  Remove
+                </span>
+              )}
+            </button>
+            <p className="mt-1 text-[11px] text-white/40">{AUDIO_FORMATS_HINT}</p>
+          </div>
+
+          <div>
+            <label className="mb-1.5 block text-[11px] font-semibold uppercase tracking-wide text-white/45">
+              Video upload
+            </label>
+            <button
+              type="button"
+              onClick={() => videoRef.current?.click()}
+              disabled={uploading !== null}
+              className="flex w-full items-center justify-between gap-2 rounded-xl border border-dashed border-white/20 bg-white/[0.03] px-3.5 py-3 text-left transition-colors hover:border-white/35 hover:bg-white/[0.06] disabled:opacity-60"
+            >
+              <span className="inline-flex items-center gap-2 text-[13px] text-white/80">
+                {uploading === "video" ? (
+                  <Loader2 size={15} className="animate-spin text-[#FF8FB0]" />
+                ) : (
+                  <Play size={15} className="text-[#FF8FB0]" />
+                )}
+                {videoName ?? "Choose a video file"}
+              </span>
+              {videoUrl && (
+                <span
+                  role="button"
+                  tabIndex={0}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setVideoUrl(null);
+                    setVideoName(null);
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      setVideoUrl(null);
+                      setVideoName(null);
+                    }
+                  }}
+                  className="text-[11px] text-white/45 hover:text-danger"
+                >
+                  Remove
+                </span>
+              )}
+            </button>
+            <p className="mt-1 text-[11px] text-white/40">{VIDEO_FORMATS_HINT}</p>
+          </div>
+
+          <div>
+            <label className="mb-1.5 block text-[11px] font-semibold uppercase tracking-wide text-white/45">
+              External link
+            </label>
+            <input
+              value={externalLink}
+              onChange={(e) => setExternalLink(e.target.value)}
+              placeholder="SoundCloud, Spotify, YouTube…"
+              className="w-full rounded-xl border border-white/10 bg-white/[0.04] px-3.5 py-2.5 text-[13px] text-white placeholder:text-white/35 focus:border-[#A9BEFF]/60 focus:outline-none"
+            />
+          </div>
+
+          <div>
+            <label className="mb-1.5 block text-[11px] font-semibold uppercase tracking-wide text-white/45">
+              Description
+            </label>
+            <textarea
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              rows={3}
+              placeholder="What's this demo about?"
+              className="w-full resize-none rounded-xl border border-white/10 bg-white/[0.04] px-3.5 py-2.5 text-[13px] text-white placeholder:text-white/35 focus:border-[#A9BEFF]/60 focus:outline-none"
+            />
+          </div>
+
+          {error && <p className="text-[12px] text-danger">{error}</p>}
+
+          <input
+            ref={audioRef}
+            type="file"
+            accept={AUDIO_ACCEPT}
+            className="hidden"
+            onChange={(e) => {
+              const f = e.target.files?.[0];
+              if (f) void onAudioFile(f);
+              e.target.value = "";
+            }}
+          />
+          <input
+            ref={videoRef}
+            type="file"
+            accept={VIDEO_ACCEPT}
+            className="hidden"
+            onChange={(e) => {
+              const f = e.target.files?.[0];
+              if (f) void onVideoFile(f);
+              e.target.value = "";
+            }}
+          />
+        </div>
+
+        <div className="flex shrink-0 items-center justify-end gap-2 border-t border-white/[0.1] px-5 py-3.5">
+          <button
+            type="button"
+            onClick={onClose}
+            className="h-9 rounded-lg px-4 text-[13px] font-medium text-white/55 hover:text-white"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={save}
+            disabled={uploading !== null}
+            style={{ color: "#FFFFFF" }}
+            className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-accent px-4 text-[13px] font-semibold hover:bg-accent/90 disabled:opacity-60"
+          >
+            {uploading ? (
+              <Loader2 size={14} className="animate-spin" />
+            ) : (
+              <Plus size={14} />
+            )}
+            Save demo
+          </button>
+        </div>
+      </div>
+    </div>,
+    document.body
   );
 }
 
@@ -584,6 +833,7 @@ function DemosManager({
 function BlockContent(
   props: CreatorBlocksData & {
     id: BlockId;
+    showcase: FeaturedContentItem[];
     videos: FeaturedContentItem[];
     photos: FeaturedContentItem[];
     demos: FeaturedContentItem[];
@@ -598,8 +848,8 @@ function BlockContent(
           <BlockShowcase initialItems={props.featured} isOwner={true} />
         );
       }
-      return props.featured.length ? (
-        <MediaGallery items={props.featured} />
+      return props.showcase.length ? (
+        <MediaGallery items={props.showcase} />
       ) : (
         <Empty isOwner={isOwner} name={name} thing="featured work" />
       );

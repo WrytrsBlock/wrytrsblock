@@ -227,6 +227,8 @@ export const isDirectImage = (url: string) =>
   /\.(png|jpe?g|webp|gif|avif)(\?.*)?$/i.test(url);
 export const isDirectAudio = (url: string) =>
   /\.(mp3|wav|m4a|ogg|aac|flac)(\?.*)?$/i.test(url);
+export const isDirectVideo = (url: string) =>
+  /\.(mp4|webm|mov|m4v)(\?.*)?$/i.test(url);
 
 // The featured item: the one flagged `featured`, else the first.
 export function pickFeatured(

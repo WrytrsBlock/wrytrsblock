@@ -115,3 +115,45 @@ export async function uploadAudioToAvatars(file: File): Promise<string | null> {
 
   return supabase.storage.from("avatars").getPublicUrl(path).data.publicUrl;
 }
+
+// ── Video (demos) ───────────────────────────────────────────────────────────
+export const VIDEO_ACCEPT = ".mp4,.webm,.mov,.m4v,video/*";
+
+export const VIDEO_FORMATS_HINT = "MP4, WebM, MOV, or M4V · up to 100MB";
+
+export const MAX_VIDEO_BYTES = 100 * 1024 * 1024; // 100MB
+
+export function validateVideoFile(file: File): string | null {
+  const extOk = /\.(mp4|webm|mov|m4v)$/i.test(file.name);
+  const typeOk = file.type.toLowerCase().startsWith("video/");
+  if (!typeOk && !extOk) {
+    return "Please upload an MP4, WebM, MOV, or M4V file.";
+  }
+  if (file.size > MAX_VIDEO_BYTES) {
+    return "That file is over 100MB. Please upload a smaller video.";
+  }
+  return null;
+}
+
+export async function uploadVideoToAvatars(file: File): Promise<string | null> {
+  const invalid = validateVideoFile(file);
+  if (invalid) throw new Error(invalid);
+
+  const supabase = createSupabaseBrowserClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) throw new Error("You need to be signed in to upload a video.");
+
+  const ext = (file.name.split(".").pop() || "mp4").toLowerCase();
+  const path = `${user.id}/demo-video-${Date.now()}.${ext}`;
+  const { error } = await supabase.storage
+    .from("avatars")
+    .upload(path, file, {
+      upsert: true,
+      contentType: file.type || "video/mp4",
+    });
+  if (error) throw error;
+
+  return supabase.storage.from("avatars").getPublicUrl(path).data.publicUrl;
+}
