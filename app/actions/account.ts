@@ -34,12 +34,22 @@ export async function deleteAccountAction(): Promise<DeleteAccountResult> {
     }
 
     const { error } = await admin.auth.admin.deleteUser(user.id);
-    if (error) return { ok: false, error: error.message };
+    if (error) {
+      console.error("deleteAccountAction: admin.deleteUser failed:", error);
+      return { ok: false, error: error.message };
+    }
 
-    // The account is gone — clear this browser's session cookies too.
-    await supabase.auth.signOut();
+    // The account is gone — best-effort clear of this browser's session cookies.
+    // The user no longer exists, so signOut may reject; that must NOT mask the
+    // successful deletion (otherwise the UI shows an error for a deleted acct).
+    try {
+      await supabase.auth.signOut();
+    } catch {
+      /* session is already invalid — ignore */
+    }
     return { ok: true };
   } catch (e) {
+    console.error("deleteAccountAction failed:", e);
     return {
       ok: false,
       error: e instanceof Error ? e.message : "Couldn't delete your account.",
