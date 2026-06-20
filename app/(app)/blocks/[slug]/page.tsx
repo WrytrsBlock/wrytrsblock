@@ -1,8 +1,11 @@
 import { notFound } from "next/navigation";
 import { TopBar } from "@/components/shell/topbar";
 import { BlockHeader } from "@/components/block/block-header";
+import { BlockBottomTabs } from "@/components/block/block-bottom-tabs";
+import { InvitePanel } from "@/components/block/invite-panel";
 import {
   tabsForType,
+  defaultTabForType,
   type BlockTabId,
 } from "@/components/block/block-tabs.config";
 import { OverviewPanel } from "@/components/block/overview-panel";
@@ -37,6 +40,10 @@ function renderPanel(
   isOwner: boolean
 ) {
   switch (tab) {
+    case "invite":
+      return (
+        <InvitePanel slug={block.slug} members={members} isOwner={isOwner} />
+      );
     case "team":
       return <TeamPanel block={block} members={members} />;
     case "files":
@@ -100,7 +107,7 @@ export default async function BlockPage({
   const validTabs: string[] = tabsForType(block.blockType).map((t) => t.id);
   const tab: BlockTabId = validTabs.includes(searchParams.tab ?? "")
     ? (searchParams.tab as BlockTabId)
-    : "overview";
+    : defaultTabForType(block.blockType);
 
   // Messages owns its own scroll; every other tab scrolls the content area.
   const fullHeight = tab === "messages";
@@ -114,10 +121,12 @@ export default async function BlockPage({
           { label: block.title },
         ]}
       />
-      <BlockHeader block={block} tab={tab} />
+      <BlockHeader block={block} members={members} />
       {myMembership?.status === "invited" && (
         <InvitationBanner slug={block.slug} />
       )}
+      {/* The open chat (or selected section) is the main content; navigation
+          lives in the bottom tab bar. */}
       <div
         className={cn(
           "flex-1 min-h-0",
@@ -126,6 +135,11 @@ export default async function BlockPage({
       >
         {renderPanel(tab, block, members, isOwner)}
       </div>
+      <BlockBottomTabs
+        slug={block.slug}
+        blockType={block.blockType}
+        active={tab}
+      />
     </>
   );
 }
