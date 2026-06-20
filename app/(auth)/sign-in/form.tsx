@@ -145,8 +145,8 @@ export function SignInForm() {
       {reset && (
         <p className="text-[12px] leading-relaxed text-muted">
           {codeSent
-            ? "Enter the 6-digit code we just emailed you to reset your password."
-            : "Enter your account email and we'll email you a 6-digit reset code."}
+            ? "Enter the code we just emailed you to reset your password."
+            : "Enter your account email and we'll email you a reset code."}
         </p>
       )}
 
@@ -167,20 +167,20 @@ export function SignInForm() {
 
       {reset && codeSent && (
         <div>
-          <Label htmlFor="reset-code">6-digit code</Label>
+          <Label htmlFor="reset-code">Verification code</Label>
           <Input
             id="reset-code"
             inputMode="numeric"
             autoComplete="one-time-code"
             autoFocus
-            placeholder="123456"
-            maxLength={6}
+            placeholder="Enter the code"
+            maxLength={10}
             required
             value={code}
             onChange={(e) =>
-              setCode(e.target.value.replace(/\D/g, "").slice(0, 6))
+              setCode(e.target.value.replace(/\D/g, "").slice(0, 10))
             }
-            className="text-center text-[18px] tracking-[0.4em]"
+            className="text-center text-[18px] tracking-[0.3em]"
           />
           <p className="mt-1.5 text-[11px] text-muted">Sent to {email}</p>
         </div>
