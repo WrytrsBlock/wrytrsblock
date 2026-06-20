@@ -451,6 +451,27 @@
     animation: fade-in 0.6s ease-out both;
   }
 
+  /* Profile-block modal: scales up from the tapped tile (transform-origin is
+     set inline to the tile's center) so it reads as the block expanding open. */
+  @keyframes block-modal-in {
+    from {
+      opacity: 0;
+      transform: scale(0.86);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+  .animate-block-modal-in {
+    animation: block-modal-in 0.34s cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .animate-block-modal-in {
+      animation: fade-in 0.2s ease-out both;
+    }
+  }
+
   @keyframes shimmer {
     0% { background-position: -200% 0; }
     100% { background-position: 200% 0; }

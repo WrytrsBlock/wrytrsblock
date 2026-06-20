@@ -1,6 +1,13 @@
 "use client";
 
-import { useRef, useState, useTransition, type ReactNode } from "react";
+import {
+  useEffect,
+  useRef,
+  useState,
+  useTransition,
+  type MouseEvent as ReactMouseEvent,
+  type ReactNode,
+} from "react";
 import Link from "next/link";
 import { createPortal } from "react-dom";
 import {
@@ -96,6 +103,15 @@ const PHOTO = (i: FeaturedContentItem) => i.type === "image";
 // The 9 identity blocks — a creative playground you explore, not a resume.
 export function CreatorBlocks(props: CreatorBlocksData) {
   const [open, setOpen] = useState<BlockId | null>(null);
+  // The screen-space center of the tapped tile, so the modal can scale open
+  // from exactly where the user touched ("animate from the selected block").
+  const [origin, setOrigin] = useState<{ x: number; y: number } | null>(null);
+
+  function openBlock(id: BlockId, e: ReactMouseEvent<HTMLButtonElement>) {
+    const r = e.currentTarget.getBoundingClientRect();
+    setOrigin({ x: r.left + r.width / 2, y: r.top + r.height / 2 });
+    setOpen(id);
+  }
 
   const videos = props.featured.filter(VIDEO);
   const photos = props.featured.filter(PHOTO);
@@ -157,7 +173,7 @@ export function CreatorBlocks(props: CreatorBlocksData) {
             <button
               key={t.id}
               type="button"
-              onClick={() => setOpen(t.id)}
+              onClick={(e) => openBlock(t.id, e)}
               style={{ backgroundColor: t.color, animationDelay: `${Math.min(i, 9) * 35}ms` }}
               className="group animate-fade-up relative aspect-square overflow-hidden rounded-[11px] transition-transform duration-200 hover:-translate-y-0.5 active:scale-[0.96]"
             >
@@ -179,6 +195,8 @@ export function CreatorBlocks(props: CreatorBlocksData) {
         <Sheet
           label={tiles.find((t) => t.id === open)!.label}
           icon={tiles.find((t) => t.id === open)!.icon}
+          color={tiles.find((t) => t.id === open)!.color}
+          origin={origin}
           onClose={() => setOpen(null)}
         >
           <BlockContent
@@ -195,22 +213,47 @@ export function CreatorBlocks(props: CreatorBlocksData) {
   );
 }
 
-// ── Bottom sheet (mobile) / centered dialog (desktop) ───────────────────────
+// ── Full-screen profile-section modal ───────────────────────────────────────
+// Tapping a profile Block opens this large card. On mobile it fills the screen
+// (a real profile section, not a settings drawer); on desktop it's a centered
+// dialog. It scales open from the tapped tile and content begins at the top.
 function Sheet({
   label,
   icon: Icon,
+  color,
+  origin,
   onClose,
   children,
 }: {
   label: string;
   icon: typeof Sparkles;
+  color: string;
+  origin: { x: number; y: number } | null;
   onClose: () => void;
   children: ReactNode;
 }) {
+  // Close on Escape and lock background scroll while the modal is open.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    document.addEventListener("keydown", onKey);
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      document.body.style.overflow = prev;
+    };
+  }, [onClose]);
+
   if (typeof document === "undefined") return null;
+  const transformOrigin = origin
+    ? `${origin.x}px ${origin.y}px`
+    : "center center";
+
   return createPortal(
     <div
-      className="fixed inset-0 z-[120] flex items-end justify-center bg-black/65 backdrop-blur-sm md:items-center"
+      className="animate-fade-in fixed inset-0 z-[120] flex items-stretch justify-center bg-black/70 backdrop-blur-md md:items-center md:p-6"
       onClick={onClose}
       role="dialog"
       aria-modal="true"
@@ -218,24 +261,36 @@ function Sheet({
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        className="lg-glass animate-fade-up flex max-h-[85vh] w-full flex-col overflow-hidden !rounded-b-none !rounded-t-3xl md:max-h-[80vh] md:max-w-2xl md:!rounded-3xl"
-        style={{ background: "rgba(14,16,22,0.86)" }}
+        style={{ transformOrigin, background: "rgba(13,15,20,0.96)" }}
+        className="lg-glass animate-block-modal-in flex h-full w-full flex-col overflow-hidden md:h-auto md:max-h-[86vh] md:max-w-2xl md:rounded-3xl"
       >
-        <div className="flex shrink-0 items-center gap-2.5 border-b border-white/[0.1] px-5 py-3.5">
-          <Icon size={17} className="text-[#A9BEFF]" />
-          <h3 className="flex-1 text-[15px] font-semibold text-white">{label}</h3>
+        {/* Header — block identity + close, pinned to the top */}
+        <div
+          className="flex shrink-0 items-center gap-3 border-b border-white/[0.08] px-5 py-4"
+          style={{ paddingTop: "calc(env(safe-area-inset-top) + 16px)" }}
+        >
+          <span
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl"
+            style={{ backgroundColor: color }}
+          >
+            <Icon size={18} className="text-white" strokeWidth={2.2} />
+          </span>
+          <h3 className="flex-1 text-[18px] font-semibold tracking-tight text-white">
+            {label}
+          </h3>
           <button
             type="button"
             onClick={onClose}
             aria-label="Close"
-            className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-white/60 transition-colors hover:bg-white/[0.08] hover:text-white"
+            className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-white/10 bg-white/[0.05] text-white/70 transition-colors hover:bg-white/[0.1] hover:text-white"
           >
             <X size={18} />
           </button>
         </div>
+        {/* Content — flex-1 so empty states can center and content can grow */}
         <div
-          className="overflow-y-auto px-5 py-5"
-          style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 20px)" }}
+          className="flex flex-1 flex-col overflow-y-auto px-5 py-5"
+          style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 24px)" }}
         >
           {children}
         </div>
@@ -272,15 +327,45 @@ function Empty({
   addHref?: string;
 }) {
   return (
-    <div className="flex flex-col items-center gap-3 py-8 text-center">
-      <p className="text-[13px] text-white/55">
+    <div className="flex flex-1 flex-col items-center justify-center gap-4 px-2 py-12 text-center">
+      <span className="flex h-14 w-14 items-center justify-center rounded-2xl border border-white/[0.08] bg-white/[0.04] text-white/40">
+        {isOwner ? <Plus size={24} /> : <Sparkles size={22} />}
+      </span>
+      <p className="max-w-[26ch] text-[15px] leading-snug text-white/65">
         {isOwner
-          ? `You haven't added ${thing} yet.`
-          : `${name} hasn't added ${thing} yet.`}
+          ? `You haven't added ${addArticle(thing)} yet.`
+          : `${name} hasn't added ${addArticle(thing)} yet.`}
       </p>
       {isOwner && addLabel && addHref && (
         <OwnerAdd label={addLabel} href={addHref} />
       )}
+    </div>
+  );
+}
+
+// "services" → "any services"; "an about me" already reads naturally, so leave
+// phrases that already start with an article untouched.
+function addArticle(thing: string): string {
+  return /^(a |an |any )/i.test(thing) ? thing : `any ${thing}`;
+}
+
+// Centered empty state used inside the media managers (Demos / Photos / Videos),
+// which keep their own add/upload button pinned at the top of the modal.
+function ManagerEmpty({
+  icon: Icon,
+  message,
+}: {
+  icon: typeof Sparkles;
+  message: string;
+}) {
+  return (
+    <div className="flex flex-1 flex-col items-center justify-center gap-4 px-2 py-10 text-center">
+      <span className="flex h-14 w-14 items-center justify-center rounded-2xl border border-white/[0.08] bg-white/[0.04] text-white/40">
+        <Icon size={22} />
+      </span>
+      <p className="max-w-[28ch] text-[15px] leading-snug text-white/65">
+        {message}
+      </p>
     </div>
   );
 }
@@ -429,7 +514,7 @@ function DemosManager({
   const hasContent = demos.length > 0 || tracks.length > 0;
 
   return (
-    <div className="space-y-4">
+    <div className="flex flex-1 flex-col gap-4">
       {isOwner && (
         <div>
           <button
@@ -521,11 +606,14 @@ function DemosManager({
       {tracks.length > 0 && <MediaPlayer tracks={tracks} />}
 
       {!hasContent && (
-        <p className="py-6 text-center text-[13px] text-white/55">
-          {isOwner
-            ? "Add your first demo — songs, rough mixes, beats, or works in progress."
-            : `${name} hasn't added demos yet.`}
-        </p>
+        <ManagerEmpty
+          icon={Headphones}
+          message={
+            isOwner
+              ? "Add your first demo — songs, rough mixes, beats, or works in progress."
+              : `${name} hasn't added any demos yet.`
+          }
+        />
       )}
 
       {modalOpen && (
@@ -604,7 +692,7 @@ function PhotosManager({
   }
 
   return (
-    <div className="space-y-4">
+    <div className="flex flex-1 flex-col gap-4">
       {isOwner && (
         <div>
           <button
@@ -671,11 +759,14 @@ function PhotosManager({
           ))}
         </div>
       ) : (
-        <p className="py-6 text-center text-[13px] text-white/55">
-          {isOwner
-            ? "Upload your studio shots, artwork, and behind-the-scenes photos."
-            : `${name} hasn't added photos yet.`}
-        </p>
+        <ManagerEmpty
+          icon={ImageIcon}
+          message={
+            isOwner
+              ? "Upload your studio shots, artwork, and behind-the-scenes photos."
+              : `${name} hasn't added any photos yet.`
+          }
+        />
       )}
     </div>
   );
@@ -746,7 +837,7 @@ function VideosManager({
   }
 
   return (
-    <div className="space-y-4">
+    <div className="flex flex-1 flex-col gap-4">
       {isOwner && (
         <div>
           <button
@@ -827,11 +918,14 @@ function VideosManager({
           })}
         </ul>
       ) : (
-        <p className="py-6 text-center text-[13px] text-white/55">
-          {isOwner
-            ? "Upload performances, music videos, and reels."
-            : `${name} hasn't added videos yet.`}
-        </p>
+        <ManagerEmpty
+          icon={Play}
+          message={
+            isOwner
+              ? "Upload performances, music videos, and reels."
+              : `${name} hasn't added any videos yet.`
+          }
+        />
       )}
     </div>
   );
