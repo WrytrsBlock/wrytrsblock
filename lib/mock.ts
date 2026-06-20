@@ -641,7 +641,7 @@ export const creatorProfiles: Record<string, CreatorProfile> = {
   p6: {
     personId: "p6",
     banner:
-      "https://images.unsplash.com/photo-1558584673-650f1a52f5bd?auto=format&fit=crop&w=1600&q=80",
+      "https://images.unsplash.com/photo-1598488035139-bdbb2231ce04?auto=format&fit=crop&w=1600&q=80",
     tagline: "Producer, engineer & composer. Warm, cinematic, loud.",
     bio: "Mix and master engineer and composer. Analog-modeled chain, reference-matched. I make singles radio-ready and write strings + ambient score for film and games.",
     location: "Los Angeles, CA",
@@ -662,7 +662,7 @@ export const creatorProfiles: Record<string, CreatorProfile> = {
     ],
     portfolio: [
       "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?auto=format&fit=crop&w=600&q=80",
-      "https://images.unsplash.com/photo-1558584673-650f1a52f5bd?auto=format&fit=crop&w=600&q=80",
+      "https://images.unsplash.com/photo-1598488035139-bdbb2231ce04?auto=format&fit=crop&w=600&q=80",
       "https://images.unsplash.com/photo-1470225620780-dba8ba36b745?auto=format&fit=crop&w=600&q=80",
     ],
     portfolioLinks: [
