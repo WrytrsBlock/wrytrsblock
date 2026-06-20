@@ -15,6 +15,7 @@ import {
   Image as ImageIcon,
   Inbox,
   KeyRound,
+  LogOut,
   Mail,
   MapPin,
   PartyPopper,
@@ -139,6 +140,17 @@ export function SettingsView({ email }: { email: string }) {
           newTab
         />
       </Group>
+
+      {/* Log out — reachable on every device (the desktop sidebar menu is hidden
+          on mobile, so this is mobile's way out). */}
+      <form action="/auth/sign-out" method="post">
+        <button
+          type="submit"
+          className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl border border-line bg-surface text-[13.5px] font-medium text-danger transition-colors hover:bg-danger/10"
+        >
+          <LogOut size={16} /> Log out
+        </button>
+      </form>
     </div>
   );
 }

@@ -6,6 +6,7 @@ import {
   ImagePlus,
   MapPin,
   Pencil,
+  Settings,
   Sparkles,
   Users,
 } from "lucide-react";
@@ -169,6 +170,13 @@ export default async function ProfilePage({
               />
             )}
             <ShareProfileButton handle={person.handle} name={person.name} />
+            {/* Settings reachable on mobile (the desktop sidebar menu is hidden);
+                Settings holds Log out. */}
+            {isMe && (
+              <Link href="/settings" className="lg-btn" aria-label="Settings">
+                <Settings size={14} /> Settings
+              </Link>
+            )}
             <span className="hidden flex-1 sm:block" />
             <div className="flex items-center gap-3 text-[12px] text-white/60">
               <span className="inline-flex items-center gap-1.5">
