@@ -8,9 +8,9 @@ import { Button, Input, Label } from "@/components/ui/primitives";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { supabaseConfigured } from "@/lib/env";
 
-// Landing page for the password-reset email link. The link runs through
-// /auth/callback (which establishes a recovery session) and then here, so the
-// user can set a new password immediately — field focused, zero hunting.
+// Landing page for the password-reset email link. The link lands here directly
+// with a PKCE ?code=…; we exchange it in the browser to establish the recovery
+// session, then the user sets a new password immediately — field focused.
 export default function ResetPasswordPage() {
   const router = useRouter();
   const [pw, setPw] = useState("");
@@ -26,7 +26,26 @@ export default function ResetPasswordPage() {
   useEffect(() => {
     if (!supabaseConfigured) return;
     const sb = createSupabaseBrowserClient();
-    sb.auth.getUser().then(({ data }) => setHasSession(!!data.user));
+    (async () => {
+      // The reset email lands here with ?code=… (PKCE). Exchange it in the
+      // browser — this client holds the code verifier, so it succeeds where a
+      // server exchange can't.
+      const code = new URLSearchParams(window.location.search).get("code");
+      if (code) {
+        // Best-effort: the client may already auto-exchange the code on load, in
+        // which case this throws "already used" — harmless, since the session is
+        // then established. We decide purely on getUser() below.
+        try {
+          await sb.auth.exchangeCodeForSession(code);
+        } catch {
+          /* ignore — fall through to the session check */
+        }
+        // Drop the code from the URL so a refresh doesn't re-exchange it.
+        window.history.replaceState({}, "", "/reset-password");
+      }
+      const { data } = await sb.auth.getUser();
+      setHasSession(!!data.user);
+    })();
   }, []);
 
   // Focus the new-password field as soon as the form is shown.

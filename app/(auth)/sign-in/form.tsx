@@ -50,9 +50,10 @@ export function SignInForm() {
       }
       const supabase = createSupabaseBrowserClient();
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(
-          "/reset-password"
-        )}`,
+        // Land directly on the client reset page so the PKCE code is exchanged
+        // in the SAME browser that holds the code verifier (a server-side
+        // exchange fails with "code verifier should be non-empty").
+        redirectTo: `${window.location.origin}/reset-password`,
       });
       if (error) setError(error.message);
       else setNotice("Check your email for a password reset link.");
