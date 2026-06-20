@@ -19,6 +19,10 @@ export function SignInForm() {
   const [notice, setNotice] = useState<string | null>(null);
   const [magic, setMagic] = useState(false);
   const [reset, setReset] = useState(false);
+  // Password reset uses a 6-digit emailed code (no fragile links): step 1 sends
+  // the code, step 2 verifies it, then we go set the new password.
+  const [codeSent, setCodeSent] = useState(false);
+  const [code, setCode] = useState("");
 
   // Surface auth-callback errors (e.g. an expired reset link) and drop the user
   // straight into the reset flow so they can request a fresh email.
@@ -39,25 +43,46 @@ export function SignInForm() {
     setNotice(null);
     setLoading(true);
 
-    // Forgot-password flow: email the user a reset link, then stop here. The
-    // link returns through /auth/callback and lands on Settings, where they can
-    // set a new password.
+    // Forgot-password flow — 6-digit code (no links): step 1 emails the code,
+    // step 2 verifies it (which establishes a recovery session), then we send
+    // the user to /reset-password to choose a new password.
     if (reset) {
       if (!supabaseConfigured) {
-        setNotice("Check your email for a password reset link.");
+        if (!codeSent) {
+          setCodeSent(true);
+          setNotice("Enter the 6-digit code we emailed you.");
+        } else {
+          router.push("/reset-password");
+        }
         setLoading(false);
         return;
       }
       const supabase = createSupabaseBrowserClient();
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        // Land directly on the client reset page so the PKCE code is exchanged
-        // in the SAME browser that holds the code verifier (a server-side
-        // exchange fails with "code verifier should be non-empty").
-        redirectTo: `${window.location.origin}/reset-password`,
+
+      if (!codeSent) {
+        const { error } = await supabase.auth.resetPasswordForEmail(email);
+        if (error) setError(error.message);
+        else {
+          setCodeSent(true);
+          setNotice(`We emailed a 6-digit code to ${email}. Enter it below.`);
+        }
+        setLoading(false);
+        return;
+      }
+
+      const { error } = await supabase.auth.verifyOtp({
+        email,
+        token: code.trim(),
+        type: "recovery",
       });
-      if (error) setError(error.message);
-      else setNotice("Check your email for a password reset link.");
-      setLoading(false);
+      if (error) {
+        setError(error.message);
+        setLoading(false);
+        return;
+      }
+      // Recovery session is now active — go set a new password.
+      router.push("/reset-password");
+      router.refresh();
       return;
     }
 
@@ -119,23 +144,47 @@ export function SignInForm() {
     <form onSubmit={handleSubmit} className="space-y-4">
       {reset && (
         <p className="text-[12px] leading-relaxed text-muted">
-          Enter your account email and we&apos;ll send you a link to reset your
-          password.
+          {codeSent
+            ? "Enter the 6-digit code we just emailed you to reset your password."
+            : "Enter your account email and we'll email you a 6-digit reset code."}
         </p>
       )}
 
-      <div>
-        <Label htmlFor="email">Email</Label>
-        <Input
-          id="email"
-          type="email"
-          autoComplete="email"
-          placeholder="you@studio.com"
-          required
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-        />
-      </div>
+      {!(reset && codeSent) && (
+        <div>
+          <Label htmlFor="email">Email</Label>
+          <Input
+            id="email"
+            type="email"
+            autoComplete="email"
+            placeholder="you@studio.com"
+            required
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+          />
+        </div>
+      )}
+
+      {reset && codeSent && (
+        <div>
+          <Label htmlFor="reset-code">6-digit code</Label>
+          <Input
+            id="reset-code"
+            inputMode="numeric"
+            autoComplete="one-time-code"
+            autoFocus
+            placeholder="123456"
+            maxLength={6}
+            required
+            value={code}
+            onChange={(e) =>
+              setCode(e.target.value.replace(/\D/g, "").slice(0, 6))
+            }
+            className="text-center text-[18px] tracking-[0.4em]"
+          />
+          <p className="mt-1.5 text-[11px] text-muted">Sent to {email}</p>
+        </div>
+      )}
 
       {!magic && !reset && (
         <div>
@@ -189,10 +238,14 @@ export function SignInForm() {
       >
         {loading
           ? reset
-            ? "Sending…"
+            ? codeSent
+              ? "Verifying…"
+              : "Sending…"
             : "Signing in…"
           : reset
-            ? "Send reset link"
+            ? codeSent
+              ? "Verify & continue"
+              : "Email me a code"
             : magic
               ? "Send magic link"
               : "Sign in"}
@@ -200,17 +253,35 @@ export function SignInForm() {
       </Button>
 
       {reset ? (
-        <button
-          type="button"
-          onClick={() => {
-            setReset(false);
-            setError(null);
-            setNotice(null);
-          }}
-          className="w-full inline-flex items-center justify-center gap-2 text-[12px] text-muted hover:text-ink transition-colors py-2"
-        >
-          <ArrowLeft size={12} /> Back to sign in
-        </button>
+        <div className="flex flex-col items-center gap-1">
+          {codeSent && (
+            <button
+              type="button"
+              onClick={() => {
+                setCode("");
+                setCodeSent(false);
+                setError(null);
+                setNotice(null);
+              }}
+              className="text-[12px] text-muted transition-colors hover:text-ink py-1"
+            >
+              Didn&apos;t get it? Send another code
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={() => {
+              setReset(false);
+              setCodeSent(false);
+              setCode("");
+              setError(null);
+              setNotice(null);
+            }}
+            className="w-full inline-flex items-center justify-center gap-2 text-[12px] text-muted hover:text-ink transition-colors py-1"
+          >
+            <ArrowLeft size={12} /> Back to sign in
+          </button>
+        </div>
       ) : (
         <button
           type="button"
