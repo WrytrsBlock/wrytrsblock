@@ -76,7 +76,10 @@ export async function createBlockAction(
     const party = blockType === "block_party" ? input.party ?? null : null;
     const inviteHandle = input.inviteHandle?.trim().replace(/^@/, "") || null;
 
-    // (4) SECURITY DEFINER RPC creates workspace + block + memberships atomically.
+    // (4) SECURITY DEFINER RPC creates workspace + block + the owner membership.
+    // We do NOT pass p_invite_handle — that path auto-joins the invitee. In the
+    // single-block model an invite must be a *pending* invitation, so we send it
+    // separately below via invite_to_block.
     const { data, error } = await supabase.rpc("create_user_block", {
       p_title: title,
       p_tagline: input.tagline ?? null,
@@ -86,15 +89,28 @@ export async function createBlockAction(
       p_price: price,
       p_visibility: visibility,
       p_party: party,
-      p_invite_handle: inviteHandle,
+      p_invite_handle: null,
     });
     if (error) throw error;
 
-    const row = Array.isArray(data) ? data[0] : data;
-    const newSlug =
-      row && typeof row === "object" && "block_slug" in row
-        ? ((row as { block_slug?: string }).block_slug ?? slug)
-        : slug;
+    const row = (Array.isArray(data) ? data[0] : data) as
+      | { block_id?: string; block_slug?: string }
+      | null;
+    const newSlug = row?.block_slug ?? slug;
+    const newId = row?.block_id;
+
+    // Send the collaboration invitation (Pending) — non-fatal: the Block exists
+    // either way, and the owner can re-invite from the Invite tab.
+    if (inviteHandle && newId) {
+      try {
+        await supabase.rpc("invite_to_block", {
+          p_block_id: newId,
+          p_handles: [inviteHandle],
+        });
+      } catch {
+        /* non-fatal */
+      }
+    }
 
     revalidatePath("/blocks");
     revalidatePath("/marketplace");

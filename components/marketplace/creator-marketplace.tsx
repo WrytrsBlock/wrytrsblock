@@ -678,9 +678,9 @@ function CreatorCard({
 
         <button
           type="button"
-          onClick={() => openNewBlock(undefined, person.handle)}
-          aria-label={`Start a Block with ${person.name}`}
-          title="Start Block"
+          onClick={() => openNewBlock("collaboration", person.handle)}
+          aria-label={`Invite ${person.name} to collaborate`}
+          title={`Invite ${person.name} to collaborate`}
           className="pointer-events-auto inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-[rgba(140,170,255,0.6)] border-t-[rgba(185,205,255,0.75)] bg-[rgba(59,102,246,0.55)] text-white shadow-[0_4px_18px_rgba(59,102,246,0.4)] backdrop-blur-md transition-colors hover:bg-[rgba(59,102,246,0.78)]"
           style={{ color: "#FFFFFF" }}
         >
