@@ -3,17 +3,13 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   AudioLines,
-  Hash,
-  Lock,
-  Pin,
+  MessageSquare,
   Plus,
-  Search,
   Send,
   Smile,
   Sparkles,
-  Users2,
 } from "lucide-react";
-import { Avatar, Badge, Input, SectionLabel } from "@/components/ui/primitives";
+import { Avatar } from "@/components/ui/primitives";
 import { EmptyState } from "@/components/ui/empty-state";
 import {
   getPerson,
@@ -35,20 +31,14 @@ type ChatMessage = {
   mine?: boolean;
 };
 
-type Channel = {
-  id: string;
-  name: string;
-  icon: typeof Hash;
-  unread: number;
-  topic: string;
-};
-
-const channels: Channel[] = [
-  { id: "writers-room", name: "writers-room", icon: Hash, unread: 3, topic: "Eps. 1–6 script room" },
-  { id: "post-picture", name: "post-picture", icon: Hash, unread: 0, topic: "Editorial workflow" },
-  { id: "sound-design", name: "sound-design", icon: Hash, unread: 0, topic: "Foley, ambience, mix" },
-  { id: "cast-talent", name: "cast-talent", icon: Hash, unread: 1, topic: "Casting + VO" },
-  { id: "exec-only", name: "exec-only", icon: Lock, unread: 0, topic: "Senior staff" },
+// Internal room keys — drive the seeded demo messages + the realtime channel id.
+// There is one shared room per Block now (no channel switching UI).
+const channels = [
+  { id: "writers-room" },
+  { id: "post-picture" },
+  { id: "sound-design" },
+  { id: "cast-talent" },
+  { id: "exec-only" },
 ];
 
 function msg(actorId: string, body: string, at: string): ChatMessage {
@@ -88,7 +78,8 @@ const SEED: Record<string, ChatMessage[]> = {
 
 export function ThreadsPanel({ block }: { block: Block }) {
   const { user } = useUser();
-  const [activeId, setActiveId] = useState(channels[0].id);
+  // One shared room per Block — no channel switching.
+  const [activeId] = useState(channels[0].id);
   const [store, setStore] = useState<Record<string, ChatMessage[]>>(
     isEstablishedBlock(block) ? SEED : {}
   );
@@ -96,7 +87,6 @@ export function ThreadsPanel({ block }: { block: Block }) {
   const [sending, setSending] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  const active = channels.find((c) => c.id === activeId) ?? channels[0];
   const messages = store[activeId] ?? [];
 
   const me = useMemo(() => {
@@ -172,168 +162,81 @@ export function ThreadsPanel({ block }: { block: Block }) {
   }
 
   return (
-    <div className="flex h-full min-h-[480px] border-t border-line">
-      {/* Channel list */}
-      <div className="w-[240px] shrink-0 border-r border-line bg-surface/30 flex flex-col">
-        <div className="px-3 pt-4 pb-2 flex items-center justify-between">
-          <SectionLabel>Channels</SectionLabel>
-          <button className="p-0.5 rounded text-muted hover:text-ink transition-colors">
-            <Plus size={12} />
-          </button>
-        </div>
-        <div className="mx-3 mb-2">
-          <div className="relative">
-            <Search
-              size={11}
-              className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted pointer-events-none"
-            />
-            <Input
-              placeholder="Find a channel"
-              className="!h-7 !text-[11.5px] pl-7"
+    // One big chat that fills the whole Block — no channel column. This IS the
+    // collab room.
+    <div className="flex h-full min-h-[480px] flex-col">
+      <div
+        ref={scrollRef}
+        className="page-fluid flex-1 space-y-4 overflow-y-auto py-6"
+      >
+        {messages.length === 0 && (
+          <div className="flex h-full items-center justify-center">
+            <EmptyState
+              compact
+              icon={MessageSquare}
+              title="No messages yet"
+              description="Kick off the conversation — share an update, drop a file, or @mention a collaborator to pull them in."
+              className="border-0 bg-transparent"
             />
           </div>
-        </div>
-
-        <ul className="px-2 mt-2 space-y-px">
-          {channels.map((c) => {
-            const Icon = c.icon;
-            const isActive = c.id === activeId;
-            return (
-              <li key={c.id}>
-                <button
-                  onClick={() => setActiveId(c.id)}
-                  className={
-                    isActive
-                      ? "w-full flex items-center gap-2 px-2 h-7 rounded-md bg-surface-2 text-ink text-[12px] font-medium"
-                      : "w-full flex items-center gap-2 px-2 h-7 rounded-md text-muted hover:text-ink hover:bg-surface-2/60 text-[12px] transition-colors"
-                  }
-                >
-                  <Icon size={12} strokeWidth={1.75} />
-                  <span className="flex-1 text-left truncate">{c.name}</span>
-                  {c.unread > 0 && !isActive && (
-                    <Badge tone="accent" className="!h-4 !px-1.5 !text-[10px]">
-                      {c.unread}
-                    </Badge>
-                  )}
-                </button>
-              </li>
-            );
-          })}
-        </ul>
-
-        <div className="px-2 mt-5">
-          <SectionLabel className="px-2 pb-1.5 block">
-            Direct messages
-          </SectionLabel>
-          <ul className="space-y-px">
-            {block.team.slice(0, 4).map((id) => {
-              const p = getPerson(id);
-              if (!p) return null;
-              return (
-                <li key={p.id}>
-                  <button className="w-full flex items-center gap-2 px-2 h-7 rounded-md text-muted hover:text-ink hover:bg-surface-2/60 text-[12px] transition-colors">
-                    <Avatar
-                      src={p.avatar}
-                      name={p.name}
-                      size={16}
-                      online={p.online}
-                    />
-                    <span className="flex-1 text-left truncate">{p.name}</span>
-                  </button>
-                </li>
-              );
-            })}
-          </ul>
-        </div>
+        )}
+        {messages.map((m) => (
+          <div key={m.id} className="flex gap-3 group">
+            <Avatar src={m.authorAvatar} name={m.authorName} size={32} />
+            <div className="flex-1 min-w-0">
+              <div className="flex items-baseline gap-2">
+                <span className="text-[12.5px] font-semibold text-ink">
+                  {m.authorName}
+                </span>
+                <span className="text-[10px] text-muted font-mono">{m.at}</span>
+              </div>
+              <p className="mt-0.5 text-[13px] text-ink/90 leading-relaxed">
+                {m.body}
+              </p>
+            </div>
+          </div>
+        ))}
       </div>
 
-      {/* Conversation */}
-      <div className="flex-1 min-w-0 flex flex-col">
-        <div className="h-12 px-5 border-b border-line flex items-center gap-3">
-          <Hash size={13} className="text-muted" />
-          <h2 className="text-[13px] font-semibold text-ink">{active.name}</h2>
-          <span className="text-[11px] text-muted">{active.topic}</span>
-          <button className="ml-1 text-muted hover:text-ink p-0.5 rounded transition-colors">
-            <Pin size={12} />
-          </button>
-          <div className="flex-1" />
-          <button className="inline-flex items-center gap-1.5 h-7 px-2 rounded-md text-[11.5px] text-muted hover:text-ink hover:bg-surface-2 transition-all">
-            <Users2 size={12} /> {block.team.length}
-          </button>
-        </div>
-
-        <div ref={scrollRef} className="flex-1 overflow-y-auto px-6 py-5 space-y-4">
-          {messages.length === 0 && (
-            <div className="h-full flex items-center justify-center">
-              <EmptyState
-                compact
-                icon={Hash}
-                title={`#${active.name} is quiet`}
-                description="Kick off the conversation — share an update, drop a file, or @mention a teammate to pull them in."
-                className="border-0 bg-transparent"
-              />
-            </div>
-          )}
-          {messages.map((m) => (
-            <div key={m.id} className="flex gap-3 group">
-              <Avatar src={m.authorAvatar} name={m.authorName} size={32} />
-              <div className="flex-1 min-w-0">
-                <div className="flex items-baseline gap-2">
-                  <span className="text-[12.5px] font-semibold text-ink">
-                    {m.authorName}
-                  </span>
-                  <span className="text-[10px] text-muted font-mono">
-                    {m.at}
-                  </span>
-                </div>
-                <p className="mt-0.5 text-[13px] text-ink/90 leading-relaxed">
-                  {m.body}
-                </p>
-              </div>
-            </div>
-          ))}
-        </div>
-
-        {/* Composer */}
-        <div className="px-6 pb-5">
-          <div className="rounded-2xl border border-line bg-surface p-3 shadow-soft transition-shadow focus-within:shadow-elevated">
-            <textarea
-              rows={2}
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && !e.shiftKey) {
-                  e.preventDefault();
-                  send();
-                }
-              }}
-              placeholder={`Message #${active.name}`}
-              className="w-full resize-none bg-transparent text-[13px] text-ink placeholder:text-muted/70 focus:outline-none px-1"
-            />
-            <div className="flex items-center justify-between mt-1">
-              <div className="flex items-center gap-0.5 text-muted">
-                <button className="p-1.5 rounded-md hover:bg-surface-2 hover:text-ink transition-colors">
-                  <Plus size={13} />
-                </button>
-                <button className="p-1.5 rounded-md hover:bg-surface-2 hover:text-ink transition-colors">
-                  <AudioLines size={13} />
-                </button>
-                <button className="p-1.5 rounded-md hover:bg-surface-2 hover:text-ink transition-colors">
-                  <Smile size={13} />
-                </button>
-                <button className="ml-2 inline-flex items-center gap-1 text-[11px] text-muted hover:text-ink transition-colors">
-                  <Sparkles size={11} className="text-accent" />
-                  Draft with WiZee
-                </button>
-              </div>
-              <button
-                onClick={send}
-                disabled={!input.trim() || sending}
-                className="inline-flex items-center gap-1.5 h-7 px-3 rounded-md bg-ink text-bg text-[12px] font-medium hover:opacity-90 transition-opacity disabled:opacity-40"
-              >
-                Send <Send size={11} />
+      {/* Composer */}
+      <div className="page-fluid pb-5">
+        <div className="rounded-2xl border border-line bg-surface p-3 shadow-soft transition-shadow focus-within:shadow-elevated">
+          <textarea
+            rows={2}
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault();
+                send();
+              }
+            }}
+            placeholder="Message the team"
+            className="w-full resize-none bg-transparent px-1 text-[13px] text-ink placeholder:text-muted/70 focus:outline-none"
+          />
+          <div className="mt-1 flex items-center justify-between">
+            <div className="flex items-center gap-0.5 text-muted">
+              <button className="rounded-md p-1.5 transition-colors hover:bg-surface-2 hover:text-ink">
+                <Plus size={13} />
+              </button>
+              <button className="rounded-md p-1.5 transition-colors hover:bg-surface-2 hover:text-ink">
+                <AudioLines size={13} />
+              </button>
+              <button className="rounded-md p-1.5 transition-colors hover:bg-surface-2 hover:text-ink">
+                <Smile size={13} />
+              </button>
+              <button className="ml-2 inline-flex items-center gap-1 text-[11px] text-muted transition-colors hover:text-ink">
+                <Sparkles size={11} className="text-accent" />
+                Draft with WiZee
               </button>
             </div>
+            <button
+              onClick={send}
+              disabled={!input.trim() || sending}
+              className="inline-flex h-7 items-center gap-1.5 rounded-md bg-ink px-3 text-[12px] font-medium text-bg transition-opacity hover:opacity-90 disabled:opacity-40"
+            >
+              Send <Send size={11} />
+            </button>
           </div>
         </div>
       </div>
