@@ -10,6 +10,9 @@ const PUBLIC_PATHS = [
   "/onboarding",
   "/auth/callback",
   "/auth/sign-out",
+  // Password reset must render so it can handle the recovery session itself
+  // (show the form, or an "expired link" message) — never bounce it to sign-in.
+  "/reset-password",
   // Legal pages are public so they can be shared anywhere, signed in or not.
   "/terms",
   "/privacy",

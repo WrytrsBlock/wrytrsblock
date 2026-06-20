@@ -728,10 +728,13 @@ export async function getMyBlockMembership(
   try {
     const block = await getBlockBySlug(supabase, slug);
     if (!block) return null;
-    // The creator/lead is the owner — the only role allowed to delete/archive.
-    const isOwner =
-      block.created_by === user.id || block.lead_id === user.id;
     const m = await getMembership(supabase, block.id, user.id);
+    // Owner = the creator (created_by/lead_id) OR a 'lead' member. The role check
+    // covers request-created Blocks whose `created_by` is the other party.
+    const isOwner =
+      block.created_by === user.id ||
+      block.lead_id === user.id ||
+      m?.role === "lead";
     if (m) return { status: m.status, isOwner };
     // The creator always owns the Block, even if their block_members row is
     // missing (legacy / request-created Blocks) — otherwise they'd lose the
