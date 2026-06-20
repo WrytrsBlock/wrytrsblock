@@ -28,7 +28,19 @@ export async function GET(request: NextRequest) {
 
   if (code && supabaseConfigured) {
     const supabase = createSupabaseServerClient();
-    await supabase.auth.exchangeCodeForSession(code);
+    const { error: exchangeError } =
+      await supabase.auth.exchangeCodeForSession(code);
+    // A failed exchange (expired/used code, or a missing PKCE verifier when the
+    // link is opened in a different browser) was previously swallowed — the user
+    // then landed on a page with no session and a confusing "expired" message.
+    // Surface the real reason on sign-in instead.
+    if (exchangeError) {
+      console.error("auth/callback exchange failed:", exchangeError);
+      const msg = `${exchangeError.message}. Request a new reset email and open it right away in this browser.`;
+      return NextResponse.redirect(
+        `${origin}/sign-in?autherror=${encodeURIComponent(msg)}`
+      );
+    }
   }
 
   return NextResponse.redirect(`${origin}${next}`);
