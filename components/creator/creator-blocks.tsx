@@ -681,6 +681,162 @@ function PhotosManager({
   );
 }
 
+// My Videos — video uploads ONLY. The owner uploads video files directly (no
+// links, no other media types); everyone sees the players. Persists into the
+// shared featured_content, leaving non-video items untouched.
+function VideosManager({
+  initial,
+  isOwner,
+  name,
+}: {
+  initial: FeaturedContentItem[];
+  isOwner: boolean;
+  name: string;
+}) {
+  const [items, setItems] = useState<FeaturedContentItem[]>(initial);
+  const [uploading, setUploading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [saving, startSave] = useTransition();
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  const videos = items.filter(VIDEO);
+
+  function persist(next: FeaturedContentItem[]) {
+    setItems(next);
+    setError(null);
+    startSave(async () => {
+      const res = await updateShowcaseAction(next);
+      if (!res.ok) setError(res.error);
+    });
+  }
+
+  async function onFiles(files: FileList) {
+    setError(null);
+    setUploading(true);
+    const added: FeaturedContentItem[] = [];
+    try {
+      for (const file of Array.from(files)) {
+        const invalid = validateVideoFile(file);
+        if (invalid) {
+          setError(invalid);
+          continue;
+        }
+        const url = await uploadVideoToAvatars(file);
+        if (url) {
+          added.push({
+            id: newContentId(),
+            type: "video",
+            url,
+            title: file.name.replace(/\.[^./\\]+$/, "").trim() || "Video",
+          });
+        }
+      }
+      if (added.length) persist([...items, ...added]);
+    } catch (e) {
+      setError(
+        e instanceof Error ? e.message : "Upload failed. Please try again."
+      );
+    } finally {
+      setUploading(false);
+    }
+  }
+
+  function removeVideo(id: string) {
+    persist(items.filter((i) => i.id !== id));
+  }
+
+  return (
+    <div className="space-y-4">
+      {isOwner && (
+        <div>
+          <button
+            type="button"
+            onClick={() => fileRef.current?.click()}
+            disabled={uploading || saving}
+            style={{ color: "#FFFFFF" }}
+            className="lg-btn lg-btn-p inline-flex w-full justify-center disabled:opacity-60"
+          >
+            {uploading ? (
+              <>
+                <Loader2 size={15} className="animate-spin" /> Uploading…
+              </>
+            ) : (
+              <>
+                <Upload size={15} /> Upload Videos
+              </>
+            )}
+          </button>
+          <p className="mt-1.5 text-center text-[11px] text-white/45">
+            {VIDEO_FORMATS_HINT}
+          </p>
+          {error && (
+            <p className="mt-1.5 text-center text-[12px] text-danger">{error}</p>
+          )}
+          <input
+            ref={fileRef}
+            type="file"
+            accept={VIDEO_ACCEPT}
+            multiple
+            className="hidden"
+            onChange={(e) => {
+              if (e.target.files?.length) void onFiles(e.target.files);
+              e.target.value = "";
+            }}
+          />
+        </div>
+      )}
+
+      {videos.length > 0 ? (
+        <ul className="space-y-3">
+          {videos.map((v) => {
+            const url = isDirectVideo(v.url) ? v.url : null;
+            return (
+              <li
+                key={v.id}
+                className="rounded-2xl border border-white/[0.1] bg-white/[0.04] p-3"
+              >
+                <div className="flex items-center gap-3">
+                  <p className="min-w-0 flex-1 truncate text-[13.5px] font-medium text-white">
+                    {itemTitle(v)}
+                  </p>
+                  {isOwner && (
+                    <button
+                      type="button"
+                      onClick={() => removeVideo(v.id)}
+                      aria-label="Remove video"
+                      className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-white/10 text-white/55 transition-colors hover:border-danger/40 hover:bg-danger/20 hover:text-white"
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  )}
+                </div>
+                {url ? (
+                  <video controls src={url} className="mt-2.5 w-full rounded-xl" />
+                ) : (
+                  <a
+                    href={v.url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="mt-2 inline-flex items-center gap-1.5 text-[12.5px] font-medium text-[#A9BEFF] hover:text-white"
+                  >
+                    <ArrowUpRight size={12} /> Open video
+                  </a>
+                )}
+              </li>
+            );
+          })}
+        </ul>
+      ) : (
+        <p className="py-6 text-center text-[13px] text-white/55">
+          {isOwner
+            ? "Upload performances, music videos, and reels."
+            : `${name} hasn't added videos yet.`}
+        </p>
+      )}
+    </div>
+  );
+}
+
 function DemoEditorModal({
   onClose,
   onSave,
@@ -1006,13 +1162,14 @@ function BlockContent(
     // editable showcase (add / edit / reorder / pin); visitors see the filtered
     // gallery.
     case "videos":
-      if (isOwner) {
-        return <BlockShowcase initialItems={props.featured} isOwner={true} />;
-      }
-      return props.videos.length ? (
-        <MediaGallery items={props.videos} />
-      ) : (
-        <Empty isOwner={isOwner} name={name} thing="videos" />
+      // Video uploads only — a dedicated video uploader, not the all-types
+      // showcase.
+      return (
+        <VideosManager
+          initial={props.featured}
+          isOwner={isOwner}
+          name={name}
+        />
       );
 
     case "photos":
