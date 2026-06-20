@@ -18,6 +18,7 @@ import {
   Target,
   Trash2,
   Trophy,
+  Upload,
   User,
   X,
 } from "lucide-react";
@@ -37,9 +38,13 @@ import {
 import {
   AUDIO_ACCEPT,
   AUDIO_FORMATS_HINT,
+  IMAGE_ACCEPT,
+  IMAGE_FORMATS_HINT,
   uploadAudioToAvatars,
+  uploadToAvatars,
   uploadVideoToAvatars,
   validateAudioFile,
+  validateImageFile,
   validateVideoFile,
   VIDEO_ACCEPT,
   VIDEO_FORMATS_HINT,
@@ -533,6 +538,149 @@ function DemosManager({
   );
 }
 
+// My Photos — image uploads ONLY. The owner uploads photo files directly (no
+// links, no other media types); everyone sees the grid. Persists into the shared
+// featured_content, leaving non-image items untouched.
+function PhotosManager({
+  initial,
+  isOwner,
+  name,
+}: {
+  initial: FeaturedContentItem[];
+  isOwner: boolean;
+  name: string;
+}) {
+  const [items, setItems] = useState<FeaturedContentItem[]>(initial);
+  const [uploading, setUploading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [saving, startSave] = useTransition();
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  const photos = items.filter(PHOTO);
+
+  function persist(next: FeaturedContentItem[]) {
+    setItems(next);
+    setError(null);
+    startSave(async () => {
+      const res = await updateShowcaseAction(next);
+      if (!res.ok) setError(res.error);
+    });
+  }
+
+  async function onFiles(files: FileList) {
+    setError(null);
+    setUploading(true);
+    const added: FeaturedContentItem[] = [];
+    try {
+      for (const file of Array.from(files)) {
+        const invalid = validateImageFile(file);
+        if (invalid) {
+          setError(invalid);
+          continue;
+        }
+        const url = await uploadToAvatars(file, "portfolio");
+        if (url) {
+          added.push({
+            id: newContentId(),
+            type: "image",
+            url,
+            thumbnail: url,
+            title: file.name.replace(/\.[^./\\]+$/, "").trim() || "Photo",
+          });
+        }
+      }
+      if (added.length) persist([...items, ...added]);
+    } catch (e) {
+      setError(
+        e instanceof Error ? e.message : "Upload failed. Please try again."
+      );
+    } finally {
+      setUploading(false);
+    }
+  }
+
+  function removePhoto(id: string) {
+    persist(items.filter((i) => i.id !== id));
+  }
+
+  return (
+    <div className="space-y-4">
+      {isOwner && (
+        <div>
+          <button
+            type="button"
+            onClick={() => fileRef.current?.click()}
+            disabled={uploading || saving}
+            style={{ color: "#FFFFFF" }}
+            className="lg-btn lg-btn-p inline-flex w-full justify-center disabled:opacity-60"
+          >
+            {uploading ? (
+              <>
+                <Loader2 size={15} className="animate-spin" /> Uploading…
+              </>
+            ) : (
+              <>
+                <Upload size={15} /> Upload Photos
+              </>
+            )}
+          </button>
+          <p className="mt-1.5 text-center text-[11px] text-white/45">
+            {IMAGE_FORMATS_HINT}
+          </p>
+          {error && (
+            <p className="mt-1.5 text-center text-[12px] text-danger">{error}</p>
+          )}
+          <input
+            ref={fileRef}
+            type="file"
+            accept={IMAGE_ACCEPT}
+            multiple
+            className="hidden"
+            onChange={(e) => {
+              if (e.target.files?.length) void onFiles(e.target.files);
+              e.target.value = "";
+            }}
+          />
+        </div>
+      )}
+
+      {photos.length > 0 ? (
+        <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3">
+          {photos.map((p) => (
+            <div
+              key={p.id}
+              className="group relative aspect-square overflow-hidden rounded-xl border border-white/[0.12] bg-white/[0.04]"
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={p.url || p.thumbnail}
+                alt={itemTitle(p)}
+                className="absolute inset-0 h-full w-full object-cover"
+              />
+              {isOwner && (
+                <button
+                  type="button"
+                  onClick={() => removePhoto(p.id)}
+                  aria-label="Remove photo"
+                  className="absolute right-1.5 top-1.5 inline-flex h-7 w-7 items-center justify-center rounded-lg border border-white/15 bg-black/55 text-white/80 opacity-0 backdrop-blur-sm transition-opacity hover:bg-danger/70 group-hover:opacity-100"
+                >
+                  <Trash2 size={13} />
+                </button>
+              )}
+            </div>
+          ))}
+        </div>
+      ) : (
+        <p className="py-6 text-center text-[13px] text-white/55">
+          {isOwner
+            ? "Upload your studio shots, artwork, and behind-the-scenes photos."
+            : `${name} hasn't added photos yet.`}
+        </p>
+      )}
+    </div>
+  );
+}
+
 function DemoEditorModal({
   onClose,
   onSave,
@@ -868,13 +1016,14 @@ function BlockContent(
       );
 
     case "photos":
-      if (isOwner) {
-        return <BlockShowcase initialItems={props.featured} isOwner={true} />;
-      }
-      return props.photos.length ? (
-        <MediaGallery items={props.photos} />
-      ) : (
-        <Empty isOwner={isOwner} name={name} thing="photos" />
+      // Image uploads only — a dedicated photo uploader, not the all-types
+      // showcase.
+      return (
+        <PhotosManager
+          initial={props.featured}
+          isOwner={isOwner}
+          name={name}
+        />
       );
 
     case "demos":
