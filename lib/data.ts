@@ -195,8 +195,27 @@ export async function hasCompletedOnboarding(): Promise<boolean> {
   } = await supabase.auth.getUser();
   if (!user) return false;
   try {
-    const row = await getCreatorProfileById(supabase, user.id);
-    return !!row;
+    // "Done" = EITHER a creator_profiles row (published to the marketplace) OR
+    // the onboarding payload saved on the base profile. Onboarding writes both,
+    // so accepting either signal means a user who just finished setup is never
+    // bounced back into it (e.g. a brief read-lag on the creator_profiles row).
+    const row = await getCreatorProfileById(supabase, user.id).catch(() => null);
+    let onboardingFlag: unknown = null;
+    try {
+      const { data } = await supabase
+        .from("profiles")
+        .select("onboarding")
+        .eq("id", user.id)
+        .maybeSingle();
+      onboardingFlag = (data as { onboarding?: unknown } | null)?.onboarding ?? null;
+    } catch {
+      /* ignore — fall back to the creator_profiles check */
+    }
+    const done = !!row || onboardingFlag != null;
+    if (!done) {
+      console.log(`[onboarding-gate] incomplete for ${user.id} → /onboarding`);
+    }
+    return done;
   } catch {
     // On a read error, don't trap the user in a redirect loop.
     return true;

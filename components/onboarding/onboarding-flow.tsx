@@ -13,7 +13,7 @@ import {
   MapPin,
   Sparkles,
   Star,
-  Store,
+  Home,
   User as UserIcon,
   Users,
   X,
@@ -155,7 +155,8 @@ export function OnboardingFlow({
         } catch {
           /* ignore */
         }
-        // Refresh server state so the app (and Block Market) immediately see the
+        console.log("[onboarding] completed + published (client)");
+        // Refresh server state so the gate + dashboard immediately see the
         // now-published profile, then show the confirmation screen.
         router.refresh();
         setCompleted(true);
@@ -170,8 +171,8 @@ export function OnboardingFlow({
     return (
       <SetupComplete
         data={data}
-        onMarket={() => {
-          router.push("/marketplace");
+        onDashboard={() => {
+          router.replace("/home");
           router.refresh();
         }}
         onProfile={() => {
@@ -718,14 +719,23 @@ function ProfileComplete({
 // publish action itself.
 function SetupComplete({
   data,
-  onMarket,
+  onDashboard,
   onProfile,
 }: {
   data: OnboardingProfile;
-  onMarket: () => void;
+  onDashboard: () => void;
   onProfile: () => void;
 }) {
   const firstName = (data.name || "").trim().split(/\s+/)[0] || "";
+
+  // The dashboard must appear right after setup — auto-route there shortly after
+  // the confirmation, regardless of the browser (Safari/Chrome/in-app/PWA). The
+  // buttons are for users who tap before the timer fires.
+  useEffect(() => {
+    const t = setTimeout(onDashboard, 1400);
+    return () => clearTimeout(t);
+  }, [onDashboard]);
+
   return (
     <div className="relative min-h-[100dvh] flex flex-col items-center justify-center bg-bg text-ink px-5 py-12">
       <div className="absolute inset-0 bg-grad-mesh opacity-20 pointer-events-none" />
@@ -741,18 +751,18 @@ function SetupComplete({
           {firstName ? `You're live, ${firstName}.` : "You're live."}
         </h1>
         <p className="mt-3 text-[14px] text-muted leading-relaxed">
-          Your creator profile is now live in the Block Market — other creators
-          can discover you right away. What&apos;s next?
+          Your profile is published and you&apos;re discoverable in the Block
+          Market. Taking you to your dashboard…
         </p>
 
         <div className="mt-8 flex flex-col gap-2.5">
           <Button
             variant="primary"
             size="lg"
-            onClick={onMarket}
+            onClick={onDashboard}
             className="w-full h-12 text-[14px] justify-center tracking-wide"
           >
-            <Store size={16} /> Go to Block Market
+            <Home size={16} /> Go to Dashboard
           </Button>
           <Button
             variant="outline"

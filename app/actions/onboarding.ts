@@ -49,6 +49,7 @@ export async function completeOnboardingAction(
       .eq("id", user.id);
 
     if (error) return { ok: false, error: error.message };
+    console.log(`[onboarding] profile saved + onboarding flag set for ${user.id}`);
 
     // Structured marketplace profile — the queryable source for Creator
     // Discovery, search/filters, and Block Match. Best-effort: a username
@@ -118,8 +119,10 @@ export async function completeOnboardingAction(
       }
     }
 
+    console.log(`[onboarding] creator profile PUBLISHED (in Block Market) for ${user.id}`);
     revalidatePath("/marketplace");
     revalidatePath("/profile");
+    revalidatePath("/home");
     return { ok: true };
   } catch (e) {
     return {

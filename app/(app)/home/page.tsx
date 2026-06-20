@@ -55,6 +55,9 @@ export default async function HomePage() {
   const myCreator = profile ? await getCreator(profile.handle) : null;
   const firstName = profile?.name.split(" ")[0] ?? "Creator";
 
+  // Audit log: the dashboard rendered for this user (post-onboarding landing).
+  if (profile) console.log(`[dashboard] rendered for @${profile.handle}`);
+
   // Discovery pool — everyone but me, available-first then best Block Score.
   const discover = creators
     .filter((c) => c.person.handle !== profile?.handle)
