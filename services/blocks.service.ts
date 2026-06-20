@@ -25,6 +25,45 @@ export async function listBlocksForWorkspace(
   return (data as BlockRow[]) ?? [];
 }
 
+// Membership-based "My Blocks": every Block the signed-in user belongs to —
+// owner, active member, or still invited — joined with their own role + status.
+// This is the single source of truth for the My Blocks list, so all members see
+// the SAME Block (no per-user duplication, no workspace scoping).
+export type MyBlockRow = BlockRow & {
+  my_role: BlockMember["role"];
+  my_status: BlockMemberStatus;
+};
+
+export async function listMyBlocks(
+  supabase: DB,
+  userId: UUID
+): Promise<MyBlockRow[]> {
+  const { data, error } = await supabase
+    .from("block_members")
+    .select("role, status, block:blocks(*)")
+    .eq("user_id", userId);
+  if (error) throw error;
+
+  const rows = (data ?? []) as unknown as {
+    role: BlockMember["role"];
+    status: BlockMemberStatus;
+    block: BlockRow | null;
+  }[];
+
+  return rows
+    .filter((r) => r.block) // membership with a live Block
+    .map((r) => ({
+      ...(r.block as BlockRow),
+      my_role: r.role,
+      my_status: r.status,
+    }))
+    .sort(
+      (a, b) =>
+        new Date(b.updated_at ?? 0).getTime() -
+        new Date(a.updated_at ?? 0).getTime()
+    );
+}
+
 export async function getBlockBySlug(
   supabase: DB,
   slug: string

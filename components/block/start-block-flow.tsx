@@ -3,21 +3,18 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowUpRight, Check, Loader2, Plus, Send, X } from "lucide-react";
-import {
-  acceptBlockRequestAction,
-  declineBlockRequestAction,
-  sendBlockRequestAction,
-} from "@/app/actions/block-requests";
+import { ArrowUpRight, Loader2, Plus, X } from "lucide-react";
+import { createBlockAction } from "@/app/actions/blocks";
+import { inviteMembersAction } from "@/app/actions/invitations";
 import type { BlockRelationship } from "@/lib/data";
 
 type Person = { name: string; avatar?: string };
 
-// The full Start Block experience on a creator profile. Drives every state so a
-// first-time user always knows what happened and what's next:
-//   none → "Start Block" (modal) → "Block Request Sent" (pending) success state
-//   incoming → Accept / Decline
-//   active → Open Block (the collaboration hub)
+// Start a Block on a creator's profile — single-block model. There is no request
+// step: creating the Block makes you the Owner immediately and invites the
+// creator as a Pending member. Both then see the same Block in My Blocks.
+//   none   → "Start Block" (modal) → creates the Block + invites → Open Block
+//   active → we already share a Block → Open Block
 export function StartBlockFlow({
   handle,
   name,
@@ -37,9 +34,9 @@ export function StartBlockFlow({
   const [view, setView] = useState<BlockRelationship["status"]>(
     relationship.status
   );
-  const requestId =
-    relationship.status === "incoming" ? relationship.requestId : "";
-  const activeSlug = relationship.status === "active" ? relationship.slug : "";
+  const [createdSlug, setCreatedSlug] = useState("");
+  const activeSlug =
+    relationship.status === "active" ? relationship.slug : createdSlug;
 
   const [open, setOpen] = useState(false);
   const [title, setTitle] = useState(`Collab with ${name}`);
@@ -77,113 +74,29 @@ export function StartBlockFlow({
     );
   }
 
-  // ── Incoming request — they asked to collaborate with you ─────────────────
-  if (view === "incoming") {
-    const accept = async () => {
-      setBusy(true);
-      setError(null);
-      const res = await acceptBlockRequestAction(requestId);
-      setBusy(false);
-      if (res.ok) {
-        router.push(`/blocks/${res.slug}`);
-        router.refresh();
-      } else setError(res.error);
-    };
-    const decline = async () => {
-      setBusy(true);
-      setError(null);
-      const res = await declineBlockRequestAction(requestId);
-      setBusy(false);
-      if (res.ok) {
-        setView("none");
-        router.refresh();
-      } else setError(res.error);
-    };
-    return (
-      <div
-        className="lg-glass max-w-md space-y-2.5 p-4"
-        style={{ borderColor: "rgba(232,180,58,0.4)" }}
-      >
-        <p className="text-[13.5px] font-semibold text-white">
-          {name} wants to start a Block with you
-        </p>
-        <Participants a={them} b={me} status="Pending acceptance" />
-        <div className="flex gap-2 pt-1">
-          <button
-            type="button"
-            onClick={accept}
-            disabled={busy}
-            className="lg-btn lg-btn-p"
-            style={{ color: "#FFFFFF" }}
-          >
-            {busy ? (
-              <Loader2 size={14} className="animate-spin" />
-            ) : (
-              <Check size={14} />
-            )}{" "}
-            Accept
-          </button>
-          <button
-            type="button"
-            onClick={decline}
-            disabled={busy}
-            className="lg-btn"
-          >
-            <X size={14} /> Decline
-          </button>
-        </div>
-        {error && <p className="text-[12px] text-danger">{error}</p>}
-      </div>
-    );
-  }
-
-  // ── Request sent — the success / pending state ────────────────────────────
-  if (view === "request_sent") {
-    return (
-      <div
-        className="lg-glass max-w-md p-4"
-        style={{ borderColor: "rgba(232,180,58,0.4)" }}
-      >
-        <div className="flex items-center gap-2">
-          <span className="inline-flex h-[21px] w-[21px] items-center justify-center rounded-full border border-[rgba(43,196,138,0.5)] bg-[rgba(43,196,138,0.25)] text-[#7BEDC4]">
-            <Check size={12} />
-          </span>
-          <p className="text-[14px] font-semibold text-white">
-            Block Request Sent
-          </p>
-        </div>
-        <p className="mt-1.5 text-[12.5px] text-white/60">
-          Request sent to{" "}
-          <span className="font-medium text-white">{name}</span>. Waiting for
-          response.
-        </p>
-        <div className="mt-3 flex flex-wrap items-center gap-2.5">
-          <span className="lg-pill lg-pill-y">
-            <span className="h-[5px] w-[5px] rounded-full bg-[#E8B43A]" />
-            Pending acceptance
-          </span>
-        </div>
-      </div>
-    );
-  }
-
-  // ── No relationship — Start Block ─────────────────────────────────────────
+  // ── No shared Block yet — create one + invite ─────────────────────────────
   const send = async () => {
     setBusy(true);
     setError(null);
-    const res = await sendBlockRequestAction({
-      recipientHandle: handle,
-      blockTitle: title.trim() || `Collab with ${name}`,
+    const created = await createBlockAction({
+      title: title.trim() || `Collab with ${name}`,
       blockType: "collaboration",
-      introMessage:
-        intro.trim() || `Hey ${name}, I'd love to start a Block together.`,
+      category: "Project",
+      tagline: intro.trim() || undefined,
     });
+    if (!created.ok || !created.slug) {
+      setBusy(false);
+      setError(created.ok ? "Couldn't create the Block." : created.error);
+      return;
+    }
+    // Invite the creator as a Pending member (non-fatal — the Block exists).
+    await inviteMembersAction(created.slug, [handle]);
     setBusy(false);
-    if (res.ok) {
-      setOpen(false);
-      setView("request_sent");
-      router.refresh();
-    } else setError(res.error);
+    setOpen(false);
+    setCreatedSlug(created.slug);
+    setView("active");
+    router.push(`/blocks/${created.slug}`);
+    router.refresh();
   };
 
   return (
@@ -224,7 +137,7 @@ export function StartBlockFlow({
             </div>
 
             <div className="space-y-4 px-5 py-4">
-              <Participants a={me} b={them} status="They'll get a request" />
+              <Participants a={me} b={them} status="They'll be invited to join" />
 
               <div>
                 <label className="mb-1.5 block text-[11px] font-semibold uppercase tracking-wide text-muted">
@@ -270,9 +183,9 @@ export function StartBlockFlow({
                 {busy ? (
                   <Loader2 size={14} className="animate-spin" />
                 ) : (
-                  <Send size={14} />
+                  <Plus size={14} />
                 )}
-                Send Block Request
+                Create Block &amp; Invite
               </button>
             </div>
           </div>

@@ -195,6 +195,12 @@ export type Block = {
   party?: BlockParty;
   // What the creator is looking for (Collaboration) — drives marketplace cards.
   seeking?: string[];
+  // The signed-in user's membership on this Block (single-block model). Set when
+  // the Block comes from My Blocks / the Block view; undefined for marketplace.
+  myRole?: "owner" | "member";
+  myStatus?: "pending" | "active";
+  isOwner?: boolean;
+  archived?: boolean;
   board: KanbanColumn[];
   activity: ActivityEvent[];
   files: FileAsset[];

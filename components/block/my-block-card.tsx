@@ -89,23 +89,33 @@ export function MyBlockCard({
         className="absolute inset-0 z-0"
       />
 
-      {/* Status badge — pinned top-right */}
+      {/* Status badge — pinned top-right. An unanswered invite reads as Pending
+          (amber); otherwise the Block's own status. */}
       <span
         className={cn(
           "absolute top-2 right-2 z-10 inline-flex items-center gap-1.5 h-6 px-2.5 rounded-full text-[10px] font-bold uppercase tracking-[0.05em] border backdrop-blur-sm",
-          isLive
-            ? "bg-danger text-white border-danger/60"
-            : "bg-black/45 text-white border-white/15"
+          block.myStatus === "pending"
+            ? "bg-[#E8B43A] text-black border-[#E8B43A]/60"
+            : isLive
+              ? "bg-danger text-white border-danger/60"
+              : "bg-black/45 text-white border-white/15"
         )}
       >
-        {isLive && (
+        {isLive && block.myStatus !== "pending" && (
           <span className="relative flex h-1.5 w-1.5">
             <span className="absolute inline-flex h-full w-full rounded-full bg-white opacity-75 animate-ping" />
             <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-white" />
           </span>
         )}
-        {statusLabel}
+        {block.myStatus === "pending" ? "Invited" : statusLabel}
       </span>
+
+      {/* Owner tag — bottom-left corner, only on Blocks you own. */}
+      {block.isOwner && (
+        <span className="absolute top-2 left-2 z-10 inline-flex h-6 items-center rounded-full border border-white/20 bg-black/45 px-2.5 text-[10px] font-bold uppercase tracking-[0.05em] text-white backdrop-blur-sm">
+          Owner
+        </span>
+      )}
 
       {/* Translucent gradient, low on the card — lowered + see-through so more
           of the cover shows. Title/meta on the left, a square type-aware CTA on

@@ -36,7 +36,7 @@ import type { BlockRow, CreatorProfileRow, FeaturedContentItem } from "@/types";
 import { getProfile } from "@/services/profiles.service";
 import {
   getBlockBySlug,
-  listBlocksForWorkspace,
+  listMyBlocks,
   listBlockMembers,
   getMembership,
   type BlockMemberStatus,
@@ -313,10 +313,26 @@ export async function getWorkspacesForSwitcher(): Promise<Workspace[]> {
 // Builds a Block view-model purely from a DB row (no mock substitution) — a
 // clean synthesized base supplies empty content arrays so real Blocks render
 // honest empty states until their subsystems fill in.
-function blockRowToView(row: BlockRow): Block {
+function blockRowToView(
+  row: BlockRow,
+  membership?: { role?: string | null; status?: string | null }
+): Block {
   const base = synthesizeBlock(row.slug, row.block_type ?? "collaboration");
+  const isOwner = membership?.role === "lead";
+  const archivedAt = (row as { archived_at?: string | null }).archived_at;
   return {
     ...base,
+    ...(membership
+      ? {
+          myRole: isOwner ? ("owner" as const) : ("member" as const),
+          myStatus:
+            membership.status === "invited"
+              ? ("pending" as const)
+              : ("active" as const),
+          isOwner,
+          archived: !!archivedAt,
+        }
+      : {}),
     id: row.id,
     title: row.title ?? base.title,
     slug: row.slug ?? base.slug,
@@ -341,22 +357,25 @@ function blockRowToView(row: BlockRow): Block {
   };
 }
 
-export async function getBlocks(workspaceId?: string): Promise<Block[]> {
+// My Blocks — every Block the signed-in user belongs to (owner, active member,
+// or still invited), each carrying the user's own role + status. Membership is
+// the single source of truth: all members see the SAME Block, never a per-user
+// copy, and there is no workspace scoping. The optional arg is ignored (kept for
+// call-site compatibility).
+export async function getBlocks(_workspaceId?: string): Promise<Block[]> {
   if (!supabaseConfigured) return mockBlocks;
 
   const supabase = createSupabaseServerClient();
-
-  // If no workspace given, infer first one for the user.
-  let wsId = workspaceId;
-  if (!wsId) {
-    const wss = await getMyWorkspaces();
-    wsId = wss[0]?.id;
-    if (!wsId) return []; // real mode: honest empty, never mock
-  }
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return [];
 
   try {
-    const rows = await listBlocksForWorkspace(supabase, wsId);
-    return rows.map(blockRowToView);
+    const rows = await listMyBlocks(supabase, user.id);
+    return rows.map((r) =>
+      blockRowToView(r, { role: r.my_role, status: r.my_status })
+    );
   } catch {
     return [];
   }
@@ -721,12 +740,12 @@ export async function getMyBlockMembership(
 
 // The collaboration relationship between the signed-in user and a creator, used
 // to drive the Start Block button's state on the profile (and elsewhere).
+// Single-block model: the relationship between me and a creator is simply
+// whether we already share a Block. No requests, no pending/incoming states.
 export type BlockRelationship =
   | { status: "self" }
   | { status: "none" }
-  | { status: "request_sent" } // I sent a pending request
-  | { status: "incoming"; requestId: string } // they sent me a pending request
-  | { status: "active"; slug: string }; // accepted → we share an active Block
+  | { status: "active"; slug: string }; // we're both members of the same Block
 
 export async function getBlockRelationship(
   creatorHandle: string
@@ -745,41 +764,31 @@ export async function getBlockRelationship(
     if (!creatorId) return { status: "none" };
     if (creatorId === user.id) return { status: "self" };
 
-    // Most recent request between the two parties (either direction).
-    const { data } = await supabase
-      .from("block_requests")
-      .select("id, requester_id, recipient_id, status, block_id")
-      .or(
-        `and(requester_id.eq.${user.id},recipient_id.eq.${creatorId}),and(requester_id.eq.${creatorId},recipient_id.eq.${user.id})`
-      )
-      .order("created_at", { ascending: false })
-      .limit(1);
-    const req = data?.[0] as
-      | {
-          id: string;
-          requester_id: string;
-          recipient_id: string;
-          status: string;
-          block_id: string | null;
-        }
-      | undefined;
-    if (!req) return { status: "none" };
+    // A shared Block = a block_members row for each of us on the same block_id.
+    const { data: mine } = await supabase
+      .from("block_members")
+      .select("block_id")
+      .eq("user_id", user.id);
+    const myBlockIds = (mine ?? []).map((r) => (r as { block_id: string }).block_id);
+    if (!myBlockIds.length) return { status: "none" };
 
-    if (req.status === "accepted" && req.block_id) {
-      const { data: b } = await supabase
-        .from("blocks")
-        .select("slug")
-        .eq("id", req.block_id)
-        .maybeSingle();
-      return { status: "active", slug: (b?.slug as string) ?? "" };
-    }
-    if (req.status === "pending") {
-      return req.requester_id === user.id
-        ? { status: "request_sent" }
-        : { status: "incoming", requestId: req.id };
-    }
-    // declined → let the user start fresh
-    return { status: "none" };
+    const { data: shared } = await supabase
+      .from("block_members")
+      .select("block_id")
+      .eq("user_id", creatorId)
+      .in("block_id", myBlockIds)
+      .limit(1);
+    const sharedId = (shared?.[0] as { block_id: string } | undefined)?.block_id;
+    if (!sharedId) return { status: "none" };
+
+    const { data: b } = await supabase
+      .from("blocks")
+      .select("slug")
+      .eq("id", sharedId)
+      .maybeSingle();
+    return b?.slug
+      ? { status: "active", slug: b.slug as string }
+      : { status: "none" };
   } catch {
     return { status: "none" };
   }
