@@ -206,9 +206,11 @@ export function Dialog({
           />
         </div>
 
-        {/* Fixed footer — the primary action is always visible */}
+        {/* Sticky footer — the primary action stays pinned to the bottom of the
+            visible area (above the keyboard) and clears the home indicator on
+            installed PWAs via the safe-area inset. */}
         {footer && (
-          <div className="px-5 sm:px-6 py-4 border-t border-line bg-surface-2/40 flex items-center justify-end gap-2 shrink-0">
+          <div className="px-5 sm:px-6 pt-4 pb-[max(1rem,env(safe-area-inset-bottom))] border-t border-line bg-surface-2/40 flex items-center justify-end gap-2 shrink-0">
             {footer}
           </div>
         )}
