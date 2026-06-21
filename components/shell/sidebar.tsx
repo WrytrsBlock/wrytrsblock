@@ -5,10 +5,10 @@ import { usePathname } from "next/navigation";
 import {
   Bell,
   CircleDot,
+  Compass,
   House,
   LayoutGrid,
   MessageSquare,
-  Plus,
   Settings,
   Store,
   User,
@@ -17,7 +17,6 @@ import { cn } from "@/lib/cn";
 import type { Block, Person } from "@/lib/mock";
 import { Wordmark } from "@/components/marketing/wordmark";
 import { UserMenu } from "@/components/shell/user-menu";
-import { openNewBlock } from "@/lib/ui-events";
 
 type Props = {
   profile: Person;
@@ -73,17 +72,18 @@ export function Sidebar({ profile, blocks, unreadMessages = 0 }: Props) {
         <Wordmark href="/home" variant="horizontal" />
       </div>
 
-      {/* Start a Block — the hero action */}
-      <button
-        onClick={() => openNewBlock()}
+      {/* Find Creators — the hero action. Collaboration starts by discovering
+          people in the Block Market, not by spinning up an empty Block. */}
+      <Link
+        href="/marketplace"
         // Force the label + icon pure white (#FFFFFF) in every state. The base
         // `text-bg` resolved to black on the blue gradient; inline color wins
         // over any cascade and the icon inherits it via currentColor.
         className="mx-3 mt-3 inline-flex items-center justify-center gap-2 h-10 rounded-xl bg-grad-accent text-[#FFFFFF] [&_svg]:text-[#FFFFFF] text-[13px] font-semibold shadow-glow hover:opacity-95 transition-opacity"
         style={{ color: "#FFFFFF" }}
       >
-        <Plus size={15} strokeWidth={2.5} /> Start a Block
-      </button>
+        <Compass size={15} strokeWidth={2.5} /> Find Creators
+      </Link>
 
       {/* Primary nav — search lives in the centered glass pill, not here */}
       <nav className="px-3 mt-5 space-y-1">
