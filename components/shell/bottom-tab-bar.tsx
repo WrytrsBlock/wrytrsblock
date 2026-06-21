@@ -2,10 +2,9 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { CircleUser, House, LayoutGrid, Plus, Search } from "lucide-react";
+import { CircleUser, House, LayoutGrid, Search } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { cn } from "@/lib/cn";
-import { openNewBlock } from "@/lib/ui-events";
 
 // Mobile-first primary navigation — an Apple-inspired floating liquid-glass dock.
 // Iconography is strictly monochrome (white / light gray); selection is conveyed
@@ -69,23 +68,10 @@ export function BottomTabBar({ profileHref }: { profileHref: string }) {
     >
       {/* Floating liquid-glass dock */}
       <div className="mx-auto flex max-w-md items-stretch gap-0.5 rounded-[26px] glass-strong border border-white/[0.1] px-1.5 py-1.5 shadow-[0_12px_36px_-8px_rgb(0_0_0/0.7),inset_0_1px_0_rgb(255_255_255/0.08)]">
+        {/* Four primary destinations — Blocks are created from Creator Profiles
+            or Marketplace cards, so there is no Create tab. */}
         <NavTab href="/home" label="Home" icon={House} />
         <NavTab href="/marketplace" label="Market" icon={Search} />
-
-        {/* Create — primary action, distinguished by a circular glass affordance
-            (monochrome), not color. Never shows an "active" state. */}
-        <button
-          type="button"
-          onClick={() => openNewBlock()}
-          aria-label="Create a Block"
-          className={ITEM}
-        >
-          <span className="flex h-9 w-9 items-center justify-center rounded-full bg-white/[0.1] border border-white/[0.14] shadow-[inset_0_1px_0_rgb(255_255_255/0.16)]">
-            <Plus size={20} strokeWidth={2.3} className="text-white" />
-          </span>
-          <span className={cn(LABEL, "text-white/60")}>Create</span>
-        </button>
-
         <NavTab href="/blocks" label="Blocks" icon={LayoutGrid} />
         <NavTab href={profileHref} label="Profile" icon={CircleUser} />
       </div>

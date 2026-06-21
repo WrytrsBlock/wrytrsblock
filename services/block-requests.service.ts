@@ -66,6 +66,21 @@ export async function listIncomingRequests(
   return (data ?? []) as BlockRequestRow[];
 }
 
+// Pending requests the signed-in user has SENT and is waiting to hear back on.
+export async function listOutgoingRequests(
+  supabase: DB,
+  userId: UUID
+): Promise<BlockRequestRow[]> {
+  const { data, error } = await supabase
+    .from("block_requests")
+    .select("*")
+    .eq("requester_id", userId)
+    .eq("status", "pending")
+    .order("created_at", { ascending: false });
+  if (error) throw error;
+  return (data ?? []) as BlockRequestRow[];
+}
+
 export async function getBlockRequest(
   supabase: DB,
   id: UUID

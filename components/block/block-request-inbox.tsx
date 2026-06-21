@@ -25,8 +25,12 @@ export type IncomingRequest = {
 // adds both creators as members, and routes the recipient into the workspace.
 export function BlockRequestInbox({
   requests,
+  hideHeading = false,
 }: {
   requests: IncomingRequest[];
+  // When embedded under another heading (e.g. the My Blocks "Pending Requests"
+  // section) the inbox's own title is redundant — suppress it.
+  hideHeading?: boolean;
 }) {
   const router = useRouter();
   const [busyId, setBusyId] = useState<string | null>(null);
@@ -93,15 +97,17 @@ export function BlockRequestInbox({
   }
 
   return (
-    <section className="mb-6">
-      <div className="flex items-center justify-between mb-3">
-        <h2 className="font-display text-lg text-ink tracking-tight">
-          Block Requests
-        </h2>
-        <span className="inline-flex items-center justify-center h-5 min-w-[20px] px-1.5 rounded-full bg-accent/15 text-accent text-[11px] font-semibold tabular-nums">
-          {visible.length}
-        </span>
-      </div>
+    <section className={hideHeading ? "" : "mb-6"}>
+      {!hideHeading && (
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="font-display text-lg text-ink tracking-tight">
+            Block Requests
+          </h2>
+          <span className="inline-flex items-center justify-center h-5 min-w-[20px] px-1.5 rounded-full bg-accent/15 text-accent text-[11px] font-semibold tabular-nums">
+            {visible.length}
+          </span>
+        </div>
+      )}
 
       {error && (
         <p className="mb-3 text-[12px] text-danger bg-danger/10 border border-danger/30 rounded-md px-3 py-2">

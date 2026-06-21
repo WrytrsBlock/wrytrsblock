@@ -7,7 +7,10 @@
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { supabaseConfigured } from "@/lib/env";
 import { initialsOf } from "@/lib/cn";
-import { listIncomingRequests } from "@/services/block-requests.service";
+import {
+  listIncomingRequests,
+  listOutgoingRequests,
+} from "@/services/block-requests.service";
 import type { IncomingRequest } from "@/components/block/block-request-inbox";
 import {
   blocks as mockBlocks,
@@ -1067,6 +1070,32 @@ export async function getIncomingBlockRequests(): Promise<IncomingRequest[]> {
       blockType: r.block_type,
       introMessage: r.intro_message,
       expectedOutcome: r.expected_outcome,
+    }));
+  } catch {
+    return [];
+  }
+}
+
+// Pending Block Requests the user has SENT (awaiting the recipient's response).
+export type OutgoingRequest = {
+  id: string;
+  blockTitle: string;
+  blockType: "collaboration" | "service" | "block_party";
+};
+
+export async function getOutgoingBlockRequests(): Promise<OutgoingRequest[]> {
+  if (!supabaseConfigured) return [];
+  const supabase = createSupabaseServerClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return [];
+  try {
+    const rows = await listOutgoingRequests(supabase, user.id);
+    return rows.map((r) => ({
+      id: r.id,
+      blockTitle: r.block_title,
+      blockType: r.block_type,
     }));
   } catch {
     return [];
