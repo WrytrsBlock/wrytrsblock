@@ -747,13 +747,26 @@ export async function getMyBlockMembership(
   try {
     const block = await getBlockBySlug(supabase, slug);
     if (!block) return null;
-    const m = await getMembership(supabase, block.id, user.id);
-    // Owner = the creator (created_by/lead_id) OR a 'lead' member. The role check
-    // covers request-created Blocks whose `created_by` is the other party.
-    const isOwner =
-      block.created_by === user.id ||
-      block.lead_id === user.id ||
-      m?.role === "lead";
+
+    // Ownership is decided by the block itself first: the creator
+    // (created_by/lead_id) ALWAYS owns it. Compute this before touching
+    // block_members so a membership-query failure (e.g. an RLS hiccup) can
+    // never strip an owner of their delete/manage rights.
+    const ownerByBlock =
+      block.created_by === user.id || block.lead_id === user.id;
+
+    // Membership is best-effort — isolate its errors from the owner check.
+    let m: Awaited<ReturnType<typeof getMembership>> = null;
+    try {
+      m = await getMembership(supabase, block.id, user.id);
+    } catch {
+      m = null;
+    }
+
+    // The role check additionally covers request-created Blocks whose
+    // `created_by` is the other party.
+    const isOwner = ownerByBlock || m?.role === "lead";
+
     if (m) return { status: m.status, isOwner };
     // The creator always owns the Block, even if their block_members row is
     // missing (legacy / request-created Blocks) — otherwise they'd lose the
