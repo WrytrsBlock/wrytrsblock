@@ -1101,3 +1101,118 @@ export async function getOutgoingBlockRequests(): Promise<OutgoingRequest[]> {
     return [];
   }
 }
+
+// Person-centric pending requests for the My Blocks dashboard — incoming ones
+// the user accepts/declines, and outgoing ones awaiting a response.
+export type PendingPerson = {
+  id: string;
+  requestId: string;
+  name: string;
+  avatar?: string;
+  role?: string;
+  blockType: "collaboration" | "service" | "block_party";
+  timeAgo: string;
+};
+export type PendingRequestsData = {
+  incoming: PendingPerson[];
+  outgoing: PendingPerson[];
+};
+
+function blockTypeLabel(t: string): string {
+  return t === "service"
+    ? "Service"
+    : t === "block_party"
+      ? "Block Party"
+      : "Collaboration";
+}
+
+function timeAgo(iso?: string | null): string {
+  if (!iso) return "";
+  const ms = Date.now() - new Date(iso).getTime();
+  const m = Math.max(0, Math.floor(ms / 60000));
+  if (m < 1) return "just now";
+  if (m < 60) return `${m}m ago`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h}h ago`;
+  return `${Math.floor(h / 24)}d ago`;
+}
+
+export async function getPendingRequests(): Promise<PendingRequestsData> {
+  // Demo mode — surface representative cards so the dashboard reads correctly.
+  if (!supabaseConfigured) {
+    const mk = (
+      handle: string,
+      blockType: PendingPerson["blockType"],
+      ago: string
+    ): PendingPerson => {
+      const p = mockPeople.find((x) => x.handle === handle)!;
+      return {
+        id: p.id,
+        requestId: `mock-${handle}`,
+        name: p.name,
+        avatar: p.avatar,
+        role: p.role,
+        blockType,
+        timeAgo: ago,
+      };
+    };
+    return {
+      incoming: [mk("milotran", "collaboration", "2h ago")],
+      outgoing: [mk("sashareyes", "service", "1d ago")],
+    };
+  }
+
+  const supabase = createSupabaseServerClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { incoming: [], outgoing: [] };
+
+  try {
+    const [inRows, outRows] = await Promise.all([
+      listIncomingRequests(supabase, user.id).catch(() => []),
+      listOutgoingRequests(supabase, user.id).catch(() => []),
+    ]);
+
+    const incoming: PendingPerson[] = inRows.map((r) => ({
+      id: r.requester_id,
+      requestId: r.id,
+      name: r.requester_name ?? r.requester_handle ?? "A creator",
+      role: blockTypeLabel(r.block_type),
+      blockType: r.block_type,
+      timeAgo: timeAgo(r.created_at),
+    }));
+
+    // Outgoing rows carry only recipient_id — resolve a display name + avatar
+    // best-effort so the card reads like the incoming one.
+    const outgoing: PendingPerson[] = await Promise.all(
+      outRows.map(async (r) => {
+        let name = "Pending creator";
+        let avatar: string | undefined;
+        const role: string = blockTypeLabel(r.block_type);
+        try {
+          const prof = await getCreatorProfileById(supabase, r.recipient_id);
+          if (prof) {
+            name = prof.display_name ?? name;
+            avatar = prof.avatar_url ?? undefined;
+          }
+        } catch {
+          /* fall back to defaults */
+        }
+        return {
+          id: r.recipient_id,
+          requestId: r.id,
+          name,
+          avatar,
+          role,
+          blockType: r.block_type,
+          timeAgo: timeAgo(r.created_at),
+        };
+      })
+    );
+
+    return { incoming, outgoing };
+  } catch {
+    return { incoming: [], outgoing: [] };
+  }
+}
