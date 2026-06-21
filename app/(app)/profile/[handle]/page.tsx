@@ -4,6 +4,7 @@ import {
   ExternalLink,
   Globe,
   ImagePlus,
+  LogOut,
   MapPin,
   Pencil,
   Settings,
@@ -176,6 +177,20 @@ export default async function ProfilePage({
               <Link href="/settings" className="lg-btn" aria-label="Settings">
                 <Settings size={14} /> Settings
               </Link>
+            )}
+            {/* Direct Log out — switching accounts is a primary need (testing
+                onboarding), so it lives on the profile itself, not just buried in
+                Settings. Posts to the existing server sign-out route. */}
+            {isMe && (
+              <form action="/auth/sign-out" method="post">
+                <button
+                  type="submit"
+                  className="lg-btn text-danger hover:bg-danger/10"
+                  aria-label="Log out"
+                >
+                  <LogOut size={14} /> Log Out
+                </button>
+              </form>
             )}
             <span className="hidden flex-1 sm:block" />
             <div className="flex items-center gap-3 text-[12px] text-white/60">
