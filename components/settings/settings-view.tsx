@@ -8,6 +8,7 @@ import {
   AtSign,
   Bell,
   BookOpen,
+  ChevronDown,
   ChevronRight,
   Compass,
   Eye,
@@ -35,8 +36,8 @@ import { deleteAccountAction } from "@/app/actions/account";
 export function SettingsView({ email }: { email: string }) {
   return (
     <div className="space-y-6">
-      {/* 1 — Account */}
-      <Group title="Account" desc="Your login and profile.">
+      {/* 1 — Account (collapsed on mobile) */}
+      <Group title="Account" desc="Your login and profile." collapseOnMobile>
         <LinkRow
           href="/profile/edit"
           icon={Pencil}
@@ -45,7 +46,6 @@ export function SettingsView({ email }: { email: string }) {
         />
         <ChangeEmailRow currentEmail={email} />
         <ChangePasswordRow />
-        <DeleteAccountRow />
       </Group>
 
       {/* 2 — Notifications */}
@@ -104,10 +104,11 @@ export function SettingsView({ email }: { email: string }) {
         />
       </Group>
 
-      {/* 4 — Featured Content */}
+      {/* 4 — Portfolio (collapsed on mobile) */}
       <Group
-        title="Featured Content"
+        title="Portfolio"
         desc="The showcase that answers 'why start a Block with me?'"
+        collapseOnMobile
       >
         <LinkRow
           href="/profile/edit#featured"
@@ -129,8 +130,12 @@ export function SettingsView({ email }: { email: string }) {
         />
       </Group>
 
-      {/* 5 — Legal */}
-      <Group title="Legal" desc="The rules of the road on WrytrsBlock.">
+      {/* 5 — Legal (collapsed on mobile) */}
+      <Group
+        title="Legal"
+        desc="The rules of the road on WrytrsBlock."
+        collapseOnMobile
+      >
         <LinkRow href="/terms" icon={FileText} label="Terms of Service" newTab />
         <LinkRow href="/privacy" icon={Shield} label="Privacy Policy" newTab />
         <LinkRow
@@ -141,16 +146,21 @@ export function SettingsView({ email }: { email: string }) {
         />
       </Group>
 
-      {/* Log out — reachable on every device (the desktop sidebar menu is hidden
-          on mobile, so this is mobile's way out). */}
-      <form action="/auth/sign-out" method="post">
-        <button
-          type="submit"
-          className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl border border-line bg-surface text-[13.5px] font-medium text-danger transition-colors hover:bg-danger/10"
-        >
-          <LogOut size={16} /> Log out
-        </button>
-      </form>
+      {/* Pinned bottom — account exits live OUTSIDE the accordions so Delete
+          Account and Log Out are always reachable without expanding a section. */}
+      <div className="space-y-3 pt-1">
+        <section className="lg-glass overflow-hidden !rounded-2xl">
+          <DeleteAccountRow />
+        </section>
+        <form action="/auth/sign-out" method="post">
+          <button
+            type="submit"
+            className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl border border-line bg-surface text-[13.5px] font-medium text-danger transition-colors hover:bg-danger/10"
+          >
+            <LogOut size={16} /> Log out
+          </button>
+        </form>
+      </div>
     </div>
   );
 }
@@ -160,20 +170,57 @@ function Group({
   title,
   desc,
   children,
+  collapseOnMobile = false,
 }: {
   title: string;
   desc?: string;
   children: ReactNode;
+  // Start collapsed under the `sm` breakpoint so mobile Settings opens tidy.
+  collapseOnMobile?: boolean;
 }) {
+  const [open, setOpen] = useState(true);
+
+  // Collapse the marked sections on mobile only. We default open for SSR (so
+  // markup is deterministic) and collapse after mount when the viewport is small.
+  useEffect(() => {
+    if (
+      collapseOnMobile &&
+      typeof window !== "undefined" &&
+      window.matchMedia("(max-width: 639px)").matches
+    ) {
+      setOpen(false);
+    }
+  }, [collapseOnMobile]);
+
   return (
     <section className="lg-glass overflow-hidden !rounded-2xl">
-      <div className="px-5 sm:px-6 pt-4 pb-3 border-b border-white/[0.12]">
-        <h2 className="text-[12px] font-bold uppercase tracking-[0.14em] text-white/60">
-          {title}
-        </h2>
-        {desc && <p className="text-[12px] text-white/50 mt-1">{desc}</p>}
-      </div>
-      <div className="divide-y divide-white/[0.08]">{children}</div>
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        aria-expanded={open}
+        className="w-full flex items-center gap-3 px-5 sm:px-6 py-4 text-left transition-colors hover:bg-white/[0.03]"
+      >
+        <span className="flex-1 min-w-0">
+          <span className="block text-[12px] font-bold uppercase tracking-[0.14em] text-white/60">
+            {title}
+          </span>
+          {desc && (
+            <span className="block text-[12px] text-white/50 mt-1">{desc}</span>
+          )}
+        </span>
+        <ChevronDown
+          size={18}
+          className={cn(
+            "shrink-0 text-white/45 transition-transform duration-200",
+            open && "rotate-180"
+          )}
+        />
+      </button>
+      {open && (
+        <div className="divide-y divide-white/[0.08] border-t border-white/[0.12]">
+          {children}
+        </div>
+      )}
     </section>
   );
 }
