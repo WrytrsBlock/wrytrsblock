@@ -12,6 +12,7 @@ export function Dialog({
   children,
   footer,
   size = "md",
+  mobilePlacement = "sheet",
 }: {
   open: boolean;
   onClose: () => void;
@@ -20,6 +21,9 @@ export function Dialog({
   children: React.ReactNode;
   footer?: React.ReactNode;
   size?: "sm" | "md" | "lg";
+  // "sheet" (default) anchors to the bottom on mobile; "center" floats a
+  // centered card in the middle of the screen on every breakpoint.
+  mobilePlacement?: "sheet" | "center";
 }) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
@@ -73,8 +77,15 @@ export function Dialog({
     lg: "max-w-[680px]",
   };
 
+  const centered = mobilePlacement === "center";
+
   return (
-    <div className="fixed inset-0 z-[65] flex items-end justify-center sm:items-start sm:pt-[7vh] px-0 sm:px-4">
+    <div
+      className={cn(
+        "fixed inset-0 z-[65] flex justify-center sm:items-start sm:pt-[7vh] sm:px-4",
+        centered ? "items-center px-4" : "items-end px-0"
+      )}
+    >
       <div
         className="absolute inset-0 bg-bg/60 backdrop-blur-md animate-fade-in"
         onClick={onClose}
@@ -84,16 +95,21 @@ export function Dialog({
         aria-modal="true"
         aria-label={title}
         className={cn(
-          // Mobile: bottom sheet. Desktop: centered modal. Always capped to the
-          // viewport with a fixed header + footer and an internal scroll area.
-          "glass-overlay relative w-full flex flex-col max-h-[92vh] sm:max-h-[86vh] overflow-hidden animate-fade-up rounded-t-2xl sm:rounded-2xl pb-[env(safe-area-inset-bottom)] sm:pb-0",
+          // Capped to the viewport with a fixed header + footer and an internal
+          // scroll area. Mobile is either a bottom sheet or a centered card.
+          "glass-overlay relative w-full flex flex-col max-h-[92vh] sm:max-h-[86vh] overflow-hidden animate-fade-up sm:rounded-2xl sm:pb-0",
+          centered
+            ? "rounded-2xl pb-0"
+            : "rounded-t-2xl pb-[env(safe-area-inset-bottom)]",
           widths[size]
         )}
       >
-        {/* Mobile grabber */}
-        <div className="sm:hidden flex justify-center pt-2.5 pb-1 shrink-0">
-          <span className="h-1 w-9 rounded-full bg-line-strong" />
-        </div>
+        {/* Mobile grabber — only for the bottom-sheet variant */}
+        {!centered && (
+          <div className="sm:hidden flex justify-center pt-2.5 pb-1 shrink-0">
+            <span className="h-1 w-9 rounded-full bg-line-strong" />
+          </div>
+        )}
 
         {/* Fixed header */}
         {(title || description) && (

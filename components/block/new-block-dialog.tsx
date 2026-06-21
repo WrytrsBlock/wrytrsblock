@@ -238,6 +238,7 @@ export function NewBlockDialog() {
     <Dialog
       open={open}
       onClose={close}
+      mobilePlacement="center"
       title={step === "type" ? "Create a Block" : detailsTitle}
       description={
         step === "type"
