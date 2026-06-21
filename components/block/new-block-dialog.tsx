@@ -8,6 +8,7 @@ import {
   Briefcase,
   CalendarClock,
   Check,
+  ChevronRight,
   CreditCard,
   DollarSign,
   Disc3,
@@ -62,14 +63,13 @@ const categories: { id: BlockCategory; label: string; icon: LucideIcon }[] = [
 ];
 
 // The three things you can start. Each row carries its own identity colour,
-// used for the icon tile, the CTA pill, and the arrow.
+// used for the flat-colour profile-style tile. Copy stays to a title + one line.
 const blockOptions: {
   type: BlockType;
   icon: LucideIcon;
   color: string;
   title: string;
   sub: string;
-  cta: string;
   beta?: boolean;
 }[] = [
   {
@@ -78,23 +78,20 @@ const blockOptions: {
     color: "#2F6BFF",
     title: "Collaboration Block",
     sub: "Find talent for a project.",
-    cta: "Build your team",
   },
   {
     type: "service",
     icon: Briefcase,
     color: "#16A34A",
     title: "Service Block",
-    sub: "Offer your creative service.",
-    cta: "Get paid for your skills",
+    sub: "Offer creative services.",
   },
   {
     type: "block_party",
     icon: PartyPopper,
     color: "#F97316",
     title: "Block Party",
-    sub: "Host a session, event, or room.",
-    cta: "Bring creators together",
+    sub: "Host an event or session.",
     beta: true,
   },
 ];
@@ -282,17 +279,17 @@ export function NewBlockDialog() {
                 <button
                   key={o.type}
                   onClick={() => chooseType(o.type)}
-                  className="group flex w-full items-center gap-4 py-5 text-left first:pt-1"
+                  className="group flex w-full items-center gap-3.5 py-3.5 text-left first:pt-1"
                 >
                   <span
-                    className="flex h-[84px] w-[84px] shrink-0 items-center justify-center rounded-[9px] shadow-sm transition-transform duration-200 group-hover:scale-[1.04] group-active:scale-95"
+                    className="flex h-[76px] w-[76px] shrink-0 items-center justify-center rounded-[9px] shadow-sm transition-transform duration-200 group-hover:scale-[1.04] group-active:scale-95"
                     style={{ backgroundColor: o.color }}
                   >
-                    <Icon size={38} strokeWidth={1.9} className="text-white" />
+                    <Icon size={34} strokeWidth={1.9} className="text-white" />
                   </span>
 
                   <div className="min-w-0 flex-1">
-                    <h3 className="flex items-center gap-2 text-[18px] font-semibold tracking-tight text-ink">
+                    <h3 className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[16.5px] font-semibold tracking-tight text-ink">
                       {o.title}
                       {o.beta && (
                         <span
@@ -306,23 +303,15 @@ export function NewBlockDialog() {
                         </span>
                       )}
                     </h3>
-                    <p className="mt-0.5 text-[13.5px] leading-snug text-muted">
+                    <p className="mt-0.5 text-[13px] leading-snug text-muted">
                       {o.sub}
                     </p>
-                    <span
-                      className="mt-2.5 inline-flex items-center rounded-full border px-3 py-1 text-[12.5px] font-medium"
-                      style={{ color: o.color, borderColor: `${o.color}59` }}
-                    >
-                      {o.cta}
-                    </span>
                   </div>
 
-                  <span
-                    className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-line bg-surface-2/60 transition-all duration-200 group-hover:translate-x-0.5"
-                    style={{ color: o.color }}
-                  >
-                    <ArrowRight size={18} />
-                  </span>
+                  <ChevronRight
+                    size={20}
+                    className="shrink-0 text-muted/45 transition-transform duration-200 group-hover:translate-x-0.5"
+                  />
                 </button>
               );
             })}

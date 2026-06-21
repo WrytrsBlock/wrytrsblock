@@ -28,6 +28,10 @@ export function Dialog({
   const scrollRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
   const [moreBelow, setMoreBelow] = useState(false);
+  // On mobile, mirror the *visual* viewport so the on-screen keyboard never
+  // clips the modal: the panel shrinks to the area above the keyboard and the
+  // form scrolls within it. Null on desktop / when VisualViewport is absent.
+  const [vp, setVp] = useState<{ h: number; top: number } | null>(null);
 
   // Show a bottom fade whenever the scroll area has more content below — a clear
   // cue that additional fields can be scrolled to.
@@ -51,6 +55,31 @@ export function Dialog({
       document.body.style.overflow = prev;
     };
   }, [open, onClose]);
+
+  // Track the visual viewport on mobile so the keyboard can't push the modal
+  // off-screen. We only apply it under the `sm` breakpoint — desktop keeps the
+  // normal layout-viewport sizing.
+  useEffect(() => {
+    if (!open || typeof window === "undefined") return;
+    const vvp = window.visualViewport;
+    const mq = window.matchMedia("(max-width: 639px)");
+    function apply() {
+      if (vvp && mq.matches) {
+        setVp({ h: vvp.height, top: vvp.offsetTop });
+      } else {
+        setVp(null);
+      }
+    }
+    apply();
+    vvp?.addEventListener("resize", apply);
+    vvp?.addEventListener("scroll", apply);
+    mq.addEventListener("change", apply);
+    return () => {
+      vvp?.removeEventListener("resize", apply);
+      vvp?.removeEventListener("scroll", apply);
+      mq.removeEventListener("change", apply);
+    };
+  }, [open]);
 
   // Recompute the fade on open, on resize, and whenever the content height
   // changes (e.g. the Block Request form switches type and grows/shrinks).
@@ -80,30 +109,40 @@ export function Dialog({
   const centered = mobilePlacement === "center";
 
   return (
-    <div
-      className={cn(
-        "fixed inset-0 z-[65] flex justify-center sm:items-start sm:pt-[7vh] sm:px-4",
-        centered ? "items-center px-4" : "items-end px-0"
-      )}
-    >
+    <>
+      {/* Full-screen backdrop — stays put even when the panel shrinks to dodge
+          the keyboard. */}
       <div
-        className="absolute inset-0 bg-bg/60 backdrop-blur-md animate-fade-in"
+        className="fixed inset-0 z-[64] bg-bg/60 backdrop-blur-md animate-fade-in"
         onClick={onClose}
       />
       <div
-        role="dialog"
-        aria-modal="true"
-        aria-label={title}
         className={cn(
-          // Capped to the viewport with a fixed header + footer and an internal
-          // scroll area. Mobile is either a bottom sheet or a centered card.
-          "glass-overlay relative w-full flex flex-col max-h-[92vh] sm:max-h-[86vh] overflow-hidden animate-fade-up sm:rounded-2xl sm:pb-0",
-          centered
-            ? "rounded-2xl pb-0"
-            : "rounded-t-2xl pb-[env(safe-area-inset-bottom)]",
-          widths[size]
+          "fixed inset-x-0 top-0 z-[65] flex justify-center overflow-hidden sm:items-start sm:pt-[7vh] sm:px-4",
+          centered ? "items-center px-4 py-4 sm:py-0" : "items-end px-0"
         )}
+        // Mobile: match the visible viewport so the modal never sits under the
+        // keyboard. Desktop / no-VV: fall back to the full layout viewport.
+        style={
+          vp
+            ? { height: vp.h, transform: `translateY(${vp.top}px)` }
+            : { height: "100dvh" }
+        }
       >
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label={title}
+          className={cn(
+            // Capped to the *container* (visible viewport on mobile) with a fixed
+            // header + footer and an internal scroll area.
+            "glass-overlay relative w-full flex flex-col max-h-full sm:max-h-[86vh] overflow-hidden animate-fade-up sm:rounded-2xl sm:pb-0",
+            centered
+              ? "rounded-2xl pb-0"
+              : "rounded-t-2xl pb-[env(safe-area-inset-bottom)]",
+            widths[size]
+          )}
+        >
         {/* Mobile grabber — only for the bottom-sheet variant */}
         {!centered && (
           <div className="sm:hidden flex justify-center pt-2.5 pb-1 shrink-0">
@@ -142,7 +181,18 @@ export function Dialog({
           <div
             ref={scrollRef}
             onScroll={recompute}
-            className="h-full overflow-y-auto overscroll-contain px-5 sm:px-6 py-5"
+            // Keep a focused field visible above the keyboard. Native browsers
+            // try to, but inside a constrained modal we nudge it to center.
+            onFocusCapture={(e) => {
+              const t = e.target as HTMLElement;
+              if (t.matches("input, textarea, select")) {
+                setTimeout(
+                  () => t.scrollIntoView({ block: "center", behavior: "smooth" }),
+                  60
+                );
+              }
+            }}
+            className="h-full overflow-y-auto overflow-x-hidden overscroll-contain px-5 sm:px-6 py-5"
           >
             <div ref={contentRef}>{children}</div>
           </div>
@@ -163,6 +213,7 @@ export function Dialog({
           </div>
         )}
       </div>
-    </div>
+      </div>
+    </>
   );
 }

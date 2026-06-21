@@ -49,6 +49,12 @@ export const metadata: Metadata = {
 
 export const viewport: Viewport = {
   themeColor: "#07080D",
+  width: "device-width",
+  initialScale: 1,
+  // Enable env(safe-area-inset-*) on notched devices and let the on-screen
+  // keyboard resize the content area (Android Chrome) so modals adapt.
+  viewportFit: "cover",
+  interactiveWidget: "resizes-content",
 };
 
 const themeBootstrap = `
