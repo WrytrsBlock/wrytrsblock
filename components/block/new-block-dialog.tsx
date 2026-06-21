@@ -21,6 +21,7 @@ import {
   Newspaper,
   PartyPopper,
   Radio,
+  Sparkles,
   Tv,
   Users,
   Wallet,
@@ -61,10 +62,49 @@ const categories: { id: BlockCategory; label: string; icon: LucideIcon }[] = [
   { id: "Community", label: "Community", icon: Users },
 ];
 
+// The three things you can start. Each row carries its own identity colour,
+// used for the icon tile, the CTA pill, and the arrow.
+const blockOptions: {
+  type: BlockType;
+  icon: LucideIcon;
+  color: string;
+  title: string;
+  sub: string;
+  cta: string;
+  beta?: boolean;
+}[] = [
+  {
+    type: "collaboration",
+    icon: Users,
+    color: "#2F6BFF",
+    title: "Collaboration Block",
+    sub: "Find talent for a project.",
+    cta: "Build your team",
+  },
+  {
+    type: "service",
+    icon: Briefcase,
+    color: "#16A34A",
+    title: "Service Block",
+    sub: "Offer your creative service.",
+    cta: "Get paid for your skills",
+  },
+  {
+    type: "block_party",
+    icon: PartyPopper,
+    color: "#F97316",
+    title: "Block Party",
+    sub: "Host a session, event, or room.",
+    cta: "Bring creators together",
+    beta: true,
+  },
+];
+
 export function NewBlockDialog() {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [step, setStep] = useState<"type" | "details">("type");
+  const [showHelp, setShowHelp] = useState(false);
   const [blockType, setBlockType] = useState<BlockType | null>(null);
   const [title, setTitle] = useState("");
   const [tagline, setTagline] = useState("");
@@ -104,6 +144,7 @@ export function NewBlockDialog() {
 
   function reset() {
     setStep("type");
+    setShowHelp(false);
     setBlockType(null);
     setTitle("");
     setTagline("");
@@ -235,77 +276,110 @@ export function NewBlockDialog() {
       }
     >
       {step === "type" ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <button
-            onClick={() => chooseType("collaboration")}
-            className="text-left p-5 rounded-2xl glass-card glass-hover group"
-          >
-            <span className="inline-flex h-11 w-11 items-center justify-center rounded-xl bg-surface-2 border border-line text-accent">
-              <Users size={20} strokeWidth={1.75} />
-            </span>
-            <h3 className="mt-4 text-[15px] font-semibold text-ink tracking-tight">
-              Collaboration Block
-            </h3>
-            <p className="mt-1 text-[12px] text-muted leading-relaxed">
-              I need talent for a project.
-            </p>
-            <p className="mt-3 text-[11px] text-muted/80 leading-relaxed">
-              Recruit songwriters, producers, vocalists, videographers — build a
-              team and finish the work.
-            </p>
-            <span className="mt-4 inline-flex items-center gap-1 text-[11.5px] font-medium text-accent group-hover:gap-1.5 transition-all">
-              Choose <ArrowRight size={11} />
-            </span>
-          </button>
+        <div>
+          <div className="divide-y divide-line">
+            {blockOptions.map((o) => {
+              const Icon = o.icon;
+              return (
+                <button
+                  key={o.type}
+                  onClick={() => chooseType(o.type)}
+                  className="group flex w-full items-center gap-4 py-4 text-left first:pt-1"
+                >
+                  <span
+                    className="flex h-[60px] w-[60px] shrink-0 items-center justify-center rounded-2xl shadow-sm transition-transform duration-200 group-hover:scale-[1.04] group-active:scale-95"
+                    style={{ backgroundColor: o.color }}
+                  >
+                    <Icon size={28} strokeWidth={1.9} className="text-white" />
+                  </span>
 
-          <button
-            onClick={() => chooseType("service")}
-            className="text-left p-5 rounded-2xl glass-card glass-hover group"
-          >
-            <span className="inline-flex h-11 w-11 items-center justify-center rounded-xl bg-surface-2 border border-line text-accent">
-              <Briefcase size={20} strokeWidth={1.75} />
-            </span>
-            <h3 className="mt-4 text-[15px] font-semibold text-ink tracking-tight">
-              Service Block
-            </h3>
-            <p className="mt-1 text-[12px] text-muted leading-relaxed">
-              I am offering a service.
-            </p>
-            <p className="mt-3 text-[11px] text-muted/80 leading-relaxed">
-              Sell mixing, mastering, songwriting, design, editing — and deliver
-              completed work through the Block.
-            </p>
-            <span className="mt-4 inline-flex items-center gap-1 text-[11.5px] font-medium text-accent group-hover:gap-1.5 transition-all">
-              Choose <ArrowRight size={11} />
-            </span>
-          </button>
+                  <div className="min-w-0 flex-1">
+                    <h3 className="flex items-center gap-2 text-[18px] font-semibold tracking-tight text-ink">
+                      {o.title}
+                      {o.beta && (
+                        <span
+                          className="inline-flex h-[18px] items-center rounded-full border px-2 text-[9.5px] font-bold uppercase tracking-wide"
+                          style={{
+                            color: o.color,
+                            borderColor: `${o.color}66`,
+                          }}
+                        >
+                          Beta
+                        </span>
+                      )}
+                    </h3>
+                    <p className="mt-0.5 text-[13.5px] leading-snug text-muted">
+                      {o.sub}
+                    </p>
+                    <span
+                      className="mt-2.5 inline-flex items-center rounded-full border px-3 py-1 text-[12.5px] font-medium"
+                      style={{ color: o.color, borderColor: `${o.color}59` }}
+                    >
+                      {o.cta}
+                    </span>
+                  </div>
 
-          <button
-            onClick={() => chooseType("block_party")}
-            className="sm:col-span-2 text-left p-5 rounded-2xl glass-card glass-hover group flex items-start gap-4"
-          >
-            <span className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-warning/10 border border-warning/30 text-warning">
-              <PartyPopper size={20} strokeWidth={1.75} />
-            </span>
-            <div className="min-w-0">
-              <h3 className="flex items-center gap-1.5 text-[15px] font-semibold text-ink tracking-tight">
-                Block Party
-                <span className="inline-flex items-center h-4 px-1.5 rounded-full bg-warning/15 border border-warning/30 text-warning text-[9px] font-bold uppercase tracking-wide">
-                  Beta
-                </span>
-              </h3>
-              <p className="mt-1 text-[12px] text-muted leading-relaxed">
-                I&apos;m hosting an event.
-              </p>
-              <p className="mt-2 text-[11px] text-muted/80 leading-relaxed">
-                Run a listening session, Q&amp;A, workshop, networking room, or
-                community gathering — bring creators and fans together.
-              </p>
-              <span className="mt-3 inline-flex items-center gap-1 text-[11.5px] font-medium text-warning group-hover:gap-1.5 transition-all">
-                Choose <ArrowRight size={11} />
-              </span>
+                  <span
+                    className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-line bg-surface-2/60 transition-all duration-200 group-hover:translate-x-0.5"
+                    style={{ color: o.color }}
+                  >
+                    <ArrowRight size={18} />
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Reassurance / help — Blocks aren't a one-time choice. */}
+          <div className="mt-5 rounded-2xl border border-line bg-surface-2/40 px-4 py-3.5">
+            <div className="flex items-center gap-3">
+              <Sparkles
+                size={20}
+                strokeWidth={1.9}
+                className="shrink-0 text-[#A78BFA]"
+              />
+              <div className="min-w-0 flex-1">
+                <p className="text-[14.5px] font-semibold tracking-tight text-ink">
+                  Not sure which to choose?
+                </p>
+                <p className="mt-0.5 text-[12.5px] leading-snug text-muted">
+                  You can always create more Blocks later.
+                </p>
+              </div>
+              <button
+                onClick={() => setShowHelp((v) => !v)}
+                className="inline-flex shrink-0 items-center gap-1 text-[13px] font-medium text-[#A78BFA] transition-colors hover:text-ink"
+                aria-expanded={showHelp}
+              >
+                Learn more
+                <ArrowRight
+                  size={13}
+                  className={cn(
+                    "transition-transform duration-200",
+                    showHelp && "rotate-90"
+                  )}
+                />
+              </button>
             </div>
-          </button>
+            {showHelp && (
+              <div className="mt-3 space-y-2 border-t border-line pt-3 text-[12.5px] leading-relaxed text-muted">
+                <p>
+                  <span className="font-medium text-ink">
+                    Collaboration Block
+                  </span>{" "}
+                  — recruit creators and finish a project together.
+                </p>
+                <p>
+                  <span className="font-medium text-ink">Service Block</span> —
+                  sell a service and deliver the work through the Block.
+                </p>
+                <p>
+                  <span className="font-medium text-ink">Block Party</span> —
+                  host a live session, event, or room and gather your audience.
+                </p>
+              </div>
+            )}
+          </div>
         </div>
       ) : (
         <div className="space-y-4">
