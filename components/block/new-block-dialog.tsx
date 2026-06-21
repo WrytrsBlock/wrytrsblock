@@ -21,7 +21,6 @@ import {
   Newspaper,
   PartyPopper,
   Radio,
-  Sparkles,
   Tv,
   Users,
   Wallet,
@@ -104,7 +103,6 @@ export function NewBlockDialog() {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [step, setStep] = useState<"type" | "details">("type");
-  const [showHelp, setShowHelp] = useState(false);
   const [blockType, setBlockType] = useState<BlockType | null>(null);
   const [title, setTitle] = useState("");
   const [tagline, setTagline] = useState("");
@@ -144,7 +142,6 @@ export function NewBlockDialog() {
 
   function reset() {
     setStep("type");
-    setShowHelp(false);
     setBlockType(null);
     setTitle("");
     setTagline("");
@@ -328,57 +325,6 @@ export function NewBlockDialog() {
                 </button>
               );
             })}
-          </div>
-
-          {/* Reassurance / help — Blocks aren't a one-time choice. */}
-          <div className="mt-5 rounded-2xl border border-line bg-surface-2/40 px-4 py-3.5">
-            <div className="flex items-center gap-3">
-              <Sparkles
-                size={20}
-                strokeWidth={1.9}
-                className="shrink-0 text-[#A78BFA]"
-              />
-              <div className="min-w-0 flex-1">
-                <p className="text-[14.5px] font-semibold tracking-tight text-ink">
-                  Not sure which to choose?
-                </p>
-                <p className="mt-0.5 text-[12.5px] leading-snug text-muted">
-                  You can always create more Blocks later.
-                </p>
-              </div>
-              <button
-                onClick={() => setShowHelp((v) => !v)}
-                className="inline-flex shrink-0 items-center gap-1 text-[13px] font-medium text-[#A78BFA] transition-colors hover:text-ink"
-                aria-expanded={showHelp}
-              >
-                Learn more
-                <ArrowRight
-                  size={13}
-                  className={cn(
-                    "transition-transform duration-200",
-                    showHelp && "rotate-90"
-                  )}
-                />
-              </button>
-            </div>
-            {showHelp && (
-              <div className="mt-3 space-y-2 border-t border-line pt-3 text-[12.5px] leading-relaxed text-muted">
-                <p>
-                  <span className="font-medium text-ink">
-                    Collaboration Block
-                  </span>{" "}
-                  — recruit creators and finish a project together.
-                </p>
-                <p>
-                  <span className="font-medium text-ink">Service Block</span> —
-                  sell a service and deliver the work through the Block.
-                </p>
-                <p>
-                  <span className="font-medium text-ink">Block Party</span> —
-                  host a live session, event, or room and gather your audience.
-                </p>
-              </div>
-            )}
           </div>
         </div>
       ) : (
