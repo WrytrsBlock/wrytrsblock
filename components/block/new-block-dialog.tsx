@@ -281,13 +281,13 @@ export function NewBlockDialog() {
                 <button
                   key={o.type}
                   onClick={() => chooseType(o.type)}
-                  className="group flex w-full items-center gap-4 py-4 text-left first:pt-1"
+                  className="group flex w-full items-center gap-4 py-5 text-left first:pt-1"
                 >
                   <span
-                    className="flex h-[60px] w-[60px] shrink-0 items-center justify-center rounded-2xl shadow-sm transition-transform duration-200 group-hover:scale-[1.04] group-active:scale-95"
+                    className="flex h-[84px] w-[84px] shrink-0 items-center justify-center rounded-[9px] shadow-sm transition-transform duration-200 group-hover:scale-[1.04] group-active:scale-95"
                     style={{ backgroundColor: o.color }}
                   >
-                    <Icon size={28} strokeWidth={1.9} className="text-white" />
+                    <Icon size={38} strokeWidth={1.9} className="text-white" />
                   </span>
 
                   <div className="min-w-0 flex-1">
