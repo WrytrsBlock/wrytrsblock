@@ -5,15 +5,22 @@ import { createPortal } from "react-dom";
 import {
   AtSign,
   Bell,
+  BellOff,
   Check,
   GitBranch,
   MessageSquare,
+  Trash2,
   Upload,
   UserPlus,
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/cn";
-import { Button } from "@/components/ui/primitives";
+import {
+  addDismissed,
+  addRead,
+  getDismissed,
+  getRead,
+} from "@/lib/notifications-local";
 
 type Notif = {
   id: string;
@@ -51,11 +58,11 @@ const SEED: Notif[] = [
     id: "n3",
     icon: GitBranch,
     tone: "text-warning bg-warning/10 border-warning/30",
-    title: "Jude moved a task",
+    title: "Jude updated a Block",
     body: "Ep.2 picture lock → Review",
     at: "1h",
     unread: true,
-    href: "/blocks/midnight-press?tab=tasks",
+    href: "/blocks/midnight-press?tab=messages",
   },
   {
     id: "n4",
@@ -85,6 +92,18 @@ export function NotificationsMenu() {
 
   const unreadCount = items.filter((i) => i.unread).length;
 
+  // Re-apply any persisted "cleared" / "read" state on mount so the bell stays
+  // in sync with the /notifications page across reloads.
+  useEffect(() => {
+    const dismissed = getDismissed();
+    const read = getRead();
+    setItems(
+      SEED.filter((n) => !dismissed.has(n.id)).map((n) =>
+        read.has(n.id) ? { ...n, unread: false } : n
+      )
+    );
+  }, []);
+
   // Escape closes the panel. Tap/click-outside is handled by the backdrop,
   // which (because the panel is portaled to <body>) is the only reliable
   // dismissal surface across Safari and Chrome.
@@ -98,7 +117,13 @@ export function NotificationsMenu() {
   }, [open]);
 
   function markAllRead() {
+    addRead(items.map((i) => i.id));
     setItems((prev) => prev.map((i) => ({ ...i, unread: false })));
+  }
+
+  function clearAll() {
+    addDismissed(items.map((i) => i.id));
+    setItems([]);
   }
 
   return (
@@ -154,15 +179,38 @@ export function NotificationsMenu() {
                     </span>
                   )}
                 </div>
-                <button
-                  onClick={markAllRead}
-                  className="inline-flex items-center gap-1 text-[11px] text-muted hover:text-ink transition-colors"
-                >
-                  <Check size={11} /> Mark all read
-                </button>
+                <div className="flex items-center gap-3">
+                  {unreadCount > 0 && (
+                    <button
+                      onClick={markAllRead}
+                      className="inline-flex items-center gap-1 text-[11px] text-muted hover:text-ink transition-colors"
+                    >
+                      <Check size={11} /> Mark all read
+                    </button>
+                  )}
+                  {items.length > 0 && (
+                    <button
+                      onClick={clearAll}
+                      className="inline-flex items-center gap-1 text-[11px] text-muted transition-colors hover:text-danger"
+                    >
+                      <Trash2 size={11} /> Clear all
+                    </button>
+                  )}
+                </div>
               </div>
 
               <ul className="max-h-[55vh] overflow-y-auto overscroll-contain md:max-h-[420px]">
+                {items.length === 0 && (
+                  <li className="flex flex-col items-center gap-2 px-4 py-10 text-center">
+                    <span className="flex h-10 w-10 items-center justify-center rounded-xl border border-line bg-surface-2 text-muted">
+                      <BellOff size={18} />
+                    </span>
+                    <p className="text-[12.5px] font-medium text-ink">
+                      No notifications
+                    </p>
+                    <p className="text-[11px] text-muted">You&apos;re all caught up.</p>
+                  </li>
+                )}
                 {items.map((n) => {
                   const Icon = n.icon;
                   return (
@@ -206,9 +254,13 @@ export function NotificationsMenu() {
               </ul>
 
               <div className="p-2 border-t border-line">
-                <Button variant="ghost" size="md" className="w-full">
+                <a
+                  href="/notifications"
+                  onClick={() => setOpen(false)}
+                  className="flex h-9 w-full items-center justify-center rounded-lg text-[12.5px] font-medium text-muted transition-colors hover:bg-surface-2 hover:text-ink"
+                >
                   View all activity
-                </Button>
+                </a>
               </div>
             </div>
           </>,
