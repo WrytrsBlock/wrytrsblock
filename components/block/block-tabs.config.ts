@@ -6,11 +6,9 @@ import {
   Folder,
   Inbox,
   LayoutDashboard,
-  ListChecks,
   MessagesSquare,
   PieChart,
   Settings2,
-  UserPlus,
   Users,
 } from "lucide-react";
 import type { BlockType } from "@/lib/mock";
@@ -39,8 +37,6 @@ const COLLAB_TABS: Tab[] = [
   { id: "team", label: "Team", icon: Users },
   { id: "files", label: "Files", icon: Folder },
   { id: "splits", label: "Splits", icon: PieChart },
-  { id: "tasks", label: "Tasks", icon: ListChecks },
-  { id: "invite", label: "Invite", icon: UserPlus },
   { id: "settings", label: "Settings", icon: Settings2 },
 ];
 
@@ -50,17 +46,15 @@ const SERVICE_TABS: Tab[] = [
   { id: "messages", label: "Chat", icon: MessagesSquare },
   { id: "requests", label: "Requests", icon: Inbox },
   { id: "files", label: "Files", icon: Folder },
-  { id: "invite", label: "Invite", icon: UserPlus },
   { id: "settings", label: "Settings", icon: Settings2 },
 ];
 
-// Block Party — event-style set (reuses existing panels with party labels).
+// Block Party — event-style set. People actions live in the Guests (Team) tab.
 const PARTY_TABS: Tab[] = [
   { id: "overview", label: "Overview", icon: LayoutDashboard },
   { id: "messages", label: "Chat", icon: MessagesSquare },
   { id: "team", label: "Guests", icon: Users },
   { id: "files", label: "Media", icon: Folder },
-  { id: "invite", label: "Invite", icon: UserPlus },
   { id: "settings", label: "Settings", icon: Settings2 },
 ];
 

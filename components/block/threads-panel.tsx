@@ -175,7 +175,7 @@ export function ThreadsPanel({ block }: { block: Block }) {
               compact
               icon={MessageSquare}
               title="No messages yet"
-              description="Kick off the conversation — share an update, drop a file, or @mention a collaborator to pull them in."
+              description="Start the conversation."
               className="border-0 bg-transparent"
             />
           </div>
@@ -211,7 +211,7 @@ export function ThreadsPanel({ block }: { block: Block }) {
                 send();
               }
             }}
-            placeholder="Message the team"
+            placeholder="Write a message..."
             className="w-full resize-none bg-transparent px-1 text-[13px] text-ink placeholder:text-muted/70 focus:outline-none"
           />
           <div className="mt-1 flex items-center justify-between">

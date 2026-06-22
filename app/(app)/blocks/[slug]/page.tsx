@@ -2,7 +2,6 @@ import { notFound } from "next/navigation";
 import { TopBar } from "@/components/shell/topbar";
 import { BlockHeader } from "@/components/block/block-header";
 import { BlockBottomTabs } from "@/components/block/block-bottom-tabs";
-import { InvitePanel } from "@/components/block/invite-panel";
 import {
   tabsForType,
   defaultTabForType,
@@ -12,7 +11,6 @@ import { OverviewPanel } from "@/components/block/overview-panel";
 import { PartyOverviewPanel } from "@/components/block/party-overview-panel";
 import { ServiceDetailsPanel } from "@/components/block/service-details-panel";
 import { RequestsPanel } from "@/components/block/requests-panel";
-import { BoardPanel } from "@/components/block/board-panel";
 import { SplitSheetPanel } from "@/components/block/split-sheet-panel";
 import { MediaPanel } from "@/components/block/media-panel";
 import { ThreadsPanel } from "@/components/block/threads-panel";
@@ -40,12 +38,10 @@ function renderPanel(
   isOwner: boolean
 ) {
   switch (tab) {
-    case "invite":
-      return (
-        <InvitePanel slug={block.slug} members={members} isOwner={isOwner} />
-      );
     case "team":
-      return <TeamPanel block={block} members={members} />;
+      return (
+        <TeamPanel block={block} members={members} isOwner={isOwner} />
+      );
     case "files":
       return (
         <MediaPanel
@@ -62,8 +58,6 @@ function renderPanel(
       return <SplitSheetPanel block={block} />;
     case "messages":
       return <ThreadsPanel block={block} />;
-    case "tasks":
-      return <BoardPanel block={block} />;
     case "requests":
       return <RequestsPanel block={block} />;
     case "settings":
