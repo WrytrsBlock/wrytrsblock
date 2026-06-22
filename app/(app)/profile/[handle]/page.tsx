@@ -103,7 +103,7 @@ export default async function ProfilePage({
             <HeroCover
               image={heroImage}
               alt={person.name}
-              position={profile.coverPosition ?? 50}
+              position={profile.coverPosition ?? 25}
               editable={isMe}
             />
           ) : (

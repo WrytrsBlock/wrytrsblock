@@ -152,6 +152,6 @@ export function HeroCover({
 }
 
 function clamp(n: number): number {
-  if (!Number.isFinite(n)) return 50;
+  if (!Number.isFinite(n)) return 25;
   return Math.min(100, Math.max(0, n));
 }

@@ -4,11 +4,12 @@
 -- cover photo as a percentage (0 = top of the image aligned to the frame top,
 -- 100 = bottom, 50 = centered). Applied as CSS object-position whenever the
 -- hero renders, so important content is no longer cropped out of frame.
--- Safe + idempotent; defaults to 50 (centered) for every existing profile.
+-- Defaults to 25 (upper third) so faces/heads — which sit high in most cover
+-- photos — aren't cropped before a creator repositions. Safe + idempotent.
 -- ───────────────────────────────────────────────────────────────────────────
 
 alter table public.creator_profiles
-  add column if not exists cover_position smallint not null default 50;
+  add column if not exists cover_position smallint not null default 25;
 
 -- Keep it a valid percentage.
 do $$
