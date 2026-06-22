@@ -1,7 +1,15 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { AudioLines, MessageSquare, Plus, Send, Smile, Square } from "lucide-react";
+import {
+  AudioLines,
+  MessageSquare,
+  Paperclip,
+  Plus,
+  Send,
+  Smile,
+  Square,
+} from "lucide-react";
 import { Avatar } from "@/components/ui/primitives";
 import { EmptyState } from "@/components/ui/empty-state";
 import {
@@ -24,7 +32,15 @@ type ChatMessage = {
   mine?: boolean;
   // A recorded voice note (object URL), played back inline.
   audioUrl?: string;
+  // An attached file (object URL) — images render inline, others as a chip.
+  attachment?: { url: string; name: string; isImage: boolean };
 };
+
+const EMOJIS = [
+  "😀", "😂", "😍", "🔥", "👍", "🙌", "🎉", "💯",
+  "👀", "🙏", "💪", "✅", "❤️", "😅", "🤝", "🎶",
+  "🚀", "✨", "👏", "😎", "🤔", "😭", "🥳", "💡",
+];
 
 function fmtDur(s: number): string {
   const m = Math.floor(s / 60);
@@ -181,11 +197,62 @@ export function ThreadsPanel({ block }: { block: Block }) {
   useEffect(() => {
     return () => {
       for (const list of Object.values(store)) {
-        for (const m of list) if (m.audioUrl) URL.revokeObjectURL(m.audioUrl);
+        for (const m of list) {
+          if (m.audioUrl) URL.revokeObjectURL(m.audioUrl);
+          if (m.attachment) URL.revokeObjectURL(m.attachment.url);
+        }
       }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // ── Emoji + file attachments ──────────────────────────────────────────────
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const [emojiOpen, setEmojiOpen] = useState(false);
+
+  function insertEmoji(emoji: string) {
+    const el = textareaRef.current;
+    if (el) {
+      const start = el.selectionStart ?? input.length;
+      const end = el.selectionEnd ?? input.length;
+      setInput(input.slice(0, start) + emoji + input.slice(end));
+      // Restore focus + caret after the inserted emoji.
+      requestAnimationFrame(() => {
+        el.focus();
+        const pos = start + emoji.length;
+        el.setSelectionRange(pos, pos);
+      });
+    } else {
+      setInput((v) => v + emoji);
+    }
+    setEmojiOpen(false);
+  }
+
+  function onPickFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = ""; // allow re-picking the same file
+    if (!file) return;
+    const url = URL.createObjectURL(file);
+    const att: ChatMessage = {
+      id: `file-${Date.now()}`,
+      authorName: me.name,
+      authorAvatar: me.avatar,
+      body: input.trim(),
+      at: "now",
+      mine: true,
+      attachment: {
+        url,
+        name: file.name,
+        isImage: file.type.startsWith("image/"),
+      },
+    };
+    setInput("");
+    setStore((prev) => ({
+      ...prev,
+      [activeId]: [...(prev[activeId] ?? []), att],
+    }));
+  }
 
   async function toggleVoiceNote() {
     setRecError(null);
@@ -275,6 +342,24 @@ export function ThreadsPanel({ block }: { block: Block }) {
                   className="mt-1.5 h-9 w-full max-w-[280px]"
                 />
               )}
+              {m.attachment &&
+                (m.attachment.isImage ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={m.attachment.url}
+                    alt={m.attachment.name}
+                    className="mt-1.5 max-h-[220px] max-w-[280px] rounded-lg border border-line object-cover"
+                  />
+                ) : (
+                  <a
+                    href={m.attachment.url}
+                    download={m.attachment.name}
+                    className="mt-1.5 inline-flex max-w-[280px] items-center gap-2 rounded-lg border border-line bg-surface-2/50 px-3 py-2 text-[12.5px] text-ink transition-colors hover:bg-surface-2"
+                  >
+                    <Paperclip size={13} className="shrink-0 text-muted" />
+                    <span className="truncate">{m.attachment.name}</span>
+                  </a>
+                ))}
             </div>
           </div>
         ))}
@@ -284,6 +369,7 @@ export function ThreadsPanel({ block }: { block: Block }) {
       <div className="page-fluid pb-5">
         <div className="rounded-2xl border border-line bg-surface p-3 shadow-soft transition-shadow focus-within:shadow-elevated">
           <textarea
+            ref={textareaRef}
             rows={2}
             value={input}
             onChange={(e) => setInput(e.target.value)}
@@ -296,9 +382,22 @@ export function ThreadsPanel({ block }: { block: Block }) {
             placeholder="Write a message..."
             className="w-full resize-none bg-transparent px-1 text-[13px] text-ink placeholder:text-muted/70 focus:outline-none"
           />
+          {/* Hidden file picker driven by the + button. */}
+          <input
+            ref={fileInputRef}
+            type="file"
+            className="hidden"
+            onChange={onPickFile}
+          />
           <div className="mt-1 flex items-center justify-between">
             <div className="flex items-center gap-0.5 text-muted">
-              <button className="rounded-md p-1.5 transition-colors hover:bg-surface-2 hover:text-ink">
+              {/* Attach a file */}
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                aria-label="Attach a file"
+                className="rounded-md p-1.5 transition-colors hover:bg-surface-2 hover:text-ink"
+              >
                 <Plus size={13} />
               </button>
               {/* Voice note — records mic audio and posts it as a playable note. */}
@@ -321,9 +420,45 @@ export function ThreadsPanel({ block }: { block: Block }) {
                   </span>
                 )}
               </button>
-              <button className="rounded-md p-1.5 transition-colors hover:bg-surface-2 hover:text-ink">
-                <Smile size={13} />
-              </button>
+              {/* Emoji picker */}
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => setEmojiOpen((o) => !o)}
+                  aria-label="Add emoji"
+                  aria-expanded={emojiOpen}
+                  className={
+                    "rounded-md p-1.5 transition-colors " +
+                    (emojiOpen
+                      ? "bg-surface-2 text-ink"
+                      : "hover:bg-surface-2 hover:text-ink")
+                  }
+                >
+                  <Smile size={13} />
+                </button>
+                {emojiOpen && (
+                  <>
+                    <div
+                      className="fixed inset-0 z-10"
+                      onClick={() => setEmojiOpen(false)}
+                    />
+                    <div className="absolute bottom-full left-0 z-20 mb-2 w-[244px] rounded-xl border border-line bg-surface p-2 shadow-elevated">
+                      <div className="grid grid-cols-8 gap-0.5">
+                        {EMOJIS.map((e) => (
+                          <button
+                            key={e}
+                            type="button"
+                            onClick={() => insertEmoji(e)}
+                            className="rounded-md p-1 text-[16px] leading-none transition-colors hover:bg-surface-2"
+                          >
+                            {e}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </>
+                )}
+              </div>
               {recError && (
                 <span className="ml-1.5 text-[11px] text-danger">{recError}</span>
               )}
