@@ -1,14 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import {
-  AudioLines,
-  MessageSquare,
-  Plus,
-  Send,
-  Smile,
-  Sparkles,
-} from "lucide-react";
+import { AudioLines, MessageSquare, Plus, Send, Smile, Square } from "lucide-react";
 import { Avatar } from "@/components/ui/primitives";
 import { EmptyState } from "@/components/ui/empty-state";
 import {
@@ -29,7 +22,15 @@ type ChatMessage = {
   body: string;
   at: string;
   mine?: boolean;
+  // A recorded voice note (object URL), played back inline.
+  audioUrl?: string;
 };
+
+function fmtDur(s: number): string {
+  const m = Math.floor(s / 60);
+  const sec = s % 60;
+  return `${m}:${sec.toString().padStart(2, "0")}`;
+}
 
 // Internal room keys — drive the seeded demo messages + the realtime channel id.
 // There is one shared room per Block now (no channel switching UI).
@@ -161,6 +162,78 @@ export function ThreadsPanel({ block }: { block: Block }) {
     setSending(false);
   }
 
+  // ── Voice notes ───────────────────────────────────────────────────────────
+  const recorderRef = useRef<MediaRecorder | null>(null);
+  const chunksRef = useRef<Blob[]>([]);
+  const [recording, setRecording] = useState(false);
+  const [recSecs, setRecSecs] = useState(0);
+  const [recError, setRecError] = useState<string | null>(null);
+
+  // Tick the duration while recording.
+  useEffect(() => {
+    if (!recording) return;
+    setRecSecs(0);
+    const t = setInterval(() => setRecSecs((s) => s + 1), 1000);
+    return () => clearInterval(t);
+  }, [recording]);
+
+  // Release any object URLs when the panel unmounts.
+  useEffect(() => {
+    return () => {
+      for (const list of Object.values(store)) {
+        for (const m of list) if (m.audioUrl) URL.revokeObjectURL(m.audioUrl);
+      }
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  async function toggleVoiceNote() {
+    setRecError(null);
+    if (recording) {
+      recorderRef.current?.stop();
+      return;
+    }
+    if (typeof navigator === "undefined" || !navigator.mediaDevices?.getUserMedia) {
+      setRecError("Voice notes aren't supported in this browser.");
+      return;
+    }
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const rec = new MediaRecorder(stream);
+      chunksRef.current = [];
+      rec.ondataavailable = (e) => {
+        if (e.data.size > 0) chunksRef.current.push(e.data);
+      };
+      rec.onstop = () => {
+        const blob = new Blob(chunksRef.current, {
+          type: rec.mimeType || "audio/webm",
+        });
+        stream.getTracks().forEach((t) => t.stop());
+        setRecording(false);
+        if (blob.size === 0) return;
+        const url = URL.createObjectURL(blob);
+        const note: ChatMessage = {
+          id: `voice-${Date.now()}`,
+          authorName: me.name,
+          authorAvatar: me.avatar,
+          body: "",
+          at: "now",
+          mine: true,
+          audioUrl: url,
+        };
+        setStore((prev) => ({
+          ...prev,
+          [activeId]: [...(prev[activeId] ?? []), note],
+        }));
+      };
+      recorderRef.current = rec;
+      rec.start();
+      setRecording(true);
+    } catch {
+      setRecError("Microphone access was blocked.");
+    }
+  }
+
   return (
     // One big chat that fills the whole Block — no channel column. This IS the
     // collab room.
@@ -190,9 +263,18 @@ export function ThreadsPanel({ block }: { block: Block }) {
                 </span>
                 <span className="text-[10px] text-muted font-mono">{m.at}</span>
               </div>
-              <p className="mt-0.5 text-[13px] text-ink/90 leading-relaxed">
-                {m.body}
-              </p>
+              {m.body && (
+                <p className="mt-0.5 text-[13px] text-ink/90 leading-relaxed">
+                  {m.body}
+                </p>
+              )}
+              {m.audioUrl && (
+                <audio
+                  controls
+                  src={m.audioUrl}
+                  className="mt-1.5 h-9 w-full max-w-[280px]"
+                />
+              )}
             </div>
           </div>
         ))}
@@ -219,16 +301,32 @@ export function ThreadsPanel({ block }: { block: Block }) {
               <button className="rounded-md p-1.5 transition-colors hover:bg-surface-2 hover:text-ink">
                 <Plus size={13} />
               </button>
-              <button className="rounded-md p-1.5 transition-colors hover:bg-surface-2 hover:text-ink">
-                <AudioLines size={13} />
+              {/* Voice note — records mic audio and posts it as a playable note. */}
+              <button
+                type="button"
+                onClick={toggleVoiceNote}
+                aria-label={recording ? "Stop recording" : "Record voice note"}
+                aria-pressed={recording}
+                className={
+                  "inline-flex items-center gap-1.5 rounded-md p-1.5 transition-colors " +
+                  (recording
+                    ? "bg-danger/15 text-danger"
+                    : "hover:bg-surface-2 hover:text-ink")
+                }
+              >
+                {recording ? <Square size={13} /> : <AudioLines size={13} />}
+                {recording && (
+                  <span className="text-[11px] font-medium tabular-nums">
+                    {fmtDur(recSecs)}
+                  </span>
+                )}
               </button>
               <button className="rounded-md p-1.5 transition-colors hover:bg-surface-2 hover:text-ink">
                 <Smile size={13} />
               </button>
-              <button className="ml-2 inline-flex items-center gap-1 text-[11px] text-muted transition-colors hover:text-ink">
-                <Sparkles size={11} className="text-accent" />
-                Draft with WiZee
-              </button>
+              {recError && (
+                <span className="ml-1.5 text-[11px] text-danger">{recError}</span>
+              )}
             </div>
             <button
               onClick={send}
