@@ -562,6 +562,9 @@ export type CreatorProfile = {
   // so surfaces fall back deliberately (see lib/creator-image.ts) instead of
   // showing a random stock photo.
   banner?: string;
+  // Vertical focal point of the cover photo as a percentage (0 = top, 100 =
+  // bottom, 50 = centered). Drives the hero's CSS object-position.
+  coverPosition?: number;
   tagline: string; // short headline / quick bio
   bio: string; // longer bio
   location: string;

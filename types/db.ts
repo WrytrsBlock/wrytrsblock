@@ -152,6 +152,8 @@ export interface CreatorProfileRow {
   bio: string | null;
   avatar_url: string | null;
   banner_url: string | null;
+  // Vertical focal point of the cover photo, 0–100 (50 = centered). See 0020.
+  cover_position: number | null;
   country: string | null;
   city: string | null;
   creator_types: string[];

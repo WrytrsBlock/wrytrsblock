@@ -14,6 +14,7 @@ import {
 import { StartBlockFlow } from "@/components/block/start-block-flow";
 import { ShareProfileButton } from "@/components/creator/share-profile-button";
 import { CreatorBlocks } from "@/components/creator/creator-blocks";
+import { HeroCover } from "@/components/creator/hero-cover";
 import { MutualCreators } from "@/components/creator/mutual-creators";
 import { tracksForCreator } from "@/lib/mock";
 import { mutualCreators } from "@/lib/network";
@@ -99,11 +100,11 @@ export default async function ProfilePage({
             identity overlay at the bottom, no floating card. ── */}
         <section className="relative w-full h-[64vh] min-h-[460px] md:h-[640px] overflow-hidden">
           {heroImage ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={heroImage}
+            <HeroCover
+              image={heroImage}
               alt={person.name}
-              className="absolute inset-0 h-full w-full object-cover object-center"
+              position={profile.coverPosition ?? 50}
+              editable={isMe}
             />
           ) : (
             <div className="absolute inset-0 bg-[linear-gradient(160deg,#26345C_0%,#1A2440_45%,#101524_100%)]" />

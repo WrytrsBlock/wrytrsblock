@@ -85,6 +85,45 @@ async function upsertProfileResilient(
 
 // Save edits from the Edit Profile page to creator_profiles (and sync the
 // display fields on profiles). Real-mode only; surfaces the actual error.
+// Persist the hero cover's vertical focal point (0–100). Tolerant of the
+// pre-migration state: if the column doesn't exist yet, it returns ok with a
+// warning rather than surfacing an error to the creator.
+export async function updateCoverPositionAction(
+  position: number
+): Promise<{ ok: boolean; error?: string; warning?: string }> {
+  if (!supabaseConfigured) return { ok: true };
+  const y = Math.round(Math.min(100, Math.max(0, position)));
+  try {
+    const supabase = createSupabaseServerClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) return { ok: false, error: "You need to be signed in." };
+
+    const { error } = await supabase
+      .from("creator_profiles")
+      .update({ cover_position: y })
+      .eq("id", user.id);
+
+    if (error) {
+      // Column missing (migration 0020 not applied) — don't hard-fail.
+      if (/cover_position|column|schema cache/i.test(error.message)) {
+        return { ok: true, warning: "Reposition needs a quick database update." };
+      }
+      return { ok: false, error: error.message };
+    }
+
+    revalidatePath("/profile");
+    revalidatePath(`/profile/${user.id}`);
+    return { ok: true };
+  } catch (e) {
+    return {
+      ok: false,
+      error: e instanceof Error ? e.message : "Couldn't save the position.",
+    };
+  }
+}
+
 export async function updateCreatorProfileAction(
   input: UpdateProfileInput
 ): Promise<UpdateProfileResult> {

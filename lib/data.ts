@@ -464,6 +464,8 @@ function creatorRowToView(row: CreatorProfileRow): CreatorView {
     // the profile hero falls back to their photo/featured work, not a random
     // stock image (see lib/creator-image.ts).
     banner: row.banner_url ?? undefined,
+    // Cover focal point — default centered (50) when unset or pre-migration.
+    coverPosition: row.cover_position ?? 50,
     tagline: row.tagline ?? row.bio ?? `${roles[0] ?? "Creator"} on WrytrsBlock.`,
     bio: row.bio ?? "",
     location,
