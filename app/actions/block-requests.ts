@@ -141,11 +141,23 @@ export async function declineBlockRequestAction(
     if (error) {
       if (error.code === "42501")
         return { ok: false, error: "This request isn't addressed to you." };
-      if (error.code === "P0002")
-        return { ok: false, error: "Request not found." };
+      // Idempotent / forgiving: a request that's already responded to or no
+      // longer exists is, for the user's purposes, already declined — never
+      // surface that as an error (it was the source of spurious decline errors,
+      // e.g. a double-commit from the Undo window).
+      if (
+        error.code === "P0002" ||
+        error.code === "22023" ||
+        /already|not found|does not exist|no rows/i.test(error.message ?? "")
+      ) {
+        revalidatePath("/notifications");
+        revalidatePath("/blocks");
+        return { ok: true };
+      }
       throw error;
     }
     revalidatePath("/notifications");
+    revalidatePath("/blocks");
     return { ok: true };
   } catch (e) {
     console.error("declineBlockRequestAction failed:", e);

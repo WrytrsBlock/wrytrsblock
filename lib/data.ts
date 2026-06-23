@@ -37,6 +37,7 @@ import type {
 } from "@/lib/onboarding";
 import type { BlockRow, CreatorProfileRow, FeaturedContentItem } from "@/types";
 import { getProfile } from "@/services/profiles.service";
+import { listNotifications } from "@/services/notifications.service";
 import {
   getBlockBySlug,
   listMyBlocks,
@@ -1074,6 +1075,42 @@ export async function getIncomingBlockRequests(): Promise<IncomingRequest[]> {
       blockType: r.block_type,
       introMessage: r.intro_message,
       expectedOutcome: r.expected_outcome,
+    }));
+  } catch {
+    return [];
+  }
+}
+
+// Real in-app notifications (block requests, accepts, declines, mentions, …)
+// read from the notifications table the RPCs write to. Demo mode → empty, so the
+// page falls back to its illustrative seed.
+export type NotificationView = {
+  id: string;
+  kind: string;
+  title: string;
+  body: string | null;
+  link: string | null;
+  at: string;
+  unread: boolean;
+};
+
+export async function getNotifications(): Promise<NotificationView[]> {
+  if (!supabaseConfigured) return [];
+  const supabase = createSupabaseServerClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return [];
+  try {
+    const rows = await listNotifications(supabase, user.id, { limit: 40 });
+    return rows.map((n) => ({
+      id: n.id,
+      kind: n.kind,
+      title: n.title,
+      body: n.body,
+      link: n.link,
+      at: timeAgo(n.created_at),
+      unread: n.read_at == null,
     }));
   } catch {
     return [];

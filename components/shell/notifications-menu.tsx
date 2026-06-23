@@ -12,6 +12,7 @@ import {
   Trash2,
   Upload,
   UserPlus,
+  X,
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/cn";
@@ -21,6 +22,35 @@ import {
   getDismissed,
   getRead,
 } from "@/lib/notifications-local";
+import {
+  getMyNotificationsAction,
+  markAllNotificationsReadAction,
+} from "@/app/actions/notifications";
+import type { NotificationView } from "@/lib/data";
+
+// kind → icon + tone for real notifications written by the request RPCs.
+const KIND: Record<string, { icon: LucideIcon; tone: string }> = {
+  block_request: { icon: UserPlus, tone: "text-accent bg-accent/10 border-accent/30" },
+  block_accepted: { icon: Check, tone: "text-success bg-success/10 border-success/30" },
+  block_declined: { icon: X, tone: "text-danger bg-danger/10 border-danger/30" },
+  mention: { icon: AtSign, tone: "text-accent bg-accent/10 border-accent/30" },
+  message: { icon: MessageSquare, tone: "text-accent bg-accent/10 border-accent/30" },
+  upload: { icon: Upload, tone: "text-success bg-success/10 border-success/30" },
+};
+
+function toNotif(n: NotificationView): Notif {
+  const k = KIND[n.kind] ?? { icon: Bell, tone: "text-muted bg-white/[0.06] border-white/15" };
+  return {
+    id: n.id,
+    icon: k.icon,
+    tone: k.tone,
+    title: n.title,
+    body: n.body ?? "",
+    at: n.at,
+    unread: n.unread,
+    href: n.link || "/notifications",
+  };
+}
 
 type Notif = {
   id: string;
@@ -92,16 +122,31 @@ export function NotificationsMenu() {
 
   const unreadCount = items.filter((i) => i.unread).length;
 
-  // Re-apply any persisted "cleared" / "read" state on mount so the bell stays
-  // in sync with the /notifications page across reloads.
+  // Load real notifications (block requests / accepts / declines / mentions),
+  // then apply persisted "cleared" / "read" state so the bell stays in sync with
+  // the /notifications page. Falls back to seed data in demo mode.
   useEffect(() => {
-    const dismissed = getDismissed();
-    const read = getRead();
-    setItems(
-      SEED.filter((n) => !dismissed.has(n.id)).map((n) =>
-        read.has(n.id) ? { ...n, unread: false } : n
-      )
-    );
+    let active = true;
+    (async () => {
+      let source = SEED;
+      try {
+        const { demo, items: real } = await getMyNotificationsAction();
+        if (!demo) source = real.map(toNotif);
+      } catch {
+        /* keep seed */
+      }
+      if (!active) return;
+      const dismissed = getDismissed();
+      const read = getRead();
+      setItems(
+        source
+          .filter((n) => !dismissed.has(n.id))
+          .map((n) => (read.has(n.id) ? { ...n, unread: false } : n))
+      );
+    })();
+    return () => {
+      active = false;
+    };
   }, []);
 
   // Escape closes the panel. Tap/click-outside is handled by the backdrop,
@@ -119,6 +164,7 @@ export function NotificationsMenu() {
   function markAllRead() {
     addRead(items.map((i) => i.id));
     setItems((prev) => prev.map((i) => ({ ...i, unread: false })));
+    void markAllNotificationsReadAction();
   }
 
   function clearAll() {

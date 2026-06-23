@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import {
   AtSign,
+  Bell,
   BellOff,
   Check,
   GitBranch,
@@ -11,46 +12,82 @@ import {
   Trash2,
   Upload,
   UserPlus,
+  X,
   type LucideIcon,
 } from "lucide-react";
 import { Avatar, Card } from "@/components/ui/primitives";
 import { cn } from "@/lib/cn";
 import { getPerson } from "@/lib/mock";
+import type { NotificationView } from "@/lib/data";
 import { addDismissed, addRead, getDismissed, getRead } from "@/lib/notifications-local";
 
-type Notif = {
+type Item = {
   id: string;
   icon: LucideIcon;
   tone: string;
-  actorId: string;
+  actorId?: string;
   title: string;
-  body: string;
+  body: string | null;
   at: string;
   unread: boolean;
   href: string;
 };
 
-const SEED: Notif[] = [
-  { id: "n1", icon: AtSign, tone: "text-accent bg-accent/10 border-accent/30", actorId: "p3", title: "Sasha Reyes mentioned you", body: "“@aria can you sign off before EOD?” in Ep.2 picture-lock", at: "8m", unread: true, href: "/blocks/midnight-press?tab=files" },
-  { id: "n2", icon: Upload, tone: "text-success bg-success/10 border-success/30", actorId: "p6", title: "Theo Lin uploaded a file", body: "newsroom-theme-v4.wav · Midnight Press", at: "38m", unread: true, href: "/blocks/midnight-press?tab=files" },
-  { id: "n3", icon: GitBranch, tone: "text-warning bg-warning/10 border-warning/30", actorId: "p4", title: "Jude Park updated a Block", body: "Ep.2 picture lock → Review", at: "1h", unread: true, href: "/blocks/midnight-press?tab=messages" },
-  { id: "n4", icon: MessageSquare, tone: "text-accent bg-accent/10 border-accent/30", actorId: "p2", title: "New messages in Midnight Press", body: "3 unread from Milo and Aria", at: "2h", unread: true, href: "/blocks/midnight-press?tab=messages" },
-  { id: "n5", icon: UserPlus, tone: "text-accent-2 bg-accent-2/10 border-accent-2/30", actorId: "p7", title: "Imani Ross joined Midnight Press", body: "as Talent", at: "Yesterday", unread: false, href: "/blocks/midnight-press?tab=team" },
+// kind → icon + tone for real notifications written by the request RPCs.
+const KIND: Record<string, { icon: LucideIcon; tone: string }> = {
+  block_request: { icon: UserPlus, tone: "text-accent bg-accent/10 border-accent/30" },
+  block_accepted: { icon: Check, tone: "text-success bg-success/10 border-success/30" },
+  block_declined: { icon: X, tone: "text-danger bg-danger/10 border-danger/30" },
+  mention: { icon: AtSign, tone: "text-accent bg-accent/10 border-accent/30" },
+  message: { icon: MessageSquare, tone: "text-accent bg-accent/10 border-accent/30" },
+  upload: { icon: Upload, tone: "text-success bg-success/10 border-success/30" },
+};
+const DEFAULT_KIND = { icon: Bell, tone: "text-muted bg-white/[0.06] border-white/15" };
+
+// Illustrative demo data when Supabase isn't configured.
+const SEED: Item[] = [
+  { id: "n1", icon: AtSign, tone: KIND.mention.tone, actorId: "p3", title: "Sasha Reyes mentioned you", body: "“@aria can you sign off before EOD?”", at: "8m", unread: true, href: "/blocks/midnight-press?tab=files" },
+  { id: "n2", icon: Upload, tone: KIND.upload.tone, actorId: "p6", title: "Theo Lin uploaded a file", body: "newsroom-theme-v4.wav · Midnight Press", at: "38m", unread: true, href: "/blocks/midnight-press?tab=files" },
+  { id: "n4", icon: MessageSquare, tone: KIND.message.tone, actorId: "p2", title: "New messages in Midnight Press", body: "3 unread from Milo and Aria", at: "2h", unread: true, href: "/blocks/midnight-press?tab=messages" },
+  { id: "n5", icon: UserPlus, tone: KIND.block_request.tone, actorId: "p7", title: "Imani Ross joined Midnight Press", body: "as Talent", at: "Yesterday", unread: false, href: "/blocks/midnight-press?tab=team" },
 ];
 
-export function NotificationsList() {
-  const [items, setItems] = useState<Notif[]>(SEED);
+function toItems(real: NotificationView[]): Item[] {
+  return real.map((n) => {
+    const k = KIND[n.kind] ?? DEFAULT_KIND;
+    return {
+      id: n.id,
+      icon: k.icon,
+      tone: k.tone,
+      title: n.title,
+      body: n.body,
+      at: n.at,
+      unread: n.unread,
+      href: n.link || "/notifications",
+    };
+  });
+}
 
-  // Re-apply any persisted "cleared" / "read" state on mount so the actions
-  // stick across reloads and stay in sync with the bell menu.
+export function NotificationsList({
+  initial,
+  demo,
+}: {
+  initial: NotificationView[];
+  demo: boolean;
+}) {
+  const base = demo ? SEED : toItems(initial);
+  const [items, setItems] = useState<Item[]>(base);
+
+  // Re-apply persisted "cleared" / "read" state on mount.
   useEffect(() => {
     const dismissed = getDismissed();
     const read = getRead();
     setItems(
-      SEED.filter((n) => !dismissed.has(n.id)).map((n) =>
-        read.has(n.id) ? { ...n, unread: false } : n
-      )
+      base
+        .filter((n) => !dismissed.has(n.id))
+        .map((n) => (read.has(n.id) ? { ...n, unread: false } : n))
     );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const unread = items.filter((n) => n.unread).length;
@@ -59,7 +96,6 @@ export function NotificationsList() {
     addRead(items.map((n) => n.id));
     setItems((prev) => prev.map((n) => ({ ...n, unread: false })));
   }
-
   function clearAll() {
     addDismissed(items.map((n) => n.id));
     setItems([]);
@@ -108,7 +144,7 @@ export function NotificationsList() {
         <Card className="overflow-hidden p-0">
           <ul className="divide-y divide-white/[0.08]">
             {items.map((n) => {
-              const actor = getPerson(n.actorId);
+              const actor = n.actorId ? getPerson(n.actorId) : null;
               const Icon = n.icon;
               return (
                 <li key={n.id}>
@@ -120,30 +156,41 @@ export function NotificationsList() {
                     )}
                   >
                     <span className="relative shrink-0">
-                      {actor && (
+                      {actor ? (
                         <Avatar src={actor.avatar} name={actor.name} size={38} />
+                      ) : (
+                        <span
+                          className={cn(
+                            "flex h-9 w-9 items-center justify-center rounded-xl border",
+                            n.tone
+                          )}
+                        >
+                          <Icon size={15} strokeWidth={2} />
+                        </span>
                       )}
-                      <span
-                        className={cn(
-                          "absolute -bottom-1 -right-1 h-5 w-5 rounded-full flex items-center justify-center ring-2 ring-[#15161c] border",
-                          n.tone
-                        )}
-                      >
-                        <Icon size={10} strokeWidth={2.25} />
-                      </span>
+                      {actor && (
+                        <span
+                          className={cn(
+                            "absolute -bottom-1 -right-1 h-5 w-5 rounded-full flex items-center justify-center ring-2 ring-[#15161c] border",
+                            n.tone
+                          )}
+                        >
+                          <Icon size={10} strokeWidth={2.25} />
+                        </span>
+                      )}
                     </span>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-start justify-between gap-3">
-                        <p className="text-[13px] font-medium text-ink">
-                          {n.title}
-                        </p>
+                        <p className="text-[13px] font-medium text-ink">{n.title}</p>
                         <span className="text-[10.5px] text-muted font-mono shrink-0">
                           {n.at}
                         </span>
                       </div>
-                      <p className="text-[12px] text-muted leading-snug mt-0.5">
-                        {n.body}
-                      </p>
+                      {n.body && (
+                        <p className="text-[12px] text-muted leading-snug mt-0.5">
+                          {n.body}
+                        </p>
+                      )}
                     </div>
                     {n.unread && (
                       <span className="h-1.5 w-1.5 rounded-full bg-accent shrink-0 mt-2" />

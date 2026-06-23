@@ -1,12 +1,16 @@
 import { TopBar } from "@/components/shell/topbar";
 import { BlockRequestInbox } from "@/components/block/block-request-inbox";
 import { NotificationsList } from "@/components/shell/notifications-list";
-import { getIncomingBlockRequests } from "@/lib/data";
+import { getIncomingBlockRequests, getNotifications } from "@/lib/data";
+import { supabaseConfigured } from "@/lib/env";
 
 export const dynamic = "force-dynamic";
 
 export default async function NotificationsPage() {
-  const blockRequests = await getIncomingBlockRequests();
+  const [blockRequests, notifications] = await Promise.all([
+    getIncomingBlockRequests(),
+    getNotifications(),
+  ]);
 
   return (
     <>
@@ -22,7 +26,10 @@ export default async function NotificationsPage() {
           {/* Incoming Block Requests — accept to create the Block + unlock chat */}
           <BlockRequestInbox requests={blockRequests} />
 
-          <NotificationsList />
+          <NotificationsList
+            initial={notifications}
+            demo={!supabaseConfigured}
+          />
         </div>
       </div>
     </>
