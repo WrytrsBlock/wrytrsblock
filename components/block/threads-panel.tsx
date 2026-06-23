@@ -312,10 +312,9 @@ export function ThreadsPanel({ block }: { block: Block }) {
         {messages.length === 0 && (
           <div className="flex h-full items-center justify-center">
             <EmptyState
-              compact
               icon={MessageSquare}
-              title="No messages yet"
-              description="Start the conversation."
+              title="Start the conversation"
+              description="No messages yet — share an update or @mention a collaborator to pull them in."
               className="border-0 bg-transparent"
             />
           </div>

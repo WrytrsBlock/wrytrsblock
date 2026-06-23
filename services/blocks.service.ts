@@ -32,6 +32,8 @@ export async function listBlocksForWorkspace(
 export type MyBlockRow = BlockRow & {
   my_role: BlockMember["role"];
   my_status: BlockMemberStatus;
+  // Total members on the Block (so surfaces can show "+N" without an N+1 fetch).
+  member_count: number;
 };
 
 export async function listMyBlocks(
@@ -40,14 +42,14 @@ export async function listMyBlocks(
 ): Promise<MyBlockRow[]> {
   const { data, error } = await supabase
     .from("block_members")
-    .select("role, status, block:blocks(*)")
+    .select("role, status, block:blocks(*, members:block_members(count))")
     .eq("user_id", userId);
   if (error) throw error;
 
   const rows = (data ?? []) as unknown as {
     role: BlockMember["role"];
     status: BlockMemberStatus;
-    block: BlockRow | null;
+    block: (BlockRow & { members?: { count: number }[] }) | null;
   }[];
 
   return rows
@@ -56,6 +58,7 @@ export async function listMyBlocks(
       ...(r.block as BlockRow),
       my_role: r.role,
       my_status: r.status,
+      member_count: (r.block as { members?: { count: number }[] }).members?.[0]?.count ?? 1,
     }))
     .sort(
       (a, b) =>

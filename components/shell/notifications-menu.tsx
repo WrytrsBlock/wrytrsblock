@@ -182,9 +182,13 @@ export function NotificationsMenu() {
         aria-expanded={open}
       >
         <span className="relative">
-          <Bell size={14} strokeWidth={1.75} />
+          <Bell
+            size={14}
+            strokeWidth={1.75}
+            className={unreadCount > 0 ? "text-[#F5B642]" : ""}
+          />
           {unreadCount > 0 && (
-            <span className="absolute -top-0.5 -right-0.5 h-1.5 w-1.5 rounded-full bg-accent animate-slow-pulse" />
+            <span className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-[#F5B642] ring-2 ring-[#0d0f14] animate-slow-pulse" />
           )}
         </span>
       </button>

@@ -22,9 +22,25 @@ type Props = {
   profile: Person;
   blocks: Block[];
   unreadMessages?: number;
+  unreadNotifications?: number;
 };
 
-export function Sidebar({ profile, blocks, unreadMessages = 0 }: Props) {
+// Block-type colour recognition: Collaboration = blue, Service = green,
+// Block Party = orange.
+function dotColor(t: Block["blockType"]): string {
+  return t === "service"
+    ? "text-[#16A34A]"
+    : t === "block_party"
+      ? "text-[#F97316]"
+      : "text-[#2F6BFF]";
+}
+
+export function Sidebar({
+  profile,
+  blocks,
+  unreadMessages = 0,
+  unreadNotifications = 0,
+}: Props) {
   const path = usePathname();
   // Decided server-side: completed profile → /profile/[handle]; else onboarding.
   const profileHref = "/profile";
@@ -48,7 +64,12 @@ export function Sidebar({ profile, blocks, unreadMessages = 0 }: Props) {
       icon: MessageSquare,
       badge: unreadMessages,
     },
-    { href: "/notifications", label: "Notifications", icon: Bell },
+    {
+      href: "/notifications",
+      label: "Notifications",
+      icon: Bell,
+      dot: unreadNotifications > 0,
+    },
     { href: "/settings", label: "Settings", icon: Settings },
   ];
 
@@ -121,6 +142,7 @@ export function Sidebar({ profile, blocks, unreadMessages = 0 }: Props) {
           <ul className="space-y-0.5">
             {blocks.slice(0, 4).map((b) => {
               const active = path?.includes(`/blocks/${b.slug}`);
+              const members = b.memberCount ?? b.team.length;
               return (
                 <li key={b.id}>
                   <Link
@@ -132,15 +154,13 @@ export function Sidebar({ profile, blocks, unreadMessages = 0 }: Props) {
                         : "text-muted hover:text-ink hover:bg-surface-2/60"
                     )}
                   >
-                    <CircleDot
-                      size={10}
-                      className={
-                        b.blockType === "service"
-                          ? "text-accent-2"
-                          : "text-accent"
-                      }
-                    />
+                    <CircleDot size={10} className={dotColor(b.blockType)} />
                     <span className="truncate flex-1">{b.title}</span>
+                    {members >= 2 && (
+                      <span className="shrink-0 rounded-full bg-white/[0.08] px-1.5 text-[10px] font-semibold tabular-nums text-white/55">
+                        +{members}
+                      </span>
+                    )}
                   </Link>
                 </li>
               );
@@ -167,7 +187,12 @@ export function Sidebar({ profile, blocks, unreadMessages = 0 }: Props) {
                   : "text-muted hover:text-ink hover:bg-surface-2/60"
               )}
             >
-              <Icon size={15} strokeWidth={1.75} />
+              <span className="relative">
+                <Icon size={15} strokeWidth={1.75} />
+                {"dot" in item && item.dot && (
+                  <span className="absolute -right-1 -top-1 h-2 w-2 rounded-full bg-[#F5B642] ring-2 ring-[#0d0f14]" />
+                )}
+              </span>
               <span className="flex-1">{item.label}</span>
               {"badge" in item && (item.badge ?? 0) > 0 && (
                 <span className="inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-accent text-white text-[10px] font-semibold tabular-nums">

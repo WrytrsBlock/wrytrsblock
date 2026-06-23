@@ -195,6 +195,9 @@ export type Block = {
   party?: BlockParty;
   // What the creator is looking for (Collaboration) — drives marketplace cards.
   seeking?: string[];
+  // Total members on the Block (real count from block_members). Falls back to
+  // team.length for mock data. Drives "+N" indicators.
+  memberCount?: number;
   // The signed-in user's membership on this Block (single-block model). Set when
   // the Block comes from My Blocks / the Block view; undefined for marketplace.
   myRole?: "owner" | "member";

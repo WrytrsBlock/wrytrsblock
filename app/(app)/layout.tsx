@@ -8,6 +8,7 @@ import { ProfileProvider } from "@/components/shell/profile-context";
 import {
   getBlocks,
   getCurrentProfile,
+  getNotifications,
   getUnreadMessageCount,
   hasCompletedOnboarding,
 } from "@/lib/data";
@@ -26,10 +27,12 @@ export default async function AppLayout({
   // /onboarding lives outside this (app) group, so there's no redirect loop.
   if (!(await hasCompletedOnboarding())) redirect("/onboarding");
 
-  const [blocks, unreadMessages] = await Promise.all([
+  const [blocks, unreadMessages, notifications] = await Promise.all([
     getBlocks(),
     getUnreadMessageCount(),
+    getNotifications(),
   ]);
+  const unreadNotifications = notifications.filter((n) => n.unread).length;
 
   return (
     <ProfileProvider
@@ -50,6 +53,7 @@ export default async function AppLayout({
           profile={profile}
           blocks={blocks}
           unreadMessages={unreadMessages}
+          unreadNotifications={unreadNotifications}
         />
         <main className="relative flex-1 min-w-0 flex flex-col">
           {children}

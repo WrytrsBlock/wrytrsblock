@@ -120,9 +120,8 @@ function isCompleted(b: Block): boolean {
 }
 
 function memberLabel(b: Block): string {
-  const n = b.team?.length ?? 0;
-  if (n <= 0) return "Just you";
-  return `${n} Member${n === 1 ? "" : "s"}`;
+  const n = b.memberCount ?? b.team?.length ?? 0;
+  return n <= 1 ? "Just you" : `${n} Members`;
 }
 
 // ── Cards ───────────────────────────────────────────────────────────────────

@@ -396,9 +396,10 @@ export async function getBlocks(_workspaceId?: string): Promise<Block[]> {
 
   try {
     const rows = await listMyBlocks(supabase, user.id);
-    return rows.map((r) =>
-      blockRowToView(r, { role: r.my_role, status: r.my_status })
-    );
+    return rows.map((r) => ({
+      ...blockRowToView(r, { role: r.my_role, status: r.my_status }),
+      memberCount: r.member_count,
+    }));
   } catch {
     return [];
   }
