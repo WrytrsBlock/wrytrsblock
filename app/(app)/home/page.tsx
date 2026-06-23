@@ -1,9 +1,8 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { ArrowRight, Bolt, Layers, Mail, MapPin, Sparkles } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import { TopBar } from "@/components/shell/topbar";
-import { LgNewBlockButton } from "@/components/ui/lg-button";
-import { NeedsReply } from "@/components/home/needs-reply";
+import { PendingRequests } from "@/components/block/pending-requests";
 import { MyBlockCard } from "@/components/block/my-block-card";
 import { cardCoverFor } from "@/lib/creator-image";
 import { blockMatchForCreator } from "@/lib/block-match";
@@ -15,10 +14,9 @@ import {
 } from "@/lib/mock";
 import {
   getBlocks,
-  getCreator,
   getCreators,
   getCurrentProfile,
-  getIncomingBlockRequests,
+  getPendingRequests,
 } from "@/lib/data";
 
 export const dynamic = "force-dynamic";
@@ -30,142 +28,58 @@ function greeting(): string {
   return "Good evening";
 }
 
-// A curated set of discovery categories → the Block Market.
-const VIBES = [
-  "Producers",
-  "Vocalists",
-  "Hip Hop",
-  "R&B",
-  "Afrobeat",
-  "Engineers",
-  "Pop",
-  "Videographers",
-  "Photographers",
-  "Designers",
-];
-
+// Home answers one question: "what does the user do next?" → finish a Block,
+// answer a request, or discover a creator to start one. Three sections, nothing
+// else.
 export default async function HomePage() {
-  const [profile, blocks, requests, creators] = await Promise.all([
+  const [profile, blocks, pending, creators] = await Promise.all([
     getCurrentProfile(),
     getBlocks(),
-    getIncomingBlockRequests(),
+    getPendingRequests(),
     getCreators(),
   ]);
 
-  const myCreator = profile ? await getCreator(profile.handle) : null;
   const firstName = profile?.name.split(" ")[0] ?? "Creator";
-
-  // Audit log: the dashboard rendered for this user (post-onboarding landing).
   if (profile) console.log(`[dashboard] rendered for @${profile.handle}`);
 
-  // Discovery pool — everyone but me, available-first then best Block Score.
-  const discover = creators
+  const active = blocks
+    .filter((b) => b.completion.status !== "completed" && !b.archived)
+    .slice(0, 10);
+
+  // Suggested creators — everyone but me, available-first then best Block Score.
+  const suggested = creators
     .filter((c) => c.person.handle !== profile?.handle)
     .sort(
       (a, b) =>
         Number(!!b.person.online) - Number(!!a.person.online) ||
         b.profile.blockScore - a.profile.blockScore
-    );
-  const spotlight = discover[0];
-  const rail = discover.slice(1, 13);
-
-  const inMotion = blocks
-    .filter((b) => b.completion.status !== "completed")
-    .slice(0, 10);
-  const open = blocks.filter((b) => b.completion.status !== "completed");
-  const inReview = open.filter((b) => b.completion.status === "in_review").length;
+    )
+    .slice(0, 5);
 
   return (
     <>
       <TopBar />
       <div className="flex-1 min-h-0 overflow-y-auto">
         <div className="page-fluid pb-16 animate-fade-up">
-          {/* Greeting — light, an invitation not a dashboard */}
-          <div className="flex items-center gap-3 pt-5 md:pt-6">
-            <div className="min-w-0">
-              <h1 className="text-[22px] md:text-[26px] font-semibold text-white">
-                {greeting()}, {firstName}
-              </h1>
-              <p className="mt-1 text-[12.5px] text-white/60">
-                Discover creators and start something today.
-              </p>
-            </div>
-            <span className="flex-1" />
-            <LgNewBlockButton label="Start Block" />
+          <div className="pt-5 md:pt-6">
+            <h1 className="text-[22px] md:text-[26px] font-semibold text-white">
+              {greeting()}, {firstName}
+            </h1>
           </div>
 
-          {/* ── Featured creator spotlight — the inspiring first visual ── */}
-          {spotlight && (
-            <Link
-              href={`/profile/${spotlight.person.handle}`}
-              className="group relative mt-5 block aspect-[16/10] sm:aspect-[21/9] overflow-hidden rounded-3xl glass-tile glass-hover"
+          {/* 1 — Continue Collaborating */}
+          {active.length > 0 && (
+            <Section
+              title="Continue Collaborating"
+              cta="All Blocks"
+              href="/blocks"
             >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={cardCoverFor(spotlight.person, spotlight.profile)}
-                alt=""
-                className="absolute inset-0 h-full w-full object-cover object-center transition-transform duration-700 group-hover:scale-[1.04]"
-              />
-              <span className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/35 to-black/10" />
-              <span className="absolute inset-0 bg-gradient-to-r from-black/55 to-transparent" />
-              <div className="absolute inset-x-0 bottom-0 p-5 md:p-7">
-                <span className="lg-pill lg-pill-w mb-3 inline-flex">
-                  <Sparkles size={12} /> Featured creator
-                </span>
-                <h2 className="font-display text-[30px] md:text-[44px] font-bold leading-[1.0] tracking-tight text-white drop-shadow-[0_2px_10px_rgb(0_0_0/0.5)]">
-                  {spotlight.person.name}
-                </h2>
-                <p className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-[13px] text-white/80">
-                  <span className="font-medium text-white/90">
-                    {spotlight.profile.roles.slice(0, 2).join(" · ")}
-                  </span>
-                  <span className="inline-flex items-center gap-1">
-                    <MapPin size={12} /> {spotlight.profile.location}
-                  </span>
-                </p>
-                <span className="lg-btn lg-btn-p mt-4 inline-flex" style={{ color: "#FFFFFF" }}>
-                  Explore profile <ArrowRight size={14} />
-                </span>
-              </div>
-            </Link>
-          )}
-
-          {/* ── Browse by vibe ── */}
-          <Section title="Browse by vibe">
-            <div className="flex flex-wrap gap-2">
-              {VIBES.map((v) => (
-                <Link
-                  key={v}
-                  href="/marketplace"
-                  className="lg-glass2 inline-flex h-9 items-center rounded-full px-4 text-[12.5px] font-medium text-white/85 transition-colors hover:bg-white/[0.12] hover:text-white"
-                >
-                  {v}
-                </Link>
-              ))}
-            </div>
-          </Section>
-
-          {/* ── Discover creators ── */}
-          {rail.length > 0 && (
-            <Section title="Discover creators" cta="Block Market" href="/marketplace">
               <Rail>
-                {rail.map((c) => (
-                  <CreatorMini
-                    key={c.person.id}
-                    person={c.person}
-                    profile={c.profile}
-                  />
-                ))}
-              </Rail>
-            </Section>
-          )}
-
-          {/* ── Your Blocks in motion ── */}
-          {inMotion.length > 0 && (
-            <Section title="Pick up where you left off" cta="My Blocks" href="/blocks">
-              <Rail>
-                {inMotion.map((b, i) => (
-                  <div key={b.id} className="w-[160px] shrink-0 snap-start sm:w-[180px]">
+                {active.map((b, i) => (
+                  <div
+                    key={b.id}
+                    className="w-[160px] shrink-0 snap-start sm:w-[180px]"
+                  >
                     <MyBlockCard
                       block={b}
                       lead={getPerson(b.leadId) ?? null}
@@ -178,32 +92,31 @@ export default async function HomePage() {
             </Section>
           )}
 
-          {/* ── Wants to collaborate with you ── */}
-          {requests.length > 0 && (
-            <Section title="Wants to collaborate with you">
-              <NeedsReply requests={requests} />
+          {/* 2 — New Requests (require a decision) */}
+          {pending.incoming.length > 0 && (
+            <Section title="New Requests">
+              <PendingRequests incoming={pending.incoming} outgoing={[]} />
             </Section>
           )}
 
-          {/* ── Secondary: your numbers, quietly at the bottom ── */}
-          <div className="mt-10 flex flex-wrap gap-2.5">
-            <StatPill
-              icon={<Bolt size={13} />}
-              label="Block Score"
-              value={myCreator ? `${myCreator.profile.blockScore}` : "—"}
-            />
-            <StatPill
-              icon={<Layers size={13} />}
-              label="Active Blocks"
-              value={`${open.length}`}
-              sub={inReview > 0 ? `${inReview} in review` : undefined}
-            />
-            <StatPill
-              icon={<Mail size={13} />}
-              label="Requests"
-              value={`${requests.length}`}
-            />
-          </div>
+          {/* 3 — Suggested Creators */}
+          {suggested.length > 0 && (
+            <Section
+              title="Suggested Creators"
+              cta="Browse Market"
+              href="/marketplace"
+            >
+              <Rail>
+                {suggested.map((c) => (
+                  <CreatorMini
+                    key={c.person.id}
+                    person={c.person}
+                    profile={c.profile}
+                  />
+                ))}
+              </Rail>
+            </Section>
+          )}
         </div>
       </div>
     </>
@@ -250,7 +163,7 @@ function Rail({ children }: { children: ReactNode }) {
   );
 }
 
-// ── Discovery creator card (photo-forward, taps to the profile) ─────────────
+// ── Suggested creator card (photo-forward, taps to the profile to start) ─────
 function CreatorMini({
   person,
   profile,
@@ -285,28 +198,5 @@ function CreatorMini({
         </p>
       </div>
     </Link>
-  );
-}
-
-function StatPill({
-  icon,
-  label,
-  value,
-  sub,
-}: {
-  icon: ReactNode;
-  label: string;
-  value: string;
-  sub?: string;
-}) {
-  return (
-    <div className="lg-glass2 inline-flex items-center gap-2.5 rounded-full px-4 py-2">
-      <span className="text-[#A9BEFF]">{icon}</span>
-      <span className="text-[12px] text-white/60">{label}</span>
-      <span className="text-[13px] font-semibold tabular-nums text-white">
-        {value}
-      </span>
-      {sub && <span className="text-[11px] text-white/45">· {sub}</span>}
-    </div>
   );
 }

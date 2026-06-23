@@ -1,11 +1,13 @@
 import Link from "next/link";
-import { ArrowRight, CheckCircle2, Compass, Users } from "lucide-react";
+import { ArrowRight, CheckCircle2, Compass, Inbox, Users } from "lucide-react";
 import { PendingRequests } from "@/components/block/pending-requests";
+import { BlocksTabs } from "@/components/block/blocks-tabs";
 import { getBlocks, getPendingRequests } from "@/lib/data";
 import type { Block } from "@/lib/mock";
 
 // My Blocks is a collaboration DASHBOARD — not a creation page. Blocks are
-// created from Creator Profiles or Marketplace cards, never here.
+// created from Creator Profiles or Marketplace cards, never here. Requests,
+// Active and Completed live in clear tabs so requests are never hidden away.
 export default async function BlocksListPage() {
   const [blocks, pending] = await Promise.all([
     getBlocks(),
@@ -14,8 +16,13 @@ export default async function BlocksListPage() {
 
   const active = blocks.filter((b) => !isCompleted(b) && !b.archived);
   const completed = blocks.filter((b) => isCompleted(b) && !b.archived);
-  const hasPending = pending.incoming.length + pending.outgoing.length > 0;
-  const isEmpty = !hasPending && active.length === 0 && completed.length === 0;
+  const requestCount = pending.incoming.length + pending.outgoing.length;
+  const isEmpty = requestCount === 0 && active.length === 0 && completed.length === 0;
+
+  // Land on whichever tab actually needs the user — requests first (an incoming
+  // one needs a decision), otherwise the work in progress.
+  const initial =
+    requestCount > 0 ? "requests" : active.length > 0 ? "active" : "completed";
 
   return (
     <div className="flex-1 min-h-0 overflow-y-auto">
@@ -32,42 +39,77 @@ export default async function BlocksListPage() {
         {isEmpty ? (
           <EmptyState />
         ) : (
-          <div className="space-y-6">
-            {/* 1 — Pending Requests */}
-            <PendingRequests
-              incoming={pending.incoming}
-              outgoing={pending.outgoing}
-            />
-
-            {/* 2 — Active Blocks */}
-            {active.length > 0 && (
-              <section>
-                <SectionHeading title="Active Blocks" count={active.length} />
-                <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2 xl:grid-cols-3">
-                  {active.map((b) => (
-                    <ActiveCard key={b.id} block={b} />
-                  ))}
-                </div>
-              </section>
-            )}
-
-            {/* 3 — Completed Blocks */}
-            {completed.length > 0 && (
-              <section>
-                <SectionHeading
-                  title="Completed Blocks"
-                  count={completed.length}
-                />
-                <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2">
-                  {completed.map((b) => (
-                    <CompletedCard key={b.id} block={b} />
-                  ))}
-                </div>
-              </section>
-            )}
-          </div>
+          <BlocksTabs
+            initial={initial}
+            tabs={[
+              {
+                id: "requests",
+                label: "Requests",
+                count: requestCount,
+                node:
+                  requestCount > 0 ? (
+                    <PendingRequests
+                      incoming={pending.incoming}
+                      outgoing={pending.outgoing}
+                    />
+                  ) : (
+                    <TabEmpty icon={Inbox} text="No pending requests." />
+                  ),
+              },
+              {
+                id: "active",
+                label: "Active",
+                count: active.length,
+                node:
+                  active.length > 0 ? (
+                    <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2 xl:grid-cols-3">
+                      {active.map((b) => (
+                        <ActiveCard key={b.id} block={b} />
+                      ))}
+                    </div>
+                  ) : (
+                    <TabEmpty icon={Users} text="No active Blocks yet." />
+                  ),
+              },
+              {
+                id: "completed",
+                label: "Completed",
+                count: completed.length,
+                node:
+                  completed.length > 0 ? (
+                    <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2">
+                      {completed.map((b) => (
+                        <CompletedCard key={b.id} block={b} />
+                      ))}
+                    </div>
+                  ) : (
+                    <TabEmpty
+                      icon={CheckCircle2}
+                      text="No completed Blocks yet."
+                    />
+                  ),
+              },
+            ]}
+          />
         )}
       </div>
+    </div>
+  );
+}
+
+function TabEmpty({
+  icon: Icon,
+  text,
+}: {
+  icon: typeof Inbox;
+  text: string;
+}) {
+  return (
+    <div className="flex flex-col items-center gap-3 rounded-2xl border border-white/[0.08] bg-white/[0.03] px-6 py-12 text-center">
+      <span className="flex h-12 w-12 items-center justify-center rounded-2xl border border-white/[0.08] bg-white/[0.04] text-white/40">
+        <Icon size={22} />
+      </span>
+      <p className="text-[13px] text-white/55">{text}</p>
     </div>
   );
 }
@@ -152,19 +194,6 @@ function ArrowPill() {
     >
       <ArrowRight size={15} />
     </span>
-  );
-}
-
-function SectionHeading({ title, count }: { title: string; count?: number }) {
-  return (
-    <h2 className="mb-2.5 flex items-center gap-2 text-[12px] font-bold uppercase tracking-[0.14em] text-white/55">
-      {title}
-      {typeof count === "number" && (
-        <span className="inline-flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-white/[0.08] px-1.5 text-[10.5px] font-semibold tabular-nums text-white/70">
-          {count}
-        </span>
-      )}
-    </h2>
   );
 }
 
