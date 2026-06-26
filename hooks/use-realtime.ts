@@ -40,7 +40,10 @@ export function useRealtimeTable<T extends Record<string, unknown>>(
     // supabase-js overloads for "postgres_changes" don't narrow a union
     // `event` cleanly (TS falls back to the "system" overload). Cast the
     // method to the precise signature we use to keep the call type-safe.
-    const onPostgres = channel.on as unknown as (
+    // NB: bind to `channel` — extracting the method into a variable detaches
+    // `this`, and RealtimeChannel.on reads `this._on`, so an unbound call throws
+    // "Cannot read properties of undefined (reading '_on')".
+    const onPostgres = channel.on.bind(channel) as unknown as (
       type: "postgres_changes",
       filter: {
         event: ChangeEvent;
