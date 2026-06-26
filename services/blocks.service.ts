@@ -71,13 +71,17 @@ export async function getBlockBySlug(
   supabase: DB,
   slug: string
 ): Promise<BlockRow | null> {
+  // Slugs are unique per workspace, not globally — and RLS already limits rows
+  // to Blocks the caller can see. Use limit(1) instead of maybeSingle() so a
+  // member never 404s just because two workspaces share a slug.
   const { data, error } = await supabase
     .from("blocks")
     .select("*")
     .eq("slug", slug)
-    .maybeSingle();
+    .order("created_at", { ascending: false })
+    .limit(1);
   if (error) throw error;
-  return (data as BlockRow | null) ?? null;
+  return ((data as BlockRow[] | null)?.[0]) ?? null;
 }
 
 export async function createBlock(
