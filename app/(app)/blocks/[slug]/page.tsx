@@ -20,11 +20,8 @@ import { cn } from "@/lib/cn";
 import {
   getBlock,
   getBlockMembers,
-  getBlockChat,
-  getCurrentUserId,
   getMyBlockMembership,
   type BlockMemberView,
-  type ChatMessageView,
 } from "@/lib/data";
 import type { Block, BlockType } from "@/lib/mock";
 
@@ -37,9 +34,7 @@ function renderPanel(
   tab: BlockTabId,
   block: Block,
   members: BlockMemberView[],
-  isOwner: boolean,
-  chat: { channelId: string | null; messages: ChatMessageView[] },
-  currentUserId: string | null
+  isOwner: boolean
 ) {
   switch (tab) {
     case "team":
@@ -61,14 +56,7 @@ function renderPanel(
     case "splits":
       return <SplitSheetPanel block={block} />;
     case "messages":
-      return (
-        <ThreadsPanel
-          channelId={chat.channelId}
-          initialMessages={chat.messages}
-          members={members}
-          currentUserId={currentUserId}
-        />
-      );
+      return <ThreadsPanel block={block} />;
     case "requests":
       return <RequestsPanel block={block} />;
     case "settings":
@@ -100,12 +88,10 @@ export default async function BlockPage({
   const block = await getBlock(params.slug, typeHint);
   if (!block) notFound();
 
-  // Real membership roster + the viewer's own invitation status + shared chat.
-  const [members, myMembership, chat, currentUserId] = await Promise.all([
+  // Real membership roster + the viewer's own invitation status.
+  const [members, myMembership] = await Promise.all([
     getBlockMembers(params.slug),
     getMyBlockMembership(params.slug),
-    getBlockChat(params.slug),
-    getCurrentUserId(),
   ]);
 
   // The lead/creator is the owner — only they may delete the Block.
@@ -137,7 +123,7 @@ export default async function BlockPage({
           fullHeight ? "overflow-hidden" : "overflow-y-auto"
         )}
       >
-        {renderPanel(tab, block, members, isOwner, chat, currentUserId)}
+        {renderPanel(tab, block, members, isOwner)}
       </div>
       <BlockBottomTabs
         slug={block.slug}

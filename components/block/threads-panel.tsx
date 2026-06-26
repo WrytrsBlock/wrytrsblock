@@ -12,15 +12,16 @@ import {
 } from "lucide-react";
 import { Avatar } from "@/components/ui/primitives";
 import { EmptyState } from "@/components/ui/empty-state";
-import { people } from "@/lib/mock";
+import {
+  getPerson,
+  isEstablishedBlock,
+  people,
+  type Block,
+} from "@/lib/mock";
 import { useUser } from "@/hooks/use-user";
 import { useRealtimeTable } from "@/hooks/use-realtime";
 import { supabaseConfigured } from "@/lib/env";
 import { sendMessageAction } from "@/app/actions/messages";
-import type { BlockMemberView, ChatMessageView } from "@/lib/data";
-
-const avatarFor = (id: string) =>
-  `https://api.dicebear.com/9.x/notionists/svg?seed=${id}&backgroundColor=transparent`;
 
 type ChatMessage = {
   id: string;
@@ -47,87 +48,103 @@ function fmtDur(s: number): string {
   return `${m}:${sec.toString().padStart(2, "0")}`;
 }
 
-export function ThreadsPanel({
-  channelId,
-  initialMessages,
-  members,
-  currentUserId,
-}: {
-  // The Block's real General channel id (null only in demo / if missing).
-  channelId: string | null;
-  initialMessages: ChatMessageView[];
-  members: BlockMemberView[];
-  currentUserId: string | null;
-}) {
+// Internal room keys — drive the seeded demo messages + the realtime channel id.
+// There is one shared room per Block now (no channel switching UI).
+const channels = [
+  { id: "writers-room" },
+  { id: "post-picture" },
+  { id: "sound-design" },
+  { id: "cast-talent" },
+  { id: "exec-only" },
+];
+
+function msg(actorId: string, body: string, at: string): ChatMessage {
+  const p = getPerson(actorId);
+  return {
+    id: `seed-${actorId}-${at}-${body.slice(0, 6)}`,
+    authorName: p?.name ?? "Member",
+    authorAvatar: p?.avatar ?? "",
+    body,
+    at,
+  };
+}
+
+const SEED: Record<string, ChatMessage[]> = {
+  "writers-room": [
+    msg("p2", "Ok, the new cold open for Ep.4 lands so much harder. The printing press as the metronome — yes.", "9:24 AM"),
+    msg("p2", "Can we kill the diner scene? It's not paying off and we'd buy ourselves three minutes.", "9:24 AM"),
+    msg("p1", "Tentatively yes. Let's see how Sasha cuts around the absence first.", "9:31 AM"),
+    msg("p3", "I can do a v3 picture cut without the diner today. ETA 4pm.", "9:33 AM"),
+    msg("p6", "Pushed the newsroom theme v4 — the upright bass swap reads calmer under VO. WAV in /audio.", "9:48 AM"),
+    msg("p1", "Beautiful. Let's lock this for Ep.1–3.", "9:49 AM"),
+  ],
+  "post-picture": [
+    msg("p3", "v3 picture lock is up on Frame. Burned-in TC, 23.98.", "8:10 AM"),
+    msg("p1", "Watching now.", "8:22 AM"),
+  ],
+  "sound-design": [
+    msg("p6", "Room tone library tagged and uploaded. 12 takes.", "Yesterday"),
+  ],
+  "cast-talent": [
+    msg("p7", "VO Tues works — sending avails now.", "2h"),
+  ],
+  "exec-only": [
+    msg("p4", "Budget reforecast in the shared sheet. We're 4% under.", "Mon"),
+  ],
+};
+
+export function ThreadsPanel({ block }: { block: Block }) {
   const { user } = useUser();
-
-  // Resolve a sender id → name/avatar from the Block roster (for realtime rows).
-  const memberById = useMemo(
-    () => new Map(members.map((m) => [m.id, m])),
-    [members]
-  );
-
-  const [messages, setMessages] = useState<ChatMessage[]>(() =>
-    initialMessages.map((m) => ({
-      id: m.id,
-      authorName: m.authorName,
-      authorAvatar: m.authorAvatar,
-      body: m.body,
-      at: m.at,
-      mine: !!currentUserId && m.authorId === currentUserId,
-    }))
+  // One shared room per Block — no channel switching.
+  const [activeId] = useState(channels[0].id);
+  const [store, setStore] = useState<Record<string, ChatMessage[]>>(
+    isEstablishedBlock(block) ? SEED : {}
   );
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
+  const messages = store[activeId] ?? [];
+
   const me = useMemo(() => {
     const fallback = people[0];
-    const mine = currentUserId ? memberById.get(currentUserId) : undefined;
     return {
       name:
-        mine?.name ??
         (user?.user_metadata?.display_name as string) ??
         user?.email?.split("@")[0] ??
         "You",
       avatar:
-        mine?.avatar ??
-        (user?.user_metadata?.avatar_url as string) ??
-        fallback.avatar,
+        (user?.user_metadata?.avatar_url as string) ?? fallback.avatar,
     };
-  }, [user, currentUserId, memberById]);
+  }, [user]);
 
-  // Realtime: live-append messages from OTHER members on the same channel. Only
-  // active in production with a real channel UUID. Our own messages are shown
-  // optimistically, so we ignore the echo of rows we authored.
-  const isUuid = !!channelId && /^[0-9a-f-]{36}$/i.test(channelId);
-  useRealtimeTable<{
-    id: string;
-    body: string;
-    created_at: string;
-    author_id: string;
-  }>(
+  // Realtime: only active when Supabase is configured AND the channel id is a
+  // real UUID (production). Demo channels use slugs, so this stays dormant.
+  const isUuid = /^[0-9a-f-]{36}$/i.test(activeId);
+  useRealtimeTable<{ id: string; body: string; created_at: string }>(
     "messages",
     (payload) => {
       if (payload.eventType !== "INSERT") return;
       const row = payload.new;
-      if (row.author_id === currentUserId) return; // our own, already shown
-      setMessages((prev) => {
-        if (prev.some((m) => m.id === row.id)) return prev;
-        const author = memberById.get(row.author_id);
-        return [
+      setStore((prev) => {
+        const list = prev[activeId] ?? [];
+        if (list.some((m) => m.id === row.id)) return prev;
+        return {
           ...prev,
-          {
-            id: row.id,
-            authorName: author?.name ?? "Member",
-            authorAvatar: author?.avatar ?? avatarFor(row.author_id),
-            body: row.body,
-            at: "now",
-          },
-        ];
+          [activeId]: [
+            ...list,
+            {
+              id: row.id,
+              authorName: "Teammate",
+              authorAvatar: "",
+              body: row.body,
+              at: "now",
+            },
+          ],
+        };
       });
     },
-    `channel_id=eq.${channelId}`,
+    `channel_id=eq.${activeId}`,
     "INSERT",
     supabaseConfigured && isUuid
   );
@@ -136,7 +153,7 @@ export function ThreadsPanel({
   useEffect(() => {
     const el = scrollRef.current;
     if (el) el.scrollTop = el.scrollHeight;
-  }, [messages.length]);
+  }, [messages.length, activeId]);
 
   async function send() {
     const text = input.trim();
@@ -151,13 +168,14 @@ export function ThreadsPanel({
       at: "now",
       mine: true,
     };
-    setMessages((prev) => [...prev, optimistic]);
+    setStore((prev) => ({
+      ...prev,
+      [activeId]: [...(prev[activeId] ?? []), optimistic],
+    }));
 
-    if (channelId) {
-      setSending(true);
-      await sendMessageAction(channelId, text).catch(() => {});
-      setSending(false);
-    }
+    setSending(true);
+    await sendMessageAction(activeId, text).catch(() => {});
+    setSending(false);
   }
 
   // ── Voice notes ───────────────────────────────────────────────────────────
@@ -178,9 +196,11 @@ export function ThreadsPanel({
   // Release any object URLs when the panel unmounts.
   useEffect(() => {
     return () => {
-      for (const m of messages) {
-        if (m.audioUrl) URL.revokeObjectURL(m.audioUrl);
-        if (m.attachment) URL.revokeObjectURL(m.attachment.url);
+      for (const list of Object.values(store)) {
+        for (const m of list) {
+          if (m.audioUrl) URL.revokeObjectURL(m.audioUrl);
+          if (m.attachment) URL.revokeObjectURL(m.attachment.url);
+        }
       }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -228,7 +248,10 @@ export function ThreadsPanel({
       },
     };
     setInput("");
-    setMessages((prev) => [...prev, att]);
+    setStore((prev) => ({
+      ...prev,
+      [activeId]: [...(prev[activeId] ?? []), att],
+    }));
   }
 
   async function toggleVoiceNote() {
@@ -265,7 +288,10 @@ export function ThreadsPanel({
           mine: true,
           audioUrl: url,
         };
-        setMessages((prev) => [...prev, note]);
+        setStore((prev) => ({
+          ...prev,
+          [activeId]: [...(prev[activeId] ?? []), note],
+        }));
       };
       recorderRef.current = rec;
       rec.start();
