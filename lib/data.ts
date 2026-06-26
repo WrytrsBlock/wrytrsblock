@@ -625,6 +625,93 @@ export async function getBlockMembers(slug: string): Promise<BlockMemberView[]> 
   }
 }
 
+// ---------- Block chat (real, shared per-Block General channel) ----------
+
+export type ChatMessageView = {
+  id: string;
+  authorId: string;
+  authorName: string;
+  authorAvatar: string;
+  body: string;
+  at: string;
+};
+
+function fmtChatTime(iso: string): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "";
+  const sameDay = d.toDateString() === new Date().toDateString();
+  return sameDay
+    ? d.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" })
+    : d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+}
+
+// The signed-in user's id (null when signed out / demo).
+export async function getCurrentUserId(): Promise<string | null> {
+  if (!supabaseConfigured) return mockPeople[0].id;
+  const supabase = createSupabaseServerClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  return user?.id ?? null;
+}
+
+// The Block's shared chat: its General channel id + the existing messages, with
+// author identity resolved from creator_profiles (two-step, not a PostgREST
+// embed). This is what makes every member see the SAME conversation.
+export async function getBlockChat(
+  slug: string
+): Promise<{ channelId: string | null; messages: ChatMessageView[] }> {
+  if (!supabaseConfigured) return { channelId: null, messages: [] };
+  const supabase = createSupabaseServerClient();
+  try {
+    const block = await getBlockBySlug(supabase, slug);
+    if (!block) return { channelId: null, messages: [] };
+
+    // The Block's General channel (the first/only channel created with it).
+    const { data: chans } = await supabase
+      .from("channels")
+      .select("id")
+      .eq("block_id", block.id)
+      .order("created_at", { ascending: true })
+      .limit(1);
+    const channelId = (chans?.[0]?.id as string) ?? null;
+    if (!channelId) return { channelId: null, messages: [] };
+
+    const { data: rows } = await supabase
+      .from("messages")
+      .select("id, author_id, body, created_at")
+      .eq("channel_id", channelId)
+      .order("created_at", { ascending: true })
+      .limit(200);
+
+    const ids = [...new Set((rows ?? []).map((r) => r.author_id as string))];
+    const profs = ids.length
+      ? (
+          await supabase
+            .from("creator_profiles")
+            .select("id, display_name, handle, avatar_url")
+            .in("id", ids)
+        ).data
+      : [];
+    const byId = new Map((profs ?? []).map((p) => [p.id as string, p]));
+
+    const messages: ChatMessageView[] = (rows ?? []).map((r) => {
+      const p = byId.get(r.author_id as string);
+      return {
+        id: r.id as string,
+        authorId: r.author_id as string,
+        authorName: p?.display_name ?? p?.handle ?? "Member",
+        authorAvatar: p?.avatar_url ?? avatarFor(r.author_id as string),
+        body: r.body as string,
+        at: fmtChatTime(r.created_at as string),
+      };
+    });
+    return { channelId, messages };
+  } catch {
+    return { channelId: null, messages: [] };
+  }
+}
+
 // ---------- Profile: collaboration network (real data) ----------
 
 export type ProfileBlock = {
