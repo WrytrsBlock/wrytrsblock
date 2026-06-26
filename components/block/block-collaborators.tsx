@@ -3,6 +3,13 @@ import Link from "next/link";
 import { Avatar } from "@/components/ui/primitives";
 import type { BlockMemberView } from "@/lib/data";
 
+function fmtAdded(iso: string | null): string {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "";
+  return d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+}
+
 // Who's in this Block — the creator + collaborators, shown as cards side by side
 // with a "+" between them (the same "A + B" language as Start a Block). The owner
 // reads as the one who created the Block. Sits right under the title.
@@ -19,8 +26,13 @@ export function BlockCollaborators({
   });
   if (!ordered.length) return null;
 
+  const count = ordered.length;
+
   return (
     <div className="mt-4 flex flex-wrap items-center gap-x-2.5 gap-y-2">
+      <span className="mr-0.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-muted">
+        {count} {count === 1 ? "creator" : "creators"}
+      </span>
       {ordered.map((m, i) => (
         <Fragment key={m.id}>
           {i > 0 && (
@@ -40,7 +52,7 @@ export function BlockCollaborators({
                   ? "Owner · created this Block"
                   : m.status === "invited"
                     ? "Invited"
-                    : "Member"}
+                    : `Member${m.joinedAt ? ` · added ${fmtAdded(m.joinedAt)}` : ""}`}
               </span>
             </span>
           </Link>

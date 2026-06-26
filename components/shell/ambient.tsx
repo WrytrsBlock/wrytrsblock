@@ -7,7 +7,6 @@ import { usePathname } from "next/navigation";
 const AMBIENTS: [prefix: string, cls: string][] = [
   ["/marketplace", "lg-amb-market"],
   ["/blocks", "lg-amb-blocks"],
-  ["/messages", "lg-amb-messages"],
   ["/profile", "lg-amb-profile"],
   ["/home", "lg-amb-home"],
 ];

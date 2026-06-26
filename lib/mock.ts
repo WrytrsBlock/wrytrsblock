@@ -202,6 +202,9 @@ export type Block = {
   // the Block comes from My Blocks / the Block view; undefined for marketplace.
   myRole?: "owner" | "member";
   myStatus?: "pending" | "active";
+  // When myStatus is "pending" (a Block Request you sent, awaiting acceptance),
+  // the ISO timestamp the request was sent — drives the "sent X ago" label.
+  pendingSince?: string;
   isOwner?: boolean;
   archived?: boolean;
   board: KanbanColumn[];

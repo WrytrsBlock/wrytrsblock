@@ -30,67 +30,6 @@ async function blockIdFor(
   return block?.id ?? null;
 }
 
-// Invitee accepts (→ active member) or declines (→ removed from the Block).
-export async function respondToInvitationAction(
-  blockSlug: string,
-  accept: boolean
-): Promise<MembershipResult> {
-  if (!supabaseConfigured) return { ok: true };
-  try {
-    const supabase = createSupabaseServerClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) return { ok: false, error: "Sign in to respond." };
-
-    const id = await blockIdFor(supabase, blockSlug);
-    if (!id) return { ok: false, error: "Block not found." };
-
-    const { error } = await supabase.rpc("respond_to_invitation", {
-      p_block_id: id,
-      p_accept: accept,
-    });
-    if (error) return { ok: false, error: error.message };
-
-    revalidateBlock(blockSlug);
-    return { ok: true };
-  } catch (e) {
-    return { ok: false, error: msg(e) };
-  }
-}
-
-// Owner invites collaborators by @handle (added as Pending members).
-export async function inviteMembersAction(
-  blockSlug: string,
-  handles: string[]
-): Promise<MembershipResult & { invited?: number }> {
-  if (!supabaseConfigured) return { ok: true, invited: handles.length };
-  try {
-    const supabase = createSupabaseServerClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) return { ok: false, error: "Sign in to invite." };
-
-    const clean = handles.map((h) => h.trim()).filter(Boolean);
-    if (!clean.length) return { ok: false, error: "Add at least one @handle." };
-
-    const id = await blockIdFor(supabase, blockSlug);
-    if (!id) return { ok: false, error: "Block not found." };
-
-    const { data, error } = await supabase.rpc("invite_to_block", {
-      p_block_id: id,
-      p_handles: clean,
-    });
-    if (error) return { ok: false, error: error.message };
-
-    revalidateBlock(blockSlug);
-    return { ok: true, invited: typeof data === "number" ? data : clean.length };
-  } catch (e) {
-    return { ok: false, error: msg(e) };
-  }
-}
-
 // A member leaves the Block (membership removed; the Block lives on for others).
 export async function leaveBlockAction(
   blockSlug: string

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowRight, CheckCircle2, Compass, Inbox, Users } from "lucide-react";
+import { ArrowRight, CheckCircle2, Clock, Compass, Inbox, Users } from "lucide-react";
 import { PendingRequests } from "@/components/block/pending-requests";
 import { BlocksTabs } from "@/components/block/blocks-tabs";
 import { getBlocks, getPendingRequests } from "@/lib/data";
@@ -16,7 +16,10 @@ export default async function BlocksListPage() {
 
   const active = blocks.filter((b) => !isCompleted(b) && !b.archived);
   const completed = blocks.filter((b) => isCompleted(b) && !b.archived);
-  const requestCount = pending.incoming.length + pending.outgoing.length;
+  // A's outgoing requests now surface as Pending Blocks in the Active tab (the
+  // same Block, marked Pending), so the Requests tab is only the INCOMING ones
+  // that still need this user's accept/decline.
+  const requestCount = pending.incoming.length;
   const isEmpty = requestCount === 0 && active.length === 0 && completed.length === 0;
 
   // Land on whichever tab actually needs the user — requests first (an incoming
@@ -50,7 +53,7 @@ export default async function BlocksListPage() {
                   requestCount > 0 ? (
                     <PendingRequests
                       incoming={pending.incoming}
-                      outgoing={pending.outgoing}
+                      outgoing={[]}
                     />
                   ) : (
                     <TabEmpty icon={Inbox} text="No pending requests." />
@@ -124,8 +127,21 @@ function memberLabel(b: Block): string {
   return n <= 1 ? "Just you" : `${n} Members`;
 }
 
+// Relative "sent X ago" for a pending Block's send timestamp.
+function sentAgo(iso?: string): string {
+  if (!iso) return "";
+  const ms = Date.now() - new Date(iso).getTime();
+  const m = Math.max(0, Math.floor(ms / 60000));
+  if (m < 1) return "just now";
+  if (m < 60) return `${m}m ago`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h}h ago`;
+  return `${Math.floor(h / 24)}d ago`;
+}
+
 // ── Cards ───────────────────────────────────────────────────────────────────
 function ActiveCard({ block }: { block: Block }) {
+  const isPending = block.myStatus === "pending";
   return (
     <Link
       href={`/blocks/${block.slug}`}
@@ -139,15 +155,26 @@ function ActiveCard({ block }: { block: Block }) {
           className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.04]"
         />
         <span className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
+        {isPending && (
+          <span className="absolute left-2.5 top-2.5 inline-flex items-center gap-1.5 rounded-full border border-[#E8B43A]/40 bg-[#E8B43A]/15 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-[#F5C95B] backdrop-blur-sm">
+            <Clock size={11} /> Pending
+          </span>
+        )}
       </div>
       <div className="flex items-center gap-3 p-3.5">
         <div className="min-w-0 flex-1">
           <p className="truncate text-[14px] font-semibold text-white">
             {block.title}
           </p>
-          <p className="mt-0.5 inline-flex items-center gap-1.5 text-[12px] text-white/55">
-            <Users size={12} /> {memberLabel(block)}
-          </p>
+          {isPending ? (
+            <p className="mt-0.5 inline-flex items-center gap-1.5 text-[12px] text-[#F5C95B]/80">
+              <Clock size={12} /> Request sent {sentAgo(block.pendingSince)}
+            </p>
+          ) : (
+            <p className="mt-0.5 inline-flex items-center gap-1.5 text-[12px] text-white/55">
+              <Users size={12} /> {memberLabel(block)}
+            </p>
+          )}
         </div>
         <ArrowPill />
       </div>

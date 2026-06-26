@@ -7,7 +7,6 @@ import {
   CircleDot,
   CornerDownLeft,
   LayoutGrid,
-  MessageSquare,
   Plus,
   Search,
   Settings,
@@ -67,7 +66,6 @@ export function CommandPalette({ blocks }: { blocks: Block[] }) {
     const nav: Item[] = [
       { id: "marketplace", label: "Block Market", icon: Store, href: "/marketplace", group: "Navigate" },
       { id: "blocks", label: "My Blocks", icon: LayoutGrid, href: "/blocks", group: "Navigate" },
-      { id: "messages", label: "Messages", icon: MessageSquare, href: "/messages", group: "Navigate" },
       { id: "notifications", label: "Notifications", icon: Bell, href: "/notifications", group: "Navigate" },
       { id: "settings", label: "Settings", icon: Settings, href: "/settings", group: "Navigate" },
     ];

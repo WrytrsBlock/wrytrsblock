@@ -16,7 +16,6 @@ import { MediaPanel } from "@/components/block/media-panel";
 import { ThreadsPanel } from "@/components/block/threads-panel";
 import { TeamPanel } from "@/components/block/team-panel";
 import { SettingsPanel } from "@/components/block/settings-panel";
-import { InvitationBanner } from "@/components/block/invitation-banner";
 import { cn } from "@/lib/cn";
 import {
   getBlock,
@@ -116,9 +115,6 @@ export default async function BlockPage({
         ]}
       />
       <BlockHeader block={block} members={members} />
-      {myMembership?.status === "invited" && (
-        <InvitationBanner slug={block.slug} />
-      )}
       {/* The open chat (or selected section) is the main content; navigation
           lives in the bottom tab bar. */}
       <div

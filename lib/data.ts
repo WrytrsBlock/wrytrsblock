@@ -41,7 +41,6 @@ import { listNotifications } from "@/services/notifications.service";
 import {
   getBlockBySlug,
   listMyBlocks,
-  listBlockMembers,
   getMembership,
   type BlockMemberStatus,
 } from "@/services/blocks.service";
@@ -52,14 +51,6 @@ import {
   getCreatorIdByHandle,
   listSavedCreatorIds,
 } from "@/services/creator-profiles.service";
-import {
-  getOrCreateDm,
-  listMyConversationIds,
-  listConversationOthers,
-  listProfilesByIds,
-  listLatestMessages,
-  listDirectMessages,
-} from "@/services/dm.service";
 import { listWorkspacesForUser } from "@/services/workspaces.service";
 
 export type CreatorView = { person: Person; profile: CreatorProfile };
@@ -396,10 +387,29 @@ export async function getBlocks(_workspaceId?: string): Promise<Block[]> {
 
   try {
     const rows = await listMyBlocks(supabase, user.id);
-    return rows.map((r) => ({
-      ...blockRowToView(r, { role: r.my_role, status: r.my_status }),
-      memberCount: r.member_count,
-    }));
+
+    // A Block the user created via a Block Request that the recipient hasn't
+    // answered yet is PENDING for them — even though they're an accepted 'lead'
+    // member. Map block_id → when the request was sent so My Blocks can show
+    // "Pending · sent X ago" until the other creator accepts.
+    const pendingSince = new Map<string, string>();
+    try {
+      const outgoing = await listOutgoingRequests(supabase, user.id);
+      for (const req of outgoing) {
+        if (req.block_id) pendingSince.set(req.block_id, req.created_at);
+      }
+    } catch {
+      /* no outgoing requests / table missing — treat all as active */
+    }
+
+    return rows.map((r) => {
+      const sentAt = pendingSince.get(r.id);
+      return {
+        ...blockRowToView(r, { role: r.my_role, status: r.my_status }),
+        memberCount: r.member_count,
+        ...(sentAt ? { myStatus: "pending" as const, pendingSince: sentAt } : {}),
+      };
+    });
   } catch {
     return [];
   }
@@ -543,6 +553,7 @@ export type BlockMemberView = {
   role: string;
   status: BlockMemberStatus;
   isLead: boolean;
+  joinedAt: string | null;
 };
 
 const avatarFor = (id: string) =>
@@ -565,24 +576,50 @@ export async function getBlockMembers(slug: string): Promise<BlockMemberView[]> 
           role: id === b.leadId ? "lead" : "collaborator",
           status: "accepted" as BlockMemberStatus,
           isLead: id === b.leadId,
+          joinedAt: null,
         };
       })
-      .filter((m): m is BlockMemberView => m !== null);
+      .filter((m): m is NonNullable<typeof m> => m !== null);
   }
   const supabase = createSupabaseServerClient();
   try {
     const block = await getBlockBySlug(supabase, slug);
     if (!block) return [];
-    const rows = await listBlockMembers(supabase, block.id);
-    return rows.map((r) => ({
-      id: r.user_id,
-      name: r.profile?.display_name ?? r.profile?.handle ?? "Member",
-      handle: r.profile?.handle ?? r.user_id.slice(0, 8),
-      avatar: r.profile?.avatar_url ?? avatarFor(r.user_id),
-      role: r.role,
-      status: r.status,
-      isLead: r.role === "lead",
-    }));
+
+    // Two-step fetch (no PostgREST embed): block_members.user_id and profiles.id
+    // both reference auth.users with no direct FK between them, so an embedded
+    // `profiles(...)` join does not resolve and silently returns nothing. Fetch
+    // the membership rows, then resolve identities from creator_profiles (the
+    // marketplace identity: display_name, handle, avatar) by user id.
+    const { data: rows, error } = await supabase
+      .from("block_members")
+      .select("user_id, role, status, joined_at, invited_at")
+      .eq("block_id", block.id)
+      .order("joined_at", { ascending: true });
+    if (error || !rows?.length) return [];
+
+    const ids = rows.map((r) => r.user_id as string);
+    const { data: profs } = await supabase
+      .from("creator_profiles")
+      .select("id, display_name, handle, avatar_url")
+      .in("id", ids);
+    const byId = new Map(
+      (profs ?? []).map((p) => [p.id as string, p])
+    );
+
+    return rows.map((r) => {
+      const p = byId.get(r.user_id as string);
+      return {
+        id: r.user_id as string,
+        name: p?.display_name ?? p?.handle ?? "Member",
+        handle: p?.handle ?? (r.user_id as string).slice(0, 8),
+        avatar: p?.avatar_url ?? avatarFor(r.user_id as string),
+        role: r.role as string,
+        status: r.status as BlockMemberStatus,
+        isLead: r.role === "lead",
+        joinedAt: (r.joined_at as string) ?? (r.invited_at as string) ?? null,
+      };
+    });
   } catch {
     return [];
   }
@@ -840,204 +877,6 @@ export async function getBlockRelationship(
       : { status: "none" };
   } catch {
     return { status: "none" };
-  }
-}
-
-// ---------- Direct messaging ----------
-
-export type ConversationView = {
-  id: string;
-  other: { id: string; name: string; handle: string; avatar: string };
-  lastMessage?: string;
-  lastAt?: string;
-};
-export type DirectMessageView = {
-  id: string;
-  senderId: string;
-  body: string;
-  at: string;
-};
-
-function fmtTime(iso: string): string {
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return "";
-  const sameDay = d.toDateString() === new Date().toDateString();
-  return sameDay
-    ? d.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" })
-    : d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
-}
-
-// Demo inbox so the messages experience renders without Supabase.
-const DM_DEMO_LAST: Record<string, string> = {
-  p2: "Sent the v3 cut — take a look.",
-  p3: "Picture lock by Friday.",
-  p4: "Numbers look good this month.",
-  p6: "New theme is up in /audio.",
-};
-const DM_DEMO_THREADS: Record<string, DirectMessageView[]> = {
-  "c-p2": [
-    { id: "m1", senderId: "p2", body: "Yo — that cold open is fire.", at: "9:24 AM" },
-    { id: "m2", senderId: "p1", body: "Right? Let's build on it.", at: "9:26 AM" },
-  ],
-  "c-p3": [
-    { id: "m1", senderId: "p3", body: "Picture lock by Friday, good?", at: "8:10 AM" },
-  ],
-  "c-p4": [
-    { id: "m1", senderId: "p4", body: "Reforecast is in the sheet.", at: "Mon" },
-  ],
-  "c-p6": [
-    { id: "m1", senderId: "p6", body: "New theme is up in /audio.", at: "Yesterday" },
-  ],
-};
-function demoConversations(): ConversationView[] {
-  const out: ConversationView[] = [];
-  for (const id of ["p2", "p3", "p4", "p6"]) {
-    const p = mockPeople.find((pp) => pp.id === id);
-    if (!p) continue;
-    out.push({
-      id: `c-${id}`,
-      other: { id: p.id, name: p.name, handle: p.handle, avatar: p.avatar },
-      lastMessage: DM_DEMO_LAST[id] ?? "Say hi 👋",
-      lastAt: "now",
-    });
-  }
-  return out;
-}
-
-export async function getCurrentUserId(): Promise<string | null> {
-  if (!supabaseConfigured) return mockPeople[0].id;
-  const supabase = createSupabaseServerClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  return user?.id ?? null;
-}
-
-// Real unread direct-message count for the signed-in user (messages from others
-// after their last_read_at). 0 → no badge. Demo mode has no real unread state.
-export async function getUnreadMessageCount(): Promise<number> {
-  if (!supabaseConfigured) return 0;
-  const supabase = createSupabaseServerClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return 0;
-  try {
-    const { data: mems } = await supabase
-      .from("conversation_members")
-      .select("conversation_id, last_read_at")
-      .eq("user_id", user.id);
-    if (!mems?.length) return 0;
-    const lastRead = new Map(
-      mems.map((m) => [m.conversation_id as string, m.last_read_at as string])
-    );
-    const { data: msgs } = await supabase
-      .from("direct_messages")
-      .select("conversation_id, created_at")
-      .in(
-        "conversation_id",
-        mems.map((m) => m.conversation_id)
-      )
-      .neq("sender_id", user.id);
-    let count = 0;
-    for (const m of msgs ?? []) {
-      const lr = lastRead.get(m.conversation_id as string);
-      if (!lr || new Date(m.created_at as string) > new Date(lr)) count++;
-    }
-    return count;
-  } catch {
-    return 0;
-  }
-}
-
-export async function getConversations(): Promise<ConversationView[]> {
-  if (!supabaseConfigured) return demoConversations();
-  const supabase = createSupabaseServerClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return [];
-  try {
-    const ids = await listMyConversationIds(supabase, user.id);
-    if (!ids.length) return [];
-    const [others, latest] = await Promise.all([
-      listConversationOthers(supabase, ids, user.id),
-      listLatestMessages(supabase, ids),
-    ]);
-    const otherUserByConv = new Map(
-      others.map((o) => [o.conversation_id, o.user_id])
-    );
-    const profs = await listProfilesByIds(supabase, [
-      ...new Set(others.map((o) => o.user_id)),
-    ]);
-    const profById = new Map(profs.map((p) => [p.id, p]));
-    const lastMap = new Map<string, { body: string; created_at: string }>();
-    for (const m of latest) {
-      if (!lastMap.has(m.conversation_id))
-        lastMap.set(m.conversation_id, { body: m.body, created_at: m.created_at });
-    }
-    return ids
-      .map((id) => {
-        const prof = profById.get(otherUserByConv.get(id) ?? "") ?? null;
-        const last = lastMap.get(id);
-        return {
-          id,
-          other: {
-            id: prof?.id ?? "",
-            name: prof?.display_name ?? prof?.handle ?? "Creator",
-            handle: prof?.handle ?? "",
-            avatar: prof?.avatar_url ?? avatarFor(prof?.id ?? id),
-          },
-          lastMessage: last?.body,
-          lastAt: last ? fmtTime(last.created_at) : undefined,
-          _ts: last ? new Date(last.created_at).getTime() : 0,
-        };
-      })
-      .sort((a, b) => b._ts - a._ts)
-      .map(({ _ts, ...c }) => c);
-  } catch {
-    return [];
-  }
-}
-
-export async function getDirectMessages(
-  convId: string
-): Promise<DirectMessageView[]> {
-  if (!supabaseConfigured) return DM_DEMO_THREADS[convId] ?? [];
-  const supabase = createSupabaseServerClient();
-  try {
-    const rows = await listDirectMessages(supabase, convId);
-    return rows.map((r) => ({
-      id: r.id,
-      senderId: r.sender_id,
-      body: r.body,
-      at: fmtTime(r.created_at),
-    }));
-  } catch {
-    return [];
-  }
-}
-
-// Resolve a creator @handle to a conversation id, creating the 1:1 if needed.
-export async function getOrStartConversationByHandle(
-  handle: string
-): Promise<string | null> {
-  const h = handle.replace(/^@/, "");
-  if (!supabaseConfigured) {
-    const p = mockPeople.find((pp) => pp.handle === h);
-    return p ? `c-${p.id}` : null;
-  }
-  const supabase = createSupabaseServerClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return null;
-  try {
-    const otherId = await getCreatorIdByHandle(supabase, h);
-    if (!otherId || otherId === user.id) return null;
-    return await getOrCreateDm(supabase, otherId);
-  } catch {
-    return null;
   }
 }
 

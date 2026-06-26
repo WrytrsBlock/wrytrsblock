@@ -10,7 +10,6 @@ type UIEventMap = {
     | { type?: "collaboration" | "service"; handle?: string }
     | undefined;
   "wb:open-command": undefined;
-  "wb:invite": { blockSlug: string; handle?: string };
   "wb:edit-service": undefined;
 };
 
@@ -41,6 +40,4 @@ export const openNewBlock = (
     type || handle ? { type, handle } : undefined
   );
 export const openCommandPalette = () => emitUIEvent("wb:open-command");
-export const openInvite = (blockSlug: string, handle?: string) =>
-  emitUIEvent("wb:invite", { blockSlug, handle });
 export const openEditService = () => emitUIEvent("wb:edit-service");

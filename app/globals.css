@@ -422,12 +422,6 @@
       radial-gradient(830px 500px at 88% 75%, #23386f 0%, transparent 60%),
       #07080d;
   }
-  .lg-amb-messages {
-    background:
-      radial-gradient(830px 500px at 75% 12%, #4a2160 0%, transparent 60%),
-      radial-gradient(790px 500px at 10% 85%, #23386f 0%, transparent 60%),
-      #07080d;
-  }
 
   @keyframes fade-up {
     from {

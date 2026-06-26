@@ -3,13 +3,11 @@ import { BottomTabBar } from "@/components/shell/bottom-tab-bar";
 import { CommandPalette } from "@/components/shell/command-palette";
 import { Ambient } from "@/components/shell/ambient";
 import { NewBlockDialog } from "@/components/block/new-block-dialog";
-import { InviteDialog } from "@/components/block/invite-dialog";
 import { ProfileProvider } from "@/components/shell/profile-context";
 import {
   getBlocks,
   getCurrentProfile,
   getNotifications,
-  getUnreadMessageCount,
   hasCompletedOnboarding,
 } from "@/lib/data";
 import { redirect } from "next/navigation";
@@ -27,9 +25,8 @@ export default async function AppLayout({
   // /onboarding lives outside this (app) group, so there's no redirect loop.
   if (!(await hasCompletedOnboarding())) redirect("/onboarding");
 
-  const [blocks, unreadMessages, notifications] = await Promise.all([
+  const [blocks, notifications] = await Promise.all([
     getBlocks(),
-    getUnreadMessageCount(),
     getNotifications(),
   ]);
   const unreadNotifications = notifications.filter((n) => n.unread).length;
@@ -52,7 +49,6 @@ export default async function AppLayout({
         <Sidebar
           profile={profile}
           blocks={blocks}
-          unreadMessages={unreadMessages}
           unreadNotifications={unreadNotifications}
         />
         <main className="relative flex-1 min-w-0 flex flex-col">
@@ -63,7 +59,6 @@ export default async function AppLayout({
         {/* Global overlays */}
         <CommandPalette blocks={blocks} />
         <NewBlockDialog />
-        <InviteDialog />
       </div>
     </ProfileProvider>
   );

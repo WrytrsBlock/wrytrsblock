@@ -2,11 +2,12 @@ import { MessageCircle, MoreHorizontal } from "lucide-react";
 import { Avatar } from "@/components/ui/primitives";
 import { BlockScore } from "@/components/creator/block-score";
 import { creatorProfiles, getPerson } from "@/lib/mock";
-import { InviteButton } from "./invite-button";
 
+// Compact roster shown on a Block's overview — the people in the Block. Inviting
+// is not done here: collaborators join through the Block Request flow, so there
+// is no invite affordance on this list.
 export function TeamRoster({
   ids,
-  blockSlug,
 }: {
   ids: string[];
   blockSlug: string;
@@ -58,7 +59,6 @@ export function TeamRoster({
           );
         })}
       </ul>
-      <InviteButton blockSlug={blockSlug} className="mt-4 w-full" />
     </div>
   );
 }

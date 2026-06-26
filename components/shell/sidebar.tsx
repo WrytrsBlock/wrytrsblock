@@ -8,7 +8,6 @@ import {
   Compass,
   House,
   LayoutGrid,
-  MessageSquare,
   Settings,
   Store,
   User,
@@ -21,7 +20,6 @@ import { UserMenu } from "@/components/shell/user-menu";
 type Props = {
   profile: Person;
   blocks: Block[];
-  unreadMessages?: number;
   unreadNotifications?: number;
 };
 
@@ -38,7 +36,6 @@ function dotColor(t: Block["blockType"]): string {
 export function Sidebar({
   profile,
   blocks,
-  unreadMessages = 0,
   unreadNotifications = 0,
 }: Props) {
   const path = usePathname();
@@ -58,12 +55,6 @@ export function Sidebar({
 
   // Secondary actions.
   const secondary = [
-    {
-      href: "/messages",
-      label: "Messages",
-      icon: MessageSquare,
-      badge: unreadMessages,
-    },
     {
       href: "/notifications",
       label: "Notifications",
@@ -194,11 +185,6 @@ export function Sidebar({
                 )}
               </span>
               <span className="flex-1">{item.label}</span>
-              {"badge" in item && (item.badge ?? 0) > 0 && (
-                <span className="inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-accent text-white text-[10px] font-semibold tabular-nums">
-                  {item.badge}
-                </span>
-              )}
             </Link>
           );
         })}

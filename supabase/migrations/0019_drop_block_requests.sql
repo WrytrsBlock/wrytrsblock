@@ -1,11 +1,13 @@
 -- 0019_drop_block_requests.sql
--- Removes the legacy request-to-create system. Apply this ONLY AFTER the new
--- single-block membership UI is deployed, so nothing still calls these RPCs.
--- Until then, 0018 (additive) and the old request flow safely coexist.
+-- (Repurposed.) The Block Request system (block_requests + send/accept/decline)
+-- is the CANONICAL collaboration flow and is intentionally KEPT.
+--
+-- This migration removes the competing, never-canonical membership-invite RPCs
+-- that briefly coexisted (invite_to_block / respond_to_invitation). Inviting a
+-- collaborator is now exactly "send a Block Request", so these are obsolete. The
+-- drops are idempotent and safe whether or not the functions were ever created.
 
-drop function if exists public.send_block_request(uuid, text, text, text, text);
-drop function if exists public.accept_block_request(uuid);
-drop function if exists public.decline_block_request(uuid);
-drop table if exists public.block_requests cascade;
+drop function if exists public.invite_to_block(uuid, text[]);
+drop function if exists public.respond_to_invitation(uuid, boolean);
 
 notify pgrst, 'reload schema';

@@ -32,6 +32,7 @@ import { Button, Input, Label } from "@/components/ui/primitives";
 import { cn, slugify } from "@/lib/cn";
 import { onUIEvent } from "@/lib/ui-events";
 import { createBlockAction } from "@/app/actions/blocks";
+import { sendBlockRequestAction } from "@/app/actions/block-requests";
 import { BLOCK_VISIBILITIES } from "@/types";
 import type {
   BlockCategory,
@@ -121,6 +122,7 @@ export function NewBlockDialog() {
   const [partyLivestream, setPartyLivestream] = useState("");
   const [partyChat, setPartyChat] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [sentTo, setSentTo] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
   useEffect(
@@ -158,6 +160,7 @@ export function NewBlockDialog() {
     setPartyLivestream("");
     setPartyChat(true);
     setError(null);
+    setSentTo(null);
   }
 
   function close() {
@@ -174,6 +177,25 @@ export function NewBlockDialog() {
     if (!blockType) return;
     const type = blockType; // capture non-null for the async closure
     setError(null);
+
+    // Canonical collaboration path: starting a Block WITH another creator sends
+    // a Block Request. Nothing is created until they accept (accept_block_request
+    // makes the one shared Block, requester=Owner, recipient=Collaborator).
+    if (type === "collaboration" && invited) {
+      const recipient = invited;
+      startTransition(async () => {
+        const res = await sendBlockRequestAction({
+          recipientHandle: recipient,
+          blockTitle: title.trim(),
+          blockType: "collaboration",
+          introMessage: tagline.trim() || `Let's collaborate.`,
+        });
+        if (res.ok) setSentTo(recipient);
+        else setError(res.error);
+      });
+      return;
+    }
+
     startTransition(async () => {
       const isPartyType = type === "block_party";
       const priceNum = Number(price);
@@ -183,7 +205,6 @@ export function NewBlockDialog() {
         tagline,
         kind,
         blockType: type,
-        inviteHandle: invited ?? undefined,
         category: type === "collaboration" ? category : undefined,
         price: entryPaid && priceNum > 0 ? priceNum : null,
         visibility: isPartyType
@@ -243,7 +264,11 @@ export function NewBlockDialog() {
           : detailsDesc
       }
       footer={
-        step === "details" ? (
+        sentTo ? (
+          <Button variant="primary" size="md" onClick={close}>
+            Done
+          </Button>
+        ) : step === "details" ? (
           <>
             <Button
               variant="ghost"
@@ -261,6 +286,8 @@ export function NewBlockDialog() {
             >
               {pending
                 ? "Saving…"
+                : isCollab && invited
+                ? "Send Block Request"
                 : isParty
                 ? "Publish Block Party"
                 : "Create Block"}
@@ -270,7 +297,20 @@ export function NewBlockDialog() {
         ) : undefined
       }
     >
-      {step === "type" ? (
+      {sentTo ? (
+        <div className="flex flex-col items-center gap-3 py-8 text-center">
+          <span className="flex h-12 w-12 items-center justify-center rounded-2xl border border-accent/30 bg-accent/10 text-accent">
+            <Check size={22} />
+          </span>
+          <p className="text-[14px] font-semibold text-ink">
+            Block Request sent to @{sentTo}
+          </p>
+          <p className="max-w-xs text-[12.5px] text-muted">
+            They&apos;ll get a notification. When they accept, your shared Block
+            opens for both of you — you as Owner, them as Collaborator.
+          </p>
+        </div>
+      ) : step === "type" ? (
         <div>
           <div className="divide-y divide-line">
             {blockOptions.map((o) => {
@@ -325,7 +365,7 @@ export function NewBlockDialog() {
               <p className="text-[12.5px] text-ink">
                 Starting this Block with{" "}
                 <span className="font-semibold text-accent">@{invited}</span> —
-                they&apos;ll be invited to collaborate.
+                they&apos;ll get a Block Request to accept.
               </p>
             </div>
           )}

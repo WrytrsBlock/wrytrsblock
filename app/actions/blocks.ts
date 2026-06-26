@@ -24,8 +24,6 @@ export type CreateBlockInput = {
   price?: number | null;
   visibility?: BlockVisibility;
   party?: BlockPartyData | null;
-  // When started from a creator (marketplace/profile), invite them in.
-  inviteHandle?: string;
 };
 
 export type ActionResult =
@@ -74,12 +72,12 @@ export async function createBlockAction(
     const price = input.price && input.price > 0 ? input.price : null;
     const visibility = input.visibility ?? "Public";
     const party = blockType === "block_party" ? input.party ?? null : null;
-    const inviteHandle = input.inviteHandle?.trim().replace(/^@/, "") || null;
 
     // (4) SECURITY DEFINER RPC creates workspace + block + the owner membership.
-    // We do NOT pass p_invite_handle — that path auto-joins the invitee. In the
-    // single-block model an invite must be a *pending* invitation, so we send it
-    // separately below via invite_to_block.
+    // This creates a SOLO Block owned by the caller. Collaboration with another
+    // creator never happens here — it goes through the Block Request flow
+    // (sendBlockRequestAction → accept_block_request), which is the single
+    // canonical way two creators end up sharing a Block.
     const { data, error } = await supabase.rpc("create_user_block", {
       p_title: title,
       p_tagline: input.tagline ?? null,
@@ -97,20 +95,6 @@ export async function createBlockAction(
       | { block_id?: string; block_slug?: string }
       | null;
     const newSlug = row?.block_slug ?? slug;
-    const newId = row?.block_id;
-
-    // Send the collaboration invitation (Pending) — non-fatal: the Block exists
-    // either way, and the owner can re-invite from the Invite tab.
-    if (inviteHandle && newId) {
-      try {
-        await supabase.rpc("invite_to_block", {
-          p_block_id: newId,
-          p_handles: [inviteHandle],
-        });
-      } catch {
-        /* non-fatal */
-      }
-    }
 
     revalidatePath("/blocks");
     revalidatePath("/marketplace");

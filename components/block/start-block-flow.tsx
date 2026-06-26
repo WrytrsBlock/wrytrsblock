@@ -3,17 +3,17 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowUpRight, Loader2, Plus, X } from "lucide-react";
-import { createBlockAction } from "@/app/actions/blocks";
-import { inviteMembersAction } from "@/app/actions/invitations";
+import { ArrowUpRight, Check, Loader2, Plus, X } from "lucide-react";
+import { sendBlockRequestAction } from "@/app/actions/block-requests";
 import type { BlockRelationship } from "@/lib/data";
 
 type Person = { name: string; avatar?: string };
 
-// Start a Block on a creator's profile — single-block model. There is no request
-// step: creating the Block makes you the Owner immediately and invites the
-// creator as a Pending member. Both then see the same Block in My Blocks.
-//   none   → "Start Block" (modal) → creates the Block + invites → Open Block
+// Start a Block on a creator's profile — the canonical Block Request flow.
+// Pressing Start Block sends a Block Request to the creator. Nothing is created
+// yet: the creator receives one notification and, when they Accept, the single
+// shared Block is created with you as Owner and them as Collaborator.
+//   none   → "Start Block" (modal) → sends a Block Request → "Request sent"
 //   active → we already share a Block → Open Block
 export function StartBlockFlow({
   handle,
@@ -42,6 +42,7 @@ export function StartBlockFlow({
   const [title, setTitle] = useState(`Collab with ${name}`);
   const [intro, setIntro] = useState("");
   const [busy, setBusy] = useState(false);
+  const [sent, setSent] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const me: Person = { name: myName, avatar: myAvatar };
@@ -74,30 +75,34 @@ export function StartBlockFlow({
     );
   }
 
-  // ── No shared Block yet — create one + invite ─────────────────────────────
+  // ── No shared Block yet — send a Block Request ────────────────────────────
   const send = async () => {
     setBusy(true);
     setError(null);
-    const created = await createBlockAction({
-      title: title.trim() || `Collab with ${name}`,
+    const res = await sendBlockRequestAction({
+      recipientHandle: handle,
+      blockTitle: title.trim() || `Collab with ${name}`,
       blockType: "collaboration",
-      category: "Project",
-      tagline: intro.trim() || undefined,
+      introMessage: intro.trim() || `Let's collaborate, ${name}.`,
     });
-    if (!created.ok || !created.slug) {
-      setBusy(false);
-      setError(created.ok ? "Couldn't create the Block." : created.error);
+    setBusy(false);
+    if (!res.ok) {
+      setError(res.error);
       return;
     }
-    // Invite the creator as a Pending member (non-fatal — the Block exists).
-    await inviteMembersAction(created.slug, [handle]);
-    setBusy(false);
+    setSent(true);
     setOpen(false);
-    setCreatedSlug(created.slug);
-    setView("active");
-    router.push(`/blocks/${created.slug}`);
     router.refresh();
   };
+
+  // ── Request sent — awaiting the creator's acceptance ──────────────────────
+  if (sent) {
+    return (
+      <span className="lg-pill lg-pill-b inline-flex items-center gap-1.5">
+        <Check size={13} /> Block Request sent to {name}
+      </span>
+    );
+  }
 
   return (
     <>
@@ -137,7 +142,7 @@ export function StartBlockFlow({
             </div>
 
             <div className="space-y-4 px-5 py-4">
-              <Participants a={me} b={them} status="They'll be invited to join" />
+              <Participants a={me} b={them} status="They'll get a Block Request" />
 
               <div>
                 <label className="mb-1.5 block text-[11px] font-semibold uppercase tracking-wide text-muted">
@@ -185,7 +190,7 @@ export function StartBlockFlow({
                 ) : (
                   <Plus size={14} />
                 )}
-                Create Block &amp; Invite
+                Send Block Request
               </button>
             </div>
           </div>

@@ -189,58 +189,7 @@ export async function getMembership(
   return (data as BlockMemberWithProfile | null) ?? null;
 }
 
-// Blocks the user has been invited to but hasn't answered yet.
-export async function listMyInvitations(
-  supabase: DB,
-  userId: UUID
-): Promise<(BlockMemberWithProfile & { block?: unknown })[]> {
-  const { data, error } = await supabase
-    .from("block_members")
-    .select("*, block:blocks(id, slug, title, tagline, block_type, cover_url)")
-    .eq("user_id", userId)
-    .eq("status", "invited")
-    .order("invited_at", { ascending: false });
-  if (error) throw error;
-  return data ?? [];
-}
-
-// Add (or invite) a member. Idempotent on (block_id, user_id) — never downgrades
-// an existing accepted member back to invited.
-export async function addBlockMember(
-  supabase: DB,
-  blockId: UUID,
-  userId: UUID,
-  role: BlockMember["role"] = "collaborator",
-  opts?: { status?: BlockMemberStatus; invitedBy?: UUID }
-) {
-  const status = opts?.status ?? "accepted";
-  const row: Record<string, unknown> = {
-    block_id: blockId,
-    user_id: userId,
-    role,
-    status,
-  };
-  if (status === "invited") {
-    row.invited_by = opts?.invitedBy ?? null;
-    row.invited_at = new Date().toISOString();
-  }
-  const { error } = await supabase
-    .from("block_members")
-    .upsert(row, { onConflict: "block_id,user_id", ignoreDuplicates: true });
-  if (error) throw error;
-}
-
-// Invitee responds to an invitation.
-export async function setMembershipStatus(
-  supabase: DB,
-  blockId: UUID,
-  userId: UUID,
-  status: BlockMemberStatus
-) {
-  const { error } = await supabase
-    .from("block_members")
-    .update({ status, joined_at: new Date().toISOString() })
-    .eq("block_id", blockId)
-    .eq("user_id", userId);
-  if (error) throw error;
-}
+// NOTE: collaboration membership is created exclusively by the canonical Block
+// Request flow (accept_block_request adds both creators as accepted members).
+// There is no client-side "invite as pending" path, so the former
+// listMyInvitations / addBlockMember / setMembershipStatus helpers were removed.
