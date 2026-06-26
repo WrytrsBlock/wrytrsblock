@@ -12,19 +12,19 @@ import {
 } from "lucide-react";
 import { Avatar } from "@/components/ui/primitives";
 import { EmptyState } from "@/components/ui/empty-state";
-import {
-  getPerson,
-  isEstablishedBlock,
-  people,
-  type Block,
-} from "@/lib/mock";
+import { type Block } from "@/lib/mock";
 import { useUser } from "@/hooks/use-user";
+import { useSupabase } from "@/hooks/use-supabase";
 import { useRealtimeTable } from "@/hooks/use-realtime";
 import { supabaseConfigured } from "@/lib/env";
 import { sendMessageAction } from "@/app/actions/messages";
 
+const avatarFor = (id: string) =>
+  `https://api.dicebear.com/9.x/notionists/svg?seed=${id}&backgroundColor=transparent`;
+
 type ChatMessage = {
   id: string;
+  authorId?: string;
   authorName: string;
   authorAvatar: string;
   body: string;
@@ -35,6 +35,8 @@ type ChatMessage = {
   // An attached file (object URL) — images render inline, others as a chip.
   attachment?: { url: string; name: string; isImage: boolean };
 };
+
+type Author = { name: string; avatar: string };
 
 const EMOJIS = [
   "😀", "😂", "😍", "🔥", "👍", "🙌", "🎉", "💯",
@@ -48,112 +50,165 @@ function fmtDur(s: number): string {
   return `${m}:${sec.toString().padStart(2, "0")}`;
 }
 
-// Internal room keys — drive the seeded demo messages + the realtime channel id.
-// There is one shared room per Block now (no channel switching UI).
-const channels = [
-  { id: "writers-room" },
-  { id: "post-picture" },
-  { id: "sound-design" },
-  { id: "cast-talent" },
-  { id: "exec-only" },
-];
-
-function msg(actorId: string, body: string, at: string): ChatMessage {
-  const p = getPerson(actorId);
-  return {
-    id: `seed-${actorId}-${at}-${body.slice(0, 6)}`,
-    authorName: p?.name ?? "Member",
-    authorAvatar: p?.avatar ?? "",
-    body,
-    at,
-  };
+function fmtTime(iso: string): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "";
+  const sameDay = d.toDateString() === new Date().toDateString();
+  return sameDay
+    ? d.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" })
+    : d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
 }
 
-const SEED: Record<string, ChatMessage[]> = {
-  "writers-room": [
-    msg("p2", "Ok, the new cold open for Ep.4 lands so much harder. The printing press as the metronome — yes.", "9:24 AM"),
-    msg("p2", "Can we kill the diner scene? It's not paying off and we'd buy ourselves three minutes.", "9:24 AM"),
-    msg("p1", "Tentatively yes. Let's see how Sasha cuts around the absence first.", "9:31 AM"),
-    msg("p3", "I can do a v3 picture cut without the diner today. ETA 4pm.", "9:33 AM"),
-    msg("p6", "Pushed the newsroom theme v4 — the upright bass swap reads calmer under VO. WAV in /audio.", "9:48 AM"),
-    msg("p1", "Beautiful. Let's lock this for Ep.1–3.", "9:49 AM"),
-  ],
-  "post-picture": [
-    msg("p3", "v3 picture lock is up on Frame. Burned-in TC, 23.98.", "8:10 AM"),
-    msg("p1", "Watching now.", "8:22 AM"),
-  ],
-  "sound-design": [
-    msg("p6", "Room tone library tagged and uploaded. 12 takes.", "Yesterday"),
-  ],
-  "cast-talent": [
-    msg("p7", "VO Tues works — sending avails now.", "2h"),
-  ],
-  "exec-only": [
-    msg("p4", "Budget reforecast in the shared sheet. We're 4% under.", "Mon"),
-  ],
-};
+const isUuid = (s: string) => /^[0-9a-f-]{36}$/i.test(s);
 
 export function ThreadsPanel({ block }: { block: Block }) {
   const { user } = useUser();
-  // One shared room per Block — no channel switching.
-  const [activeId] = useState(channels[0].id);
-  const [store, setStore] = useState<Record<string, ChatMessage[]>>(
-    isEstablishedBlock(block) ? SEED : {}
-  );
+  const supabase = useSupabase();
+  const currentUserId = user?.id ?? null;
+
+  // The real Block id is a UUID in production; demo/synthesized Blocks use the
+  // slug, which means no real channel — the chat then stays local/optimistic.
+  const realBlock = supabaseConfigured && isUuid(block.id);
+
+  const [channelId, setChannelId] = useState<string | null>(null);
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  const messages = store[activeId] ?? [];
+  // id → display name/avatar for every member of this Block (for both the
+  // initial history and live realtime rows). Held in a ref so the realtime
+  // handler can read it without re-subscribing.
+  const authorsRef = useRef<Map<string, Author>>(new Map());
 
   const me = useMemo(() => {
-    const fallback = people[0];
+    const mine = currentUserId ? authorsRef.current.get(currentUserId) : undefined;
     return {
       name:
+        mine?.name ??
         (user?.user_metadata?.display_name as string) ??
         user?.email?.split("@")[0] ??
         "You",
       avatar:
-        (user?.user_metadata?.avatar_url as string) ?? fallback.avatar,
+        mine?.avatar ??
+        (user?.user_metadata?.avatar_url as string) ??
+        (currentUserId ? avatarFor(currentUserId) : ""),
     };
-  }, [user]);
+    // authorsRef is a ref; messages length nudges recompute after load.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, currentUserId, messages.length]);
 
-  // Realtime: only active when Supabase is configured AND the channel id is a
-  // real UUID (production). Demo channels use slugs, so this stays dormant.
-  const isUuid = /^[0-9a-f-]{36}$/i.test(activeId);
-  useRealtimeTable<{ id: string; body: string; created_at: string }>(
+  // Load the Block's General channel + its existing messages (shared by every
+  // accepted member). Fully guarded so a failure never throws the page.
+  useEffect(() => {
+    let cancelled = false;
+    if (!realBlock || !supabase) return;
+    (async () => {
+      try {
+        const { data: chans } = await supabase
+          .from("channels")
+          .select("id")
+          .eq("block_id", block.id)
+          .order("created_at", { ascending: true })
+          .limit(1);
+        const ch = (chans?.[0]?.id as string) ?? null;
+        if (!ch || cancelled) return;
+
+        // Build the author map from the Block roster.
+        const { data: mems } = await supabase
+          .from("block_members")
+          .select("user_id")
+          .eq("block_id", block.id);
+        const ids = [...new Set((mems ?? []).map((m) => m.user_id as string))];
+        if (ids.length) {
+          const { data: profs } = await supabase
+            .from("creator_profiles")
+            .select("id, display_name, handle, avatar_url")
+            .in("id", ids);
+          const map = new Map<string, Author>();
+          for (const p of profs ?? []) {
+            map.set(p.id as string, {
+              name:
+                (p.display_name as string) ??
+                (p.handle as string) ??
+                "Member",
+              avatar: (p.avatar_url as string) ?? avatarFor(p.id as string),
+            });
+          }
+          authorsRef.current = map;
+        }
+
+        const { data: rows } = await supabase
+          .from("messages")
+          .select("id, author_id, body, created_at")
+          .eq("channel_id", ch)
+          .order("created_at", { ascending: true })
+          .limit(200);
+
+        if (cancelled) return;
+        setChannelId(ch);
+        setMessages(
+          (rows ?? []).map((r) => {
+            const a = authorsRef.current.get(r.author_id as string);
+            return {
+              id: r.id as string,
+              authorId: r.author_id as string,
+              authorName: a?.name ?? "Member",
+              authorAvatar: a?.avatar ?? avatarFor(r.author_id as string),
+              body: r.body as string,
+              at: fmtTime(r.created_at as string),
+              mine: r.author_id === currentUserId,
+            };
+          })
+        );
+      } catch {
+        /* leave the chat empty rather than crash */
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [realBlock, supabase, block.id, currentUserId]);
+
+  // Realtime: append messages from OTHER members on this channel (our own show
+  // optimistically). Active only once we have a real channel id.
+  useRealtimeTable<{
+    id: string;
+    body: string;
+    created_at: string;
+    author_id: string;
+  }>(
     "messages",
     (payload) => {
       if (payload.eventType !== "INSERT") return;
       const row = payload.new;
-      setStore((prev) => {
-        const list = prev[activeId] ?? [];
-        if (list.some((m) => m.id === row.id)) return prev;
-        return {
+      if (row.author_id === currentUserId) return; // our own, already shown
+      setMessages((prev) => {
+        if (prev.some((m) => m.id === row.id)) return prev;
+        const a = authorsRef.current.get(row.author_id);
+        return [
           ...prev,
-          [activeId]: [
-            ...list,
-            {
-              id: row.id,
-              authorName: "Teammate",
-              authorAvatar: "",
-              body: row.body,
-              at: "now",
-            },
-          ],
-        };
+          {
+            id: row.id,
+            authorId: row.author_id,
+            authorName: a?.name ?? "Member",
+            authorAvatar: a?.avatar ?? avatarFor(row.author_id),
+            body: row.body,
+            at: fmtTime(row.created_at),
+          },
+        ];
       });
     },
-    `channel_id=eq.${activeId}`,
+    `channel_id=eq.${channelId}`,
     "INSERT",
-    supabaseConfigured && isUuid
+    !!channelId && supabaseConfigured
   );
 
   // Auto-scroll to newest.
   useEffect(() => {
     const el = scrollRef.current;
     if (el) el.scrollTop = el.scrollHeight;
-  }, [messages.length, activeId]);
+  }, [messages.length]);
 
   async function send() {
     const text = input.trim();
@@ -162,20 +217,20 @@ export function ThreadsPanel({ block }: { block: Block }) {
 
     const optimistic: ChatMessage = {
       id: `local-${Date.now()}`,
+      authorId: currentUserId ?? undefined,
       authorName: me.name,
       authorAvatar: me.avatar,
       body: text,
       at: "now",
       mine: true,
     };
-    setStore((prev) => ({
-      ...prev,
-      [activeId]: [...(prev[activeId] ?? []), optimistic],
-    }));
+    setMessages((prev) => [...prev, optimistic]);
 
-    setSending(true);
-    await sendMessageAction(activeId, text).catch(() => {});
-    setSending(false);
+    if (channelId) {
+      setSending(true);
+      await sendMessageAction(channelId, text).catch(() => {});
+      setSending(false);
+    }
   }
 
   // ── Voice notes ───────────────────────────────────────────────────────────
@@ -196,11 +251,9 @@ export function ThreadsPanel({ block }: { block: Block }) {
   // Release any object URLs when the panel unmounts.
   useEffect(() => {
     return () => {
-      for (const list of Object.values(store)) {
-        for (const m of list) {
-          if (m.audioUrl) URL.revokeObjectURL(m.audioUrl);
-          if (m.attachment) URL.revokeObjectURL(m.attachment.url);
-        }
+      for (const m of messages) {
+        if (m.audioUrl) URL.revokeObjectURL(m.audioUrl);
+        if (m.attachment) URL.revokeObjectURL(m.attachment.url);
       }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -248,10 +301,7 @@ export function ThreadsPanel({ block }: { block: Block }) {
       },
     };
     setInput("");
-    setStore((prev) => ({
-      ...prev,
-      [activeId]: [...(prev[activeId] ?? []), att],
-    }));
+    setMessages((prev) => [...prev, att]);
   }
 
   async function toggleVoiceNote() {
@@ -288,10 +338,7 @@ export function ThreadsPanel({ block }: { block: Block }) {
           mine: true,
           audioUrl: url,
         };
-        setStore((prev) => ({
-          ...prev,
-          [activeId]: [...(prev[activeId] ?? []), note],
-        }));
+        setMessages((prev) => [...prev, note]);
       };
       recorderRef.current = rec;
       rec.start();
@@ -302,12 +349,13 @@ export function ThreadsPanel({ block }: { block: Block }) {
   }
 
   return (
-    // One big chat that fills the whole Block — no channel column. This IS the
-    // collab room.
-    <div className="flex h-full min-h-[480px] flex-col">
+    // One big chat that fills the whole Block. min-h-0 lets the message list
+    // scroll inside the available flex space instead of overflowing under the
+    // Block tabs / bottom nav on mobile; the composer is pinned (shrink-0).
+    <div className="flex h-full min-h-0 flex-col">
       <div
         ref={scrollRef}
-        className="page-fluid flex-1 space-y-4 overflow-y-auto py-6"
+        className="page-fluid min-h-0 flex-1 space-y-4 overflow-y-auto py-6"
       >
         {messages.length === 0 && (
           <div className="flex h-full items-center justify-center">
@@ -364,8 +412,8 @@ export function ThreadsPanel({ block }: { block: Block }) {
         ))}
       </div>
 
-      {/* Composer */}
-      <div className="page-fluid pb-5">
+      {/* Composer — shrink-0 so it stays visible above the Block tabs + nav. */}
+      <div className="page-fluid shrink-0 pb-3">
         <div className="rounded-2xl border border-line bg-surface p-3 shadow-soft transition-shadow focus-within:shadow-elevated">
           <textarea
             ref={textareaRef}
