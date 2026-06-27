@@ -57,11 +57,6 @@ export function BlockHeader({
       <h1 className="mt-2.5 font-display text-3xl leading-tight tracking-tight text-ink md:text-[34px]">
         {block.title}
       </h1>
-      {block.tagline && (
-        <p className="mt-1.5 max-w-2xl text-[13.5px] leading-relaxed text-muted">
-          {block.tagline}
-        </p>
-      )}
 
       <BlockCollaborators members={members} />
     </div>
