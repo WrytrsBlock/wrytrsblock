@@ -1,5 +1,4 @@
 import { notFound } from "next/navigation";
-import { TopBar } from "@/components/shell/topbar";
 import { BlockHeader } from "@/components/block/block-header";
 import { BlockBottomTabs } from "@/components/block/block-bottom-tabs";
 import {
@@ -107,13 +106,8 @@ export default async function BlockPage({
 
   return (
     <>
-      <TopBar
-        crumbs={[
-          { label: "The CR8TV Collectv" },
-          { label: "Blocks", href: "/blocks" },
-          { label: block.title },
-        ]}
-      />
+      {/* No global search bar inside a Block — you're already collaborating. The
+          Block opens straight on its header (title + creators) and chat. */}
       <BlockHeader block={block} members={members} />
       {/* The open chat (or selected section) is the main content; navigation
           lives in the bottom tab bar. */}

@@ -26,7 +26,13 @@ export function BlockHeader({
   const typeTone = isParty ? "warning" : isService ? "accent-2" : "accent";
 
   return (
-    <div className="shrink-0 border-b border-white/[0.08] page-fluid py-5">
+    <div
+      className="shrink-0 border-b border-white/[0.08] page-fluid pb-5"
+      // Top safe-area + spacing — the global search bar that used to sit above
+      // the Block is removed, so the header is now the topmost element and must
+      // clear the status bar / notch on mobile.
+      style={{ paddingTop: "calc(env(safe-area-inset-top) + 1.25rem)" }}
+    >
       {/* Mobile-only exit: the global app dock is hidden inside a Block, so this
           is how phone users back out to My Blocks. Desktop uses the sidebar. */}
       <Link
