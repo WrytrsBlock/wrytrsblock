@@ -44,7 +44,7 @@ export default async function AppLayout({
           ambient washes, a translucent left sidebar as the primary desktop
           navigation, and a single centered glass search pill (rendered by each
           page via <TopBar/>). Mobile keeps the floating dock. */}
-      <div className="dark relative flex h-screen lg-canvas text-ink overflow-hidden">
+      <div className="dark relative flex h-[100dvh] lg-canvas text-ink overflow-hidden">
         <Ambient />
         <Sidebar
           profile={profile}

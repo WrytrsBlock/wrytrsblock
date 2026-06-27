@@ -17,7 +17,10 @@ export function BlockBottomTabs({
 }) {
   const tabs = tabsForType(blockType);
   return (
-    <nav className="shrink-0 border-t border-white/[0.08] bg-bg/80 backdrop-blur-xl">
+    <nav
+      className="shrink-0 border-t border-white/[0.08] bg-bg/80 backdrop-blur-xl"
+      style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
+    >
       <div className="page-fluid flex items-stretch gap-1 overflow-x-auto py-2">
         {tabs.map((t) => {
           const on = t.id === active;

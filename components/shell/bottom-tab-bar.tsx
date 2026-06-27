@@ -18,6 +18,13 @@ const LABEL = "text-[10px] font-semibold tracking-tight transition-colors durati
 export function BottomTabBar({ profileHref }: { profileHref: string }) {
   const path = usePathname();
 
+  // Inside a Block workspace (/blocks/<slug>) the Block has its own focused
+  // bottom menu (Chat/Team/Files/Splits/Settings), so the global app dock is
+  // hidden to avoid a double bottom bar over the chat composer. It returns on
+  // every other screen (Home, Market, Blocks list, Profile, …).
+  const inBlockWorkspace = /^\/blocks\/[^/]+/.test(path ?? "");
+  if (inBlockWorkspace) return null;
+
   const isActive = (href: string) =>
     path === href || (href !== "/" && path?.startsWith(href));
 

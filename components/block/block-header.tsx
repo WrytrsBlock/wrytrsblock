@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ChevronLeft } from "lucide-react";
 import { Badge } from "@/components/ui/primitives";
 import { BlockCollaborators } from "./block-collaborators";
 import type { Block } from "@/lib/mock";
@@ -26,6 +27,15 @@ export function BlockHeader({
 
   return (
     <div className="shrink-0 border-b border-white/[0.08] page-fluid py-5">
+      {/* Mobile-only exit: the global app dock is hidden inside a Block, so this
+          is how phone users back out to My Blocks. Desktop uses the sidebar. */}
+      <Link
+        href="/blocks"
+        className="lg:hidden mb-3 -ml-1 inline-flex items-center gap-1 text-[12.5px] font-medium text-muted transition-colors hover:text-ink"
+      >
+        <ChevronLeft size={15} /> Blocks
+      </Link>
+
       <div className="flex flex-wrap items-center gap-1.5">
         <Badge tone={typeTone}>{typeLabel}</Badge>
         {!isService && !isParty && block.category && (
