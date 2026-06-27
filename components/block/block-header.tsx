@@ -52,6 +52,11 @@ export function BlockHeader({
             ${block.price} · {isParty ? "entry" : "one-time"}
           </Badge>
         ) : null}
+        {members.length > 0 && (
+          <span className="ml-auto text-[11px] font-semibold uppercase tracking-[0.12em] text-muted">
+            {members.length} {members.length === 1 ? "creator" : "creators"}
+          </span>
+        )}
       </div>
 
       <h1 className="mt-2.5 font-display text-3xl leading-tight tracking-tight text-ink md:text-[34px]">

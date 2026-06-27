@@ -26,13 +26,8 @@ export function BlockCollaborators({
   });
   if (!ordered.length) return null;
 
-  const count = ordered.length;
-
   return (
     <div className="mt-4 flex flex-wrap items-center gap-x-2.5 gap-y-2">
-      <span className="mr-0.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-muted">
-        {count} {count === 1 ? "creator" : "creators"}
-      </span>
       {ordered.map((m, i) => (
         <Fragment key={m.id}>
           {i > 0 && (
