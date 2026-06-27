@@ -323,8 +323,16 @@ export function CreatorMarketplace({
         <h1 className="font-display text-4xl md:text-5xl text-white tracking-tight">
           Block Market
         </h1>
-        <p className="mt-2 text-[13px] text-white/55">
+        <p className="mt-2 inline-flex items-center gap-2 text-[15px] font-medium text-white/90">
           Find a creator and start a Block.
+          {/* The same blue + control that lives on each creator card, so people
+              immediately recognize which button starts a Block. */}
+          <span
+            aria-hidden
+            className="inline-flex h-6 w-6 items-center justify-center rounded-lg border border-[rgba(140,170,255,0.6)] border-t-[rgba(185,205,255,0.75)] bg-[rgba(59,102,246,0.6)] text-white shadow-[0_4px_18px_rgba(59,102,246,0.4)]"
+          >
+            <Plus size={14} strokeWidth={2.6} />
+          </span>
         </p>
       </div>
 
@@ -664,15 +672,20 @@ function CreatorCard({
       <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 flex items-end justify-between gap-2 bg-gradient-to-t from-black/70 via-black/25 to-transparent px-3 pb-3 pt-12">
         <div className="min-w-0">
           <Link href={href} className="pointer-events-auto block">
-            <h3 className="truncate font-display text-[16px] md:text-[17px] leading-tight tracking-tight text-white drop-shadow-[0_1px_4px_rgb(0_0_0/0.5)]">
+            <h3 className="truncate font-display text-[18.5px] md:text-[19.5px] leading-tight tracking-tight text-white drop-shadow-[0_1px_4px_rgb(0_0_0/0.5)]">
               {person.name}
             </h3>
           </Link>
+          {/* Primary skill — now as prominent as the name (bright + same base
+              size) so a creator's craft reads at a glance. */}
+          <p className="mt-0.5 truncate text-[16px] md:text-[17px] font-semibold leading-tight text-white drop-shadow-[0_1px_3px_rgb(0_0_0/0.65)]">
+            {role}
+          </p>
           <p
-            className="mt-0.5 truncate text-[11.5px] text-white/80 drop-shadow-[0_1px_3px_rgb(0_0_0/0.6)]"
+            className="mt-0.5 truncate text-[11px] text-white/65 drop-shadow-[0_1px_3px_rgb(0_0_0/0.6)]"
             title={`Block Match estimates how well ${person.name} fits you — based on their creator type, creative interests, experience, location, and collaboration preferences. ${matchTier(match).label}.`}
           >
-            {role} · {match}% Block Match
+            {match}% Block Match
           </p>
         </div>
 
