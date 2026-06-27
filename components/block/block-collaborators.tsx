@@ -27,19 +27,21 @@ export function BlockCollaborators({
   if (!ordered.length) return null;
 
   return (
-    <div className="mt-4 flex flex-wrap items-center gap-x-2.5 gap-y-2">
+    // Single horizontal strip — creators stay side by side and scroll to the
+    // right as more join (never wrap onto a second line). Scrollbar hidden.
+    <div className="mt-4 flex items-center gap-2.5 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
       {ordered.map((m, i) => (
         <Fragment key={m.id}>
           {i > 0 && (
-            <span className="text-[17px] font-semibold text-muted">+</span>
+            <span className="shrink-0 text-[17px] font-semibold text-muted">+</span>
           )}
           <Link
             href={`/profile/${m.handle}`}
-            className="lg-glass inline-flex items-center gap-2.5 rounded-2xl py-1.5 pl-1.5 pr-3.5 transition-colors hover:bg-white/[0.1]"
+            className="lg-glass inline-flex shrink-0 items-center gap-2.5 rounded-2xl py-1.5 pl-1.5 pr-3.5 transition-colors hover:bg-white/[0.1]"
           >
             <Avatar src={m.avatar} name={m.name} size={32} />
-            <span className="min-w-0">
-              <span className="block truncate text-[13px] font-semibold leading-tight text-white">
+            <span>
+              <span className="block whitespace-nowrap text-[13px] font-semibold leading-tight text-white">
                 {m.name}
               </span>
               <span className="block text-[10.5px] leading-tight text-muted">
