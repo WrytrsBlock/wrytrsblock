@@ -14,7 +14,7 @@ export function TopBar(_props: {
   onToggleContext?: () => void;
 }) {
   return (
-    <header className="relative z-40 flex shrink-0 items-center gap-2 px-5 pt-5 md:pt-7">
+    <header className="relative z-40 flex shrink-0 items-center gap-2 px-5 pb-1 pt-[calc(env(safe-area-inset-top)+1.25rem)] md:pt-[calc(env(safe-area-inset-top)+1.75rem)]">
       {/* Spacer balances the bell so the pill stays truly centered. */}
       <span aria-hidden className="w-8 shrink-0" />
       <button
@@ -35,7 +35,10 @@ export function TopBar(_props: {
         <span className="min-w-0 flex-1 truncate text-[13px] text-white/60 transition-colors group-hover:text-white/80">
           Search creators, blocks, services, skills, genres…
         </span>
-        <Kbd>⌘K</Kbd>
+        {/* Keyboard hint is desktop-only — hide on phones so the pill fits. */}
+        <span className="hidden sm:inline-flex">
+          <Kbd>⌘K</Kbd>
+        </span>
       </button>
       <div className="flex w-8 shrink-0 justify-end">
         <NotificationsMenu />
