@@ -3,17 +3,11 @@ import type { ReactNode } from "react";
 import { ArrowRight } from "lucide-react";
 import { TopBar } from "@/components/shell/topbar";
 import { PendingRequests } from "@/components/block/pending-requests";
-import { MyBlockCard } from "@/components/block/my-block-card";
+import { HomeHero } from "@/components/home/home-hero";
 import { cardCoverFor } from "@/lib/creator-image";
 import { blockMatchForCreator } from "@/lib/block-match";
+import { type CreatorProfile, type Person } from "@/lib/mock";
 import {
-  creatorProfiles,
-  getPerson,
-  type CreatorProfile,
-  type Person,
-} from "@/lib/mock";
-import {
-  getBlocks,
   getCreators,
   getCurrentProfile,
   getPendingRequests,
@@ -32,19 +26,14 @@ function greeting(): string {
 // answer a request, or discover a creator to start one. Three sections, nothing
 // else.
 export default async function HomePage() {
-  const [profile, blocks, pending, creators] = await Promise.all([
+  const [profile, pending, creators] = await Promise.all([
     getCurrentProfile(),
-    getBlocks(),
     getPendingRequests(),
     getCreators(),
   ]);
 
   const firstName = profile?.name.split(" ")[0] ?? "Creator";
   if (profile) console.log(`[dashboard] rendered for @${profile.handle}`);
-
-  const active = blocks
-    .filter((b) => b.completion.status !== "completed" && !b.archived)
-    .slice(0, 10);
 
   // Suggested creators — everyone but me, available-first then best Block Score.
   const suggested = creators
@@ -56,41 +45,26 @@ export default async function HomePage() {
     )
     .slice(0, 5);
 
+  // Live creator cards for the hero (top suggested creators).
+  const heroCreators = suggested.slice(0, 4).map((c) => ({
+    id: c.person.id,
+    name: c.person.name,
+    role: c.profile.roles?.[0] ?? "Creator",
+    img: cardCoverFor(c.person, c.profile),
+    handle: c.person.handle,
+  }));
+
   return (
     <>
       <TopBar />
       <div className="flex-1 min-h-0 overflow-y-auto">
         <div className="page-fluid pb-16 animate-fade-up">
-          <div className="pt-5 md:pt-6">
-            <h1 className="text-[22px] md:text-[26px] font-semibold text-white">
-              {greeting()}, {firstName}
-            </h1>
-          </div>
+          <p className="pt-5 text-[13px] font-medium text-white/50">
+            {greeting()}, {firstName}
+          </p>
 
-          {/* 1 — Continue Collaborating */}
-          {active.length > 0 && (
-            <Section
-              title="Continue Collaborating"
-              cta="All Blocks"
-              href="/blocks"
-            >
-              <Rail>
-                {active.map((b, i) => (
-                  <div
-                    key={b.id}
-                    className="w-[160px] shrink-0 snap-start sm:w-[180px]"
-                  >
-                    <MyBlockCard
-                      block={b}
-                      lead={getPerson(b.leadId) ?? null}
-                      score={creatorProfiles[b.leadId]?.blockScore}
-                      index={i}
-                    />
-                  </div>
-                ))}
-              </Rail>
-            </Section>
-          )}
+          {/* 1 — Hero: who are you creating with today? */}
+          <HomeHero creators={heroCreators} />
 
           {/* 2 — New Requests (require a decision) */}
           {pending.incoming.length > 0 && (
