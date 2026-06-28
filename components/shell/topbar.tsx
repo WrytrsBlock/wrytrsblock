@@ -21,7 +21,7 @@ export function TopBar(_props: {
         type="button"
         onClick={() => openCommandPalette()}
         aria-label="Search creators, blocks, services, skills, genres"
-        className="lg-nav group mx-auto flex w-full max-w-[620px] flex-1 items-center gap-3 rounded-full px-5 py-[11px] text-left transition-colors hover:bg-white/[0.13]"
+        className="lg-nav group mx-auto flex w-full min-w-0 max-w-[620px] flex-1 items-center gap-3 rounded-full px-5 py-[11px] text-left transition-colors hover:bg-white/[0.13]"
         style={{
           boxShadow:
             "0 8px 24px rgba(0,0,0,0.4), 0 0 42px rgba(59,102,246,0.16)",
