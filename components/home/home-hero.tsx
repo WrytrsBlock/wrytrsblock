@@ -14,7 +14,7 @@ export function HomeHero() {
     >
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
-        src="/home-hero.png"
+        src="/home-hero.jpg"
         alt="Who are you creating with today? Connect. Collaborate. Complete. Start a Block."
         className="block h-auto w-full"
       />
