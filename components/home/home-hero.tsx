@@ -2,9 +2,10 @@
 
 import { openNewBlock } from "@/lib/ui-events";
 
-// Home hero — the full "Who are you creating with today?" artwork. Tapping it
-// opens the Start-a-Block flow (the artwork's own CTA).
-export function HomeHero() {
+// Home hero — the full "Who are you creating with today?" artwork (a random
+// image chosen per visit, passed in as `src`). Tapping it opens the
+// Start-a-Block flow (the artwork's own CTA).
+export function HomeHero({ src }: { src: string }) {
   return (
     <button
       type="button"
@@ -14,7 +15,7 @@ export function HomeHero() {
     >
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
-        src="/home-hero.jpg"
+        src={src}
         alt="Who are you creating with today? Connect. Collaborate. Complete. Start a Block."
         className="block h-auto w-full"
       />

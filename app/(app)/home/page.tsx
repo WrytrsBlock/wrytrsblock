@@ -1,3 +1,5 @@
+import fs from "fs";
+import path from "path";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { ArrowRight } from "lucide-react";
@@ -20,6 +22,25 @@ function greeting(): string {
   if (h < 12) return "Good morning";
   if (h < 18) return "Good afternoon";
   return "Good evening";
+}
+
+// A random hero image from /public/home-heroes on each visit (the page is
+// force-dynamic, so this re-rolls per request). Falls back to the single
+// home-hero.jpg if the folder is missing/empty.
+function randomHeroSrc(): string {
+  try {
+    const dir = path.join(process.cwd(), "public", "home-heroes");
+    const files = fs
+      .readdirSync(dir)
+      .filter((f) => /\.(jpe?g|png|webp)$/i.test(f));
+    if (files.length) {
+      const pick = files[Math.floor(Math.random() * files.length)];
+      return `/home-heroes/${pick}`;
+    }
+  } catch {
+    /* folder unavailable — use the fallback */
+  }
+  return "/home-hero.jpg";
 }
 
 // Home answers one question: "what does the user do next?" → finish a Block,
@@ -55,8 +76,8 @@ export default async function HomePage() {
             {greeting()}, {firstName}
           </p>
 
-          {/* 1 — Hero: who are you creating with today? */}
-          <HomeHero />
+          {/* 1 — Hero: who are you creating with today? (random per visit) */}
+          <HomeHero src={randomHeroSrc()} />
 
           {/* 2 — New Requests (require a decision) */}
           {pending.incoming.length > 0 && (
