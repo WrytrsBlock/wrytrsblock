@@ -456,6 +456,29 @@
     }
   }
 
+  /* Live activity ticker — translate3d for a GPU layer so it stays smooth on
+     mobile Safari. The row holds two identical copies, so -50% loops seamlessly. */
+  @keyframes ticker {
+    from {
+      transform: translate3d(0, 0, 0);
+    }
+    to {
+      transform: translate3d(-50%, 0, 0);
+    }
+  }
+  .animate-ticker {
+    animation: ticker 42s linear infinite;
+    will-change: transform;
+  }
+  .animate-ticker:hover {
+    animation-play-state: paused;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .animate-ticker {
+      animation: none;
+    }
+  }
+
   /* Profile-block modal: scales up from the tapped tile (transform-origin is
      set inline to the tile's center) so it reads as the block expanding open. */
   @keyframes block-modal-in {

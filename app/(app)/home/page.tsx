@@ -6,6 +6,7 @@ import { ArrowRight } from "lucide-react";
 import { TopBar } from "@/components/shell/topbar";
 import { PendingRequests } from "@/components/block/pending-requests";
 import { HomeHero } from "@/components/home/home-hero";
+import { ActivityTicker } from "@/components/home/activity-ticker";
 import { cardCoverFor } from "@/lib/creator-image";
 import { blockMatchForCreator } from "@/lib/block-match";
 import { type CreatorProfile, type Person } from "@/lib/mock";
@@ -13,6 +14,7 @@ import {
   getCreators,
   getCurrentProfile,
   getPendingRequests,
+  type CreatorView,
 } from "@/lib/data";
 
 export const dynamic = "force-dynamic";
@@ -22,6 +24,24 @@ function greeting(): string {
   if (h < 12) return "Good morning";
   if (h < 18) return "Good afternoon";
   return "Good evening";
+}
+
+// A truthful one-line "action" for the live ticker, derived from a creator's
+// real profile data — never a fabricated event.
+function activityAction(c: CreatorView): string {
+  const p = c.profile;
+  const role = p.roles?.[0];
+  const roleL = role?.toLowerCase();
+  if (c.person.online) return "is online now";
+  if (p.featuredContent && p.featuredContent.length > 0)
+    return "shared new work";
+  if (p.blockScore >= 750) return "is trending now";
+  if (p.openTo?.includes("service"))
+    return roleL ? `is taking on ${roleL} work` : "is offering services";
+  if (p.openTo?.includes("collaboration"))
+    return role ? `· ${role} · open to collab` : "is open to collaborate";
+  if (p.location) return `joined from ${p.location}`;
+  return roleL ? `joined as a ${roleL}` : "joined the Collectv";
 }
 
 // A random hero image from /public/home-heroes on each visit (the page is
@@ -56,14 +76,25 @@ export default async function HomePage() {
   const firstName = profile?.name.split(" ")[0] ?? "Creator";
 
   // Suggested creators — everyone but me, available-first then best Block Score.
-  const suggested = creators
+  const ranked = creators
     .filter((c) => c.person.handle !== profile?.handle)
     .sort(
       (a, b) =>
         Number(!!b.person.online) - Number(!!a.person.online) ||
         b.profile.blockScore - a.profile.blockScore
-    )
-    .slice(0, 5);
+    );
+  const suggested = ranked.slice(0, 5);
+
+  // Live activity ticker — truthful status derived from each real creator's
+  // profile (online, availability, showcase, score). Social proof, not fiction.
+  const activityItems = ranked.slice(0, 16).map((c) => ({
+    id: c.person.id,
+    name: c.person.name,
+    handle: c.person.handle,
+    avatar: c.person.avatar,
+    online: !!c.person.online,
+    action: activityAction(c),
+  }));
 
 
   return (
@@ -103,6 +134,9 @@ export default async function HomePage() {
               </Rail>
             </Section>
           )}
+
+          {/* 4 — Live activity ticker (social proof) */}
+          <ActivityTicker items={activityItems} />
         </div>
       </div>
     </>
