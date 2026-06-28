@@ -17,7 +17,11 @@ export function HomeHero({ src }: { src: string }) {
       <img
         src={src}
         alt="Who are you creating with today? Connect. Collaborate. Complete. Start a Block."
-        className="block h-auto w-full"
+        width={1254}
+        height={1254}
+        fetchPriority="high"
+        decoding="async"
+        className="block aspect-square h-auto w-full object-cover"
       />
     </button>
   );

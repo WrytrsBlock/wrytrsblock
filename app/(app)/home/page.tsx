@@ -54,7 +54,6 @@ export default async function HomePage() {
   ]);
 
   const firstName = profile?.name.split(" ")[0] ?? "Creator";
-  if (profile) console.log(`[dashboard] rendered for @${profile.handle}`);
 
   // Suggested creators — everyone but me, available-first then best Block Score.
   const suggested = creators
@@ -170,6 +169,8 @@ function CreatorMini({
       <img
         src={img}
         alt=""
+        loading="lazy"
+        decoding="async"
         className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.06]"
       />
       <span className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/20 to-transparent" />
