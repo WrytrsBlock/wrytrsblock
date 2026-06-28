@@ -20,11 +20,11 @@ import {
   Drama,
   Film,
   Globe,
+  Guitar,
   Handshake,
   MapPin,
   Mic,
   MicVocal,
-  Music,
   Palette,
   PenLine,
   Podcast,
@@ -80,7 +80,9 @@ export const CREATOR_TYPES: CardOption<CreatorType>[] = [
   { id: "singer", label: "Singer", icon: Mic },
   { id: "songwriter", label: "Songwriter", icon: PenLine },
   { id: "engineer", label: "Audio Engineer", icon: AudioWaveform },
-  { id: "musician", label: "Musician", icon: Music },
+  // Internal id stays "musician" for backward-compat with existing profiles;
+  // surfaced everywhere as "Instrumentalist" (someone who plays an instrument).
+  { id: "musician", label: "Instrumentalist", icon: Guitar },
   { id: "dj", label: "DJ", icon: Disc3 },
   { id: "videographer", label: "Videographer", icon: Video },
   { id: "photographer", label: "Photographer", icon: Camera },
