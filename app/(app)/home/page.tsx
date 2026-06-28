@@ -45,14 +45,6 @@ export default async function HomePage() {
     )
     .slice(0, 5);
 
-  // Live creator cards for the hero (top suggested creators).
-  const heroCreators = suggested.slice(0, 4).map((c) => ({
-    id: c.person.id,
-    name: c.person.name,
-    role: c.profile.roles?.[0] ?? "Creator",
-    img: cardCoverFor(c.person, c.profile),
-    handle: c.person.handle,
-  }));
 
   return (
     <>
@@ -64,7 +56,7 @@ export default async function HomePage() {
           </p>
 
           {/* 1 — Hero: who are you creating with today? */}
-          <HomeHero creators={heroCreators} />
+          <HomeHero />
 
           {/* 2 — New Requests (require a decision) */}
           {pending.incoming.length > 0 && (
