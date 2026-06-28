@@ -98,7 +98,7 @@ export default async function ProfilePage({
     <div className="flex-1 min-h-0 overflow-y-auto">
         {/* ── HERO — the dominant visual. Photo (or branded gradient), a minimal
             identity overlay at the bottom, no floating card. ── */}
-        <section className="relative w-full h-[64vh] min-h-[460px] md:h-[640px] overflow-hidden">
+        <section className="relative w-full h-[64vh] min-h-[460px] md:h-[800px] overflow-hidden">
           {heroImage ? (
             <HeroCover
               image={heroImage}
