@@ -4,6 +4,8 @@ import { CommandPalette } from "@/components/shell/command-palette";
 import { Ambient } from "@/components/shell/ambient";
 import { NewBlockDialog } from "@/components/block/new-block-dialog";
 import { ProfileProvider } from "@/components/shell/profile-context";
+import { MusicPlayerProvider } from "@/components/player/music-player";
+import { MusicPlayerBar } from "@/components/player/music-player-bar";
 import {
   getBlocks,
   getCurrentProfile,
@@ -44,22 +46,27 @@ export default async function AppLayout({
           ambient washes, a translucent left sidebar as the primary desktop
           navigation, and a single centered glass search pill (rendered by each
           page via <TopBar/>). Mobile keeps the floating dock. */}
-      <div className="dark relative flex h-[100dvh] lg-canvas text-ink overflow-hidden">
-        <Ambient />
-        <Sidebar
-          profile={profile}
-          blocks={blocks}
-          unreadNotifications={unreadNotifications}
-        />
-        <main className="relative flex-1 min-w-0 flex flex-col">
-          {children}
-          <BottomTabBar profileHref="/profile" />
-        </main>
+      <MusicPlayerProvider>
+        <div className="dark relative flex h-[100dvh] lg-canvas text-ink overflow-hidden">
+          <Ambient />
+          <Sidebar
+            profile={profile}
+            blocks={blocks}
+            unreadNotifications={unreadNotifications}
+          />
+          <main className="relative flex-1 min-w-0 flex flex-col">
+            {children}
+            {/* Persistent discovery player — stays mounted (and playing) across
+                navigation; sits just above the mobile dock. */}
+            <MusicPlayerBar />
+            <BottomTabBar profileHref="/profile" />
+          </main>
 
-        {/* Global overlays */}
-        <CommandPalette blocks={blocks} />
-        <NewBlockDialog />
-      </div>
+          {/* Global overlays */}
+          <CommandPalette blocks={blocks} />
+          <NewBlockDialog />
+        </div>
+      </MusicPlayerProvider>
     </ProfileProvider>
   );
 }

@@ -14,6 +14,8 @@ import {
 import { StartBlockFlow } from "@/components/block/start-block-flow";
 import { ShareProfileButton } from "@/components/creator/share-profile-button";
 import { CreatorBlocks } from "@/components/creator/creator-blocks";
+import { FeaturedTracks } from "@/components/creator/featured-tracks";
+import { tracksFromFeatured } from "@/lib/player";
 import { HeroCover } from "@/components/creator/hero-cover";
 import { MutualCreators } from "@/components/creator/mutual-creators";
 import { tracksForCreator } from "@/lib/mock";
@@ -63,6 +65,13 @@ export default async function ProfilePage({
   if (!data) notFound();
   const { person, profile } = data;
   const tracks = tracksForCreator(profile);
+  // Up to 3 showcase tracks (real audio) for the Featured Tracks reel + player.
+  const featuredTracks = tracksFromFeatured(profile.featuredContent, {
+    name: person.name,
+    handle: person.handle,
+    type: profile.roles?.[0] ?? "Creator",
+    genre: profile.skills?.[0],
+  });
   // Hero image (cover → featured image → real photo → portfolio). Undefined ⇒
   // a branded gradient, never random stock.
   const heroImage = heroImageFor(person, profile);
@@ -253,6 +262,7 @@ export default async function ProfilePage({
         {/* ── CREATOR BLOCKS — the centerpiece. Explore this creator through
             their blocks. ── */}
         <div className="page-fluid pt-4 md:pt-4 pb-16 animate-fade-up">
+          <FeaturedTracks tracks={featuredTracks} />
           <CreatorBlocks
             isOwner={isMe}
             name={person.name}
