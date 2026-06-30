@@ -51,16 +51,16 @@ export function Sidebar({
     { href: "/marketplace", label: "Block Market", icon: Store },
     { href: "/blocks", label: "My Blocks", icon: LayoutGrid },
     { href: profileHref, label: "Profile", icon: User },
-  ];
-
-  // Secondary actions.
-  const secondary = [
     {
       href: "/notifications",
       label: "Notifications",
       icon: Bell,
       dot: unreadNotifications > 0,
     },
+  ];
+
+  // Secondary actions.
+  const secondary = [
     { href: "/settings", label: "Settings", icon: Settings },
   ];
 
@@ -113,11 +113,16 @@ export function Sidebar({
                   : "text-muted hover:text-ink hover:bg-surface-2/60"
               )}
             >
-              <Icon
-                size={18}
-                strokeWidth={active ? 2.2 : 1.75}
-                className={active ? "text-accent" : ""}
-              />
+              <span className="relative">
+                <Icon
+                  size={18}
+                  strokeWidth={active ? 2.2 : 1.75}
+                  className={active ? "text-accent" : ""}
+                />
+                {"dot" in item && item.dot && (
+                  <span className="absolute -right-1 -top-1 h-2 w-2 rounded-full bg-[#F5B642] ring-2 ring-[#0d0f14]" />
+                )}
+              </span>
               <span className="flex-1">{item.label}</span>
             </Link>
           );
@@ -178,12 +183,7 @@ export function Sidebar({
                   : "text-muted hover:text-ink hover:bg-surface-2/60"
               )}
             >
-              <span className="relative">
-                <Icon size={15} strokeWidth={1.75} />
-                {"dot" in item && item.dot && (
-                  <span className="absolute -right-1 -top-1 h-2 w-2 rounded-full bg-[#F5B642] ring-2 ring-[#0d0f14]" />
-                )}
-              </span>
+              <Icon size={15} strokeWidth={1.75} />
               <span className="flex-1">{item.label}</span>
             </Link>
           );
