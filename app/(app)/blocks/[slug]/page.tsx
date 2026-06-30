@@ -105,25 +105,31 @@ export default async function BlockPage({
   const fullHeight = tab === "messages";
 
   return (
-    <>
-      {/* No global search bar inside a Block — you're already collaborating. The
-          Block opens straight on its header (title + creators) and chat. */}
-      <BlockHeader block={block} members={members} />
-      {/* The open chat (or selected section) is the main content; navigation
-          lives in the bottom tab bar. */}
-      <div
-        className={cn(
-          "flex-1 min-h-0",
-          fullHeight ? "overflow-hidden" : "overflow-y-auto"
-        )}
-      >
-        {renderPanel(tab, block, members, isOwner)}
+    // The whole Block is wrapped in a single contained, softly-lit frame on
+    // desktop so it reads as "you're inside a Block." A 1px blue→violet gradient
+    // edge with a low outer glow (kept deliberately subtle, not neon). Mobile
+    // stays full-bleed.
+    <div className="flex-1 min-h-0 flex flex-col lg:m-4 lg:rounded-[28px] lg:p-px lg:bg-gradient-to-br lg:from-indigo-400/25 lg:via-fuchsia-500/15 lg:to-sky-400/20 lg:shadow-[0_22px_70px_-34px_rgba(99,102,241,0.45)]">
+      <div className="flex-1 min-h-0 flex flex-col overflow-hidden bg-bg lg:rounded-[27px]">
+        {/* No global search bar inside a Block — you're already collaborating.
+            The Block opens straight on its header (title + creators) and chat. */}
+        <BlockHeader block={block} members={members} />
+        {/* The open chat (or selected section) is the main content; navigation
+            lives in the bottom tab bar. */}
+        <div
+          className={cn(
+            "flex-1 min-h-0",
+            fullHeight ? "overflow-hidden" : "overflow-y-auto"
+          )}
+        >
+          {renderPanel(tab, block, members, isOwner)}
+        </div>
+        <BlockBottomTabs
+          slug={block.slug}
+          blockType={block.blockType}
+          active={tab}
+        />
       </div>
-      <BlockBottomTabs
-        slug={block.slug}
-        blockType={block.blockType}
-        active={tab}
-      />
-    </>
+    </div>
   );
 }
