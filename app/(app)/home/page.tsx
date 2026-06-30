@@ -19,13 +19,6 @@ import {
 
 export const dynamic = "force-dynamic";
 
-function greeting(): string {
-  const h = new Date().getHours();
-  if (h < 12) return "Good morning";
-  if (h < 18) return "Good afternoon";
-  return "Good evening";
-}
-
 // A truthful one-line "action" for the live ticker, derived from a creator's
 // real profile data — never a fabricated event.
 function activityAction(c: CreatorView): string {
@@ -73,8 +66,6 @@ export default async function HomePage() {
     getCreators(),
   ]);
 
-  const firstName = profile?.name.split(" ")[0] ?? "Creator";
-
   // Suggested creators — everyone but me, available-first then best Block Score.
   const ranked = creators
     .filter((c) => c.person.handle !== profile?.handle)
@@ -102,21 +93,20 @@ export default async function HomePage() {
       <TopBar />
       <div className="flex-1 min-h-0 overflow-y-auto">
         <div className="page-fluid pb-16 animate-fade-up">
-          <p className="pt-5 text-[13px] font-medium text-white/50">
-            {greeting()}, {firstName}
-          </p>
-
           {/* 1 — Hero: who are you creating with today? (random per visit) */}
           <HomeHero src={randomHeroSrc()} />
 
-          {/* 2 — New Requests (require a decision) */}
+          {/* 2 — Live activity ticker (social proof) */}
+          <ActivityTicker items={activityItems} />
+
+          {/* 3 — New Requests (require a decision) */}
           {pending.incoming.length > 0 && (
             <Section title="New Requests">
               <PendingRequests incoming={pending.incoming} outgoing={[]} />
             </Section>
           )}
 
-          {/* 3 — Suggested Creators */}
+          {/* 4 — Suggested Creators */}
           {suggested.length > 0 && (
             <Section
               title="Suggested Creators"
@@ -134,9 +124,6 @@ export default async function HomePage() {
               </Rail>
             </Section>
           )}
-
-          {/* 4 — Live activity ticker (social proof) */}
-          <ActivityTicker items={activityItems} />
         </div>
       </div>
     </>
