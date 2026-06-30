@@ -26,6 +26,9 @@ import {
   getMyNotificationsAction,
   markAllNotificationsReadAction,
 } from "@/app/actions/notifications";
+import { useUser } from "@/hooks/use-user";
+import { useRealtimeTable } from "@/hooks/use-realtime";
+import { supabaseConfigured } from "@/lib/env";
 import type { NotificationView } from "@/lib/data";
 
 // kind → icon + tone for real notifications written by the request RPCs.
@@ -120,8 +123,53 @@ const SEED: Notif[] = [
 export function NotificationsMenu() {
   const [open, setOpen] = useState(false);
   const [items, setItems] = useState(SEED);
+  const { user } = useUser();
+  const userId = user?.id ?? null;
 
   const unreadCount = items.filter((i) => i.unread).length;
+
+  // Live: a new notification (Block deleted, request, mention, …) pops into the
+  // bell the moment it's written for this user — no refresh needed.
+  useRealtimeTable<{
+    id: string;
+    kind: string;
+    title: string;
+    body: string | null;
+    link: string | null;
+    recipient_id: string;
+  }>(
+    "notifications",
+    (payload) => {
+      if (payload.eventType !== "INSERT") return;
+      const r = payload.new;
+      const dismissed = getDismissed();
+      if (dismissed.has(r.id)) return;
+      const k = KIND[r.kind] ?? {
+        icon: Bell,
+        tone: "text-muted bg-white/[0.06] border-white/15",
+      };
+      setItems((prev) =>
+        prev.some((i) => i.id === r.id)
+          ? prev
+          : [
+              {
+                id: r.id,
+                icon: k.icon,
+                tone: k.tone,
+                title: r.title,
+                body: r.body ?? "",
+                at: "now",
+                unread: true,
+                href: r.link || "/notifications",
+              },
+              ...prev,
+            ]
+      );
+    },
+    `recipient_id=eq.${userId}`,
+    "INSERT",
+    !!userId && supabaseConfigured
+  );
 
   // Load real notifications (block requests / accepts / declines / mentions),
   // then apply persisted "cleared" / "read" state so the bell stays in sync with
