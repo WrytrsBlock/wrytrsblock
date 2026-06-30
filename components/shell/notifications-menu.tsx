@@ -33,6 +33,7 @@ const KIND: Record<string, { icon: LucideIcon; tone: string }> = {
   block_request: { icon: UserPlus, tone: "text-accent bg-accent/10 border-accent/30" },
   block_accepted: { icon: Check, tone: "text-success bg-success/10 border-success/30" },
   block_declined: { icon: X, tone: "text-danger bg-danger/10 border-danger/30" },
+  block_deleted: { icon: Trash2, tone: "text-danger bg-danger/10 border-danger/30" },
   mention: { icon: AtSign, tone: "text-accent bg-accent/10 border-accent/30" },
   message: { icon: MessageSquare, tone: "text-accent bg-accent/10 border-accent/30" },
   upload: { icon: Upload, tone: "text-success bg-success/10 border-success/30" },
