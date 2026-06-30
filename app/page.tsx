@@ -93,8 +93,10 @@ export default async function LandingPage() {
         <div className="absolute inset-0 bg-gradient-to-b from-bg/40 via-transparent to-bg" />
         <div className="absolute inset-0 bg-grad-mesh opacity-25" />
 
-        {/* Nav — floats over the hero */}
-        <header className="relative z-30">
+        {/* Nav — floats over the hero. Push the whole row below the iOS status
+            bar / Dynamic Island via the top safe-area inset (0 on devices
+            without one, so the design is unchanged on desktop/Android). */}
+        <header className="relative z-30 pt-[env(safe-area-inset-top)]">
           <div className="max-w-[1180px] mx-auto px-6 h-16 flex items-center justify-between">
             <Wordmark variant="horizontal" />
             <nav className="hidden md:flex items-center gap-6 text-[13px] text-white/70">
@@ -128,8 +130,10 @@ export default async function LandingPage() {
           </div>
         </header>
 
-        {/* Brand — large, centered, on top of the collage */}
-        <div className="relative z-20 flex-1 flex flex-col items-center justify-center text-center px-6 pb-12">
+        {/* Brand — large, centered, on top of the collage. mt-7 keeps a clear
+            ~28px gap below the header even when the hero isn't tall enough to
+            center. */}
+        <div className="relative z-20 flex-1 flex flex-col items-center justify-center text-center px-6 pb-12 mt-7">
           {/* Official WrytrsBlock logo — the primary hero element, as designed */}
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
