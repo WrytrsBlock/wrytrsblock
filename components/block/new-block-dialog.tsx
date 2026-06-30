@@ -121,7 +121,7 @@ export function NewBlockDialog() {
     <Dialog
       open={open}
       onClose={close}
-      mobilePlacement="center"
+      mobilePlacement="sheet"
       title="New Block"
       footer={
         sentTo ? (
@@ -201,7 +201,7 @@ export function NewBlockDialog() {
 
           <div>
             <Label>Block Type</Label>
-            <div className="grid grid-cols-3 gap-2">
+            <div className="grid grid-cols-3 gap-1.5 sm:gap-2">
               {tiles.map((t) => {
                 const Icon = t.icon;
                 const active = tile === t.id;
@@ -211,7 +211,7 @@ export function NewBlockDialog() {
                     type="button"
                     onClick={() => setTile(t.id)}
                     className={cn(
-                      "flex flex-col items-center justify-center gap-2 rounded-xl border py-4 transition-all duration-200",
+                      "flex min-w-0 flex-col items-center justify-center gap-2 rounded-xl border px-1 py-4 transition-all duration-200",
                       active
                         ? "border-accent bg-accent/10"
                         : "border-line bg-surface hover:border-line-strong"
@@ -224,7 +224,7 @@ export function NewBlockDialog() {
                     />
                     <span
                       className={cn(
-                        "text-[12.5px]",
+                        "max-w-full truncate text-[11.5px] leading-tight sm:text-[12.5px]",
                         active ? "font-medium text-accent" : "text-muted"
                       )}
                     >

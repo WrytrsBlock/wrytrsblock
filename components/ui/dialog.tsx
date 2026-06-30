@@ -192,7 +192,7 @@ export function Dialog({
                 );
               }
             }}
-            className="h-full overflow-y-auto overflow-x-hidden overscroll-contain px-5 sm:px-6 py-5"
+            className="h-full overflow-y-auto overflow-x-hidden overscroll-contain px-5 sm:px-6 pt-5 pb-8"
           >
             <div ref={contentRef}>{children}</div>
           </div>
