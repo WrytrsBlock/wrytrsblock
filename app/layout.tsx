@@ -4,7 +4,7 @@ import { ThemeProvider } from "@/components/theme-provider";
 
 export const metadata: Metadata = {
   title: {
-    default: "WrytrsBlock — Creative Collaboration OS",
+    default: "WrytrsBlock — The Cr8tv Collectv",
     template: "%s · WrytrsBlock",
   },
   description:
@@ -25,7 +25,7 @@ export const metadata: Metadata = {
   openGraph: {
     type: "website",
     siteName: "WrytrsBlock",
-    title: "WrytrsBlock — Creative Collaboration OS",
+    title: "WrytrsBlock — The Cr8tv Collectv",
     description:
       "Discover creators, collaborate on Blocks, and monetize the work you make together.",
     url: "/",
@@ -40,7 +40,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "WrytrsBlock — Creative Collaboration OS",
+    title: "WrytrsBlock — The Cr8tv Collectv",
     description:
       "Discover creators, collaborate on Blocks, and monetize the work you make together.",
     images: ["/og-image.png"],
