@@ -36,8 +36,10 @@ export function EditProfileForm({
   const [banner, setBanner] = useState<string | null>(initial.bannerUrl);
   const [bannerUploading, setBannerUploading] = useState(false);
   const [bannerError, setBannerError] = useState<string | null>(null);
-  // True briefly after a successful cover upload (confirmation cue).
+  // True briefly after a cover upload is actually persisted (confirmation cue).
   const [bannerSaved, setBannerSaved] = useState(false);
+  const [avatarSaving, setAvatarSaving] = useState(false);
+  const [avatarError, setAvatarError] = useState<string | null>(null);
   const [country, setCountry] = useState(initial.country);
   const [city, setCity] = useState(initial.city);
   const [creatorTypes, setCreatorTypes] = useState<string[]>(
@@ -92,6 +94,35 @@ export function EditProfileForm({
     id: string
   ) => set(list.includes(id) ? list.filter((x) => x !== id) : [...list, id]);
 
+  // Persists the whole form's current values to the database — used both by
+  // the explicit "Save changes" button AND right after an avatar/cover upload,
+  // so a new photo is never left sitting in storage only, one click away from
+  // looking "saved" (via the upload success cue) while the marketplace/profile
+  // still show the old picture. `overrides` lets a caller supply a just-
+  // uploaded URL directly rather than relying on state that may not have
+  // re-rendered yet.
+  async function persistProfile(
+    overrides: { avatarUrl?: string | null; bannerUrl?: string | null } = {}
+  ) {
+    return updateCreatorProfileAction({
+      bio,
+      country,
+      city,
+      creatorTypes,
+      genres,
+      lookingFor,
+      availability,
+      displayName,
+      handle: username,
+      website,
+      socials: { instagram, youtube, spotify, tiktok, linkedin },
+      avatarUrl: avatar,
+      bannerUrl: banner,
+      featuredContent: featured,
+      ...overrides,
+    });
+  }
+
   async function onBannerFile(file: File) {
     setBannerError(null);
     setBannerSaved(false);
@@ -107,12 +138,20 @@ export function EditProfileForm({
       const url = await uploadToAvatars(file, "banner");
       // Only reflect the new cover if the upload actually returned a URL — never
       // pretend the image changed when it didn't persist to storage.
-      if (url) {
-        setBanner(url);
+      if (!url) {
+        setBannerError("Upload didn't complete. Please try again.");
+        return;
+      }
+      setBanner(url);
+      // Persist immediately — don't make the cover's fate depend on the user
+      // remembering to also click "Save changes" further down the page.
+      const res = await persistProfile({ bannerUrl: url });
+      if (res.ok) {
         setBannerSaved(true);
         window.setTimeout(() => setBannerSaved(false), 2400);
+        router.refresh();
       } else {
-        setBannerError("Upload didn't complete. Please try again.");
+        setBannerError(res.error);
       }
     } catch (e) {
       console.error("Banner upload failed:", e);
@@ -124,27 +163,27 @@ export function EditProfileForm({
     }
   }
 
+  // Wraps PhotoPicker's onChange: reflect the new avatar locally, then persist
+  // it right away for the same reason as the cover above.
+  async function onAvatarChange(url: string | null) {
+    setAvatar(url);
+    setAvatarError(null);
+    setAvatarSaving(true);
+    try {
+      const res = await persistProfile({ avatarUrl: url });
+      if (res.ok) router.refresh();
+      else setAvatarError(res.error);
+    } finally {
+      setAvatarSaving(false);
+    }
+  }
+
   async function save() {
     setSaving(true);
     setError(null);
     setNotice(null);
     setSaved(false);
-    const res = await updateCreatorProfileAction({
-      bio,
-      country,
-      city,
-      creatorTypes,
-      genres,
-      lookingFor,
-      availability,
-      displayName,
-      handle: username,
-      website,
-      socials: { instagram, youtube, spotify, tiktok, linkedin },
-      avatarUrl: avatar,
-      bannerUrl: banner,
-      featuredContent: featured,
-    });
+    const res = await persistProfile();
     setSaving(false);
     if (res.ok) {
       const dest = `/profile/${res.handle ?? initial.handle}`;
@@ -224,10 +263,11 @@ export function EditProfileForm({
                 <Loader2 size={15} className="animate-spin" /> Uploading…
               </span>
             )}
-            {/* Success cue — confirms the cover actually saved to storage. */}
+            {/* Success cue — confirms the cover is actually saved, not just
+                sitting in storage waiting on the form's Save button. */}
             {bannerSaved && !bannerUploading && (
               <span className="absolute inset-0 flex items-center justify-center gap-2 bg-success/35 text-white text-[12.5px] font-semibold">
-                <CheckCircle2 size={16} /> Cover uploaded
+                <CheckCircle2 size={16} /> Cover saved
               </span>
             )}
           </button>
@@ -255,11 +295,22 @@ export function EditProfileForm({
             cover image: it's the small image used across the app, and it backs
             the hero when no cover image has been added. */}
         <Field label="Profile photo">
-          <PhotoPicker value={avatar} name={initial.handle} onChange={setAvatar} />
-          <p className="mt-1.5 text-[11px] text-muted/70">
-            Appears in the sidebar, on Block Market cards, and in notifications —
-            and fills your profile hero if you haven&rsquo;t added a cover image.
-          </p>
+          <PhotoPicker value={avatar} name={initial.handle} onChange={onAvatarChange} />
+          {avatarError ? (
+            <p className="mt-1.5 text-[11.5px] text-danger">{avatarError}</p>
+          ) : (
+            <p className="mt-1.5 text-[11px] text-muted/70">
+              {avatarSaving ? (
+                "Saving…"
+              ) : (
+                <>
+                  Appears in the sidebar, on Block Market cards, and in
+                  notifications — and fills your profile hero if you
+                  haven&rsquo;t added a cover image.
+                </>
+              )}
+            </p>
+          )}
         </Field>
           </div>
 
@@ -469,7 +520,7 @@ export function EditProfileForm({
             variant="primary"
             size="lg"
             onClick={save}
-            disabled={saving || bannerUploading}
+            disabled={saving || bannerUploading || avatarSaving}
             className="min-w-[140px] justify-center"
           >
             {saving ? "Saving…" : "Save changes"}
