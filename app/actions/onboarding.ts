@@ -26,6 +26,12 @@ export async function completeOnboardingAction(
 ): Promise<CompleteOnboardingResult> {
   if (!supabaseConfigured) return { ok: true };
 
+  // Mandatory profile photo — mirrors the client-side gate in
+  // lib/onboarding.ts's isStepComplete, so a direct call can't bypass it.
+  if (!avatarUrl || !avatarUrl.trim()) {
+    return { ok: false, error: "Add a profile photo before finishing setup." };
+  }
+
   try {
     const supabase = createSupabaseServerClient();
     const {

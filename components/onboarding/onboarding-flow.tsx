@@ -328,6 +328,7 @@ export function OnboardingFlow({
               value={data.photo}
               name={data.name}
               onChange={(url) => patch({ photo: url })}
+              required
             />
             <div className="space-y-3.5 max-w-[460px] mx-auto w-full">
               <Field label="Display name">

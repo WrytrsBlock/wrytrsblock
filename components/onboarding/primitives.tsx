@@ -113,10 +113,14 @@ export function PhotoPicker({
   value,
   name,
   onChange,
+  required,
 }: {
   value: string | null;
   name: string;
   onChange: (url: string | null) => void;
+  // Onboarding requires a photo so every creator card/profile has one; other
+  // call sites (e.g. editing an existing profile) leave this off.
+  required?: boolean;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
@@ -218,11 +222,17 @@ export function PhotoPicker({
             ? "Photo updated ✓"
             : value
               ? "Change photo"
-              : "Add a photo"}
+              : required
+                ? "Add a photo (required)"
+                : "Add a photo"}
       </button>
       {error ? (
         <p className="text-[11.5px] text-danger text-center max-w-[220px]">
           {error}
+        </p>
+      ) : required && !value ? (
+        <p className="text-[11px] text-accent text-center">
+          A profile photo is required to continue.
         </p>
       ) : (
         <p className="text-[11px] text-muted/70 text-center">

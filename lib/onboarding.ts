@@ -425,8 +425,12 @@ export const TOTAL_STEPS = 3;
 
 export function isStepComplete(step: number, d: OnboardingProfile): boolean {
   switch (step) {
-    case 0: // Profile
-      return d.name.trim().length > 0 && d.username.trim().length >= 2;
+    case 0: // Profile — a photo is mandatory so every creator card/profile has one
+      return (
+        !!d.photo &&
+        d.name.trim().length > 0 &&
+        d.username.trim().length >= 2
+      );
     case 1: // Creator Identity (country/city optional)
       return d.creatorTypes.length > 0;
     case 2: // Creative Profile
