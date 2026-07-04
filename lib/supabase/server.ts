@@ -1,5 +1,5 @@
 import { createServerClient } from "@supabase/ssr";
-import { createClient } from "@supabase/supabase-js";
+import { createClient, type User } from "@supabase/supabase-js";
 import { cookies } from "next/headers";
 import {
   SUPABASE_ANON_KEY,
@@ -46,6 +46,28 @@ export function createSupabaseAuthedClient(accessToken: string) {
   return createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     accessToken: async () => accessToken,
   });
+}
+
+// Convenience wrapper around the createSupabaseAuthedClient dance above, for
+// any Server Action that needs to call an RPC and have auth.uid() reliably
+// resolve to the signed-in user (see the comment on createSupabaseAuthedClient
+// for why the plain cookie client isn't enough for that). Returns a null
+// client when there's no session, so callers can bail out cleanly.
+export async function getAuthedServerClient(): Promise<{
+  user: User | null;
+  supabase: ReturnType<typeof createSupabaseAuthedClient> | null;
+}> {
+  const cookieClient = createSupabaseServerClient();
+  const {
+    data: { user },
+  } = await cookieClient.auth.getUser();
+  if (!user) return { user: null, supabase: null };
+  const {
+    data: { session },
+  } = await cookieClient.auth.getSession();
+  const token = session?.access_token;
+  if (!token) return { user, supabase: null };
+  return { user, supabase: createSupabaseAuthedClient(token) };
 }
 
 // Service-role client — bypasses RLS. ONLY for trusted server actions that have

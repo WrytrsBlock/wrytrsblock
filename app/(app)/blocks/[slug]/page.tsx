@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { BlockHeader } from "@/components/block/block-header";
+import { BlockViewerHeartbeat } from "@/components/block/block-viewer-heartbeat";
 import { BlockBottomTabs } from "@/components/block/block-bottom-tabs";
 import {
   tabsForType,
@@ -113,6 +114,7 @@ export default async function BlockPage({
       <div className="flex-1 min-h-0 flex flex-col overflow-hidden bg-bg lg:rounded-[27px]">
         {/* No global search bar inside a Block — you're already collaborating.
             The Block opens straight on its header (title + creators) and chat. */}
+        <BlockViewerHeartbeat blockId={block.id} />
         <BlockHeader block={block} members={members} />
         {/* The open chat (or selected section) is the main content; navigation
             lives in the bottom tab bar. */}

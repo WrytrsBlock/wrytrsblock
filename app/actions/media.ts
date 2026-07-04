@@ -1,14 +1,50 @@
 "use server";
 
-import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { createSupabaseServerClient, getAuthedServerClient } from "@/lib/supabase/server";
 import { supabaseConfigured } from "@/lib/env";
 import { getBlockBySlug } from "@/services/blocks.service";
+import { getProfile } from "@/services/profiles.service";
 import { getSignedMediaUrl, uploadMedia } from "@/services/media.service";
+import { notifyBlockActivity } from "@/lib/notify";
+import { fileUploadEmail } from "@/lib/email-templates";
 import type { MediaKind } from "@/types";
 
 export type UploadResult =
   | { ok: true; id: string; url: string | null; name: string }
   | { ok: false; error: string };
+
+// Best-effort "new file uploaded" fan-out — the upload itself already
+// succeeded by the time this runs, so a failure here is only ever logged.
+async function notifyFileUpload(
+  block: { id: string; slug: string; title: string },
+  fileName: string,
+  fileType?: string
+) {
+  try {
+    const { user, supabase } = await getAuthedServerClient();
+    if (!user || !supabase) return;
+    const actor = await getProfile(supabase, user.id).catch(() => null);
+    const uploaderName = actor?.display_name || actor?.handle || "A collaborator";
+
+    await notifyBlockActivity(supabase, {
+      blockId: block.id,
+      kind: "upload",
+      title: `New file uploaded in "${block.title}"`,
+      body: `${uploaderName} uploaded ${fileName}.`,
+      link: `/blocks/${block.slug}?tab=files`,
+      buildEmail: () =>
+        fileUploadEmail({
+          uploaderName,
+          blockTitle: block.title,
+          fileName,
+          fileType,
+          blockSlug: block.slug,
+        }),
+    });
+  } catch (e) {
+    console.error("notifyFileUpload failed:", e);
+  }
+}
 
 // Uploads a single file for a Block. The browser sends the File via FormData;
 // the action resolves the Block's workspace server-side (so the storage path
@@ -42,6 +78,8 @@ export async function uploadMediaAction(
     });
 
     const url = await getSignedMediaUrl(supabase, asset.storage_path);
+    await notifyFileUpload(block, asset.name, file.type || undefined);
+
     return { ok: true, id: asset.id, url, name: asset.name };
   } catch (e) {
     return {

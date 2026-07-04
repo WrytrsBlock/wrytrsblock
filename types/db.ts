@@ -228,10 +228,15 @@ export interface BlockRow {
   updated_at: ISODate;
 }
 
+export type BlockMemberStatus = "invited" | "accepted" | "declined";
+
 export interface BlockMember {
   block_id: UUID;
   user_id: UUID;
   role: BlockRole;
+  status: BlockMemberStatus;
+  invited_by: UUID | null;
+  invited_at: ISODate | null;
   joined_at: ISODate;
 }
 
@@ -371,6 +376,26 @@ export interface Notification {
   link: string | null;
   read_at: ISODate | null;
   created_at: ISODate;
+}
+
+export interface NotificationSettings {
+  user_id: UUID;
+  email_notifications_enabled: boolean;
+  email_chat_messages: boolean;
+  email_file_uploads: boolean;
+  email_voice_notes: boolean;
+  email_block_members: boolean;
+  email_split_updates: boolean;
+  updated_at: ISODate;
+}
+
+// Server-queryable mirror of a member's live presence on a Block (see
+// hooks/use-presence.ts) — lets notification fan-out skip the email for
+// someone already looking at the activity in-app.
+export interface BlockViewer {
+  block_id: UUID;
+  user_id: UUID;
+  last_seen_at: ISODate;
 }
 
 export interface WorkspaceState {

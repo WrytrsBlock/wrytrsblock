@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Check,
   PenLine,
@@ -19,14 +19,114 @@ import {
 } from "@/components/ui/primitives";
 import { EmptyState } from "@/components/ui/empty-state";
 import { cn } from "@/lib/cn";
-import { getPerson, type Block, type SplitContributor } from "@/lib/mock";
+import { getPerson, type Block } from "@/lib/mock";
+import { supabaseConfigured } from "@/lib/env";
+import { useRealtimeTable } from "@/hooks/use-realtime";
+import {
+  addSplitEntryAction,
+  getSplitSheetAction,
+  removeSplitEntryAction,
+  setSplitSheetStatusAction,
+  signSplitEntryAction,
+  updateSplitEntryPctAction,
+  type SplitMemberView,
+} from "@/app/actions/split-sheets";
 
-type Row = SplitContributor;
+type Row = {
+  id: string; // entry id (real Block) or person id (demo Block)
+  name: string;
+  avatar: string;
+  role: string;
+  writing: number;
+  publishing: number;
+  signed: boolean;
+};
+
+type Candidate = { id: string; name: string; avatar: string; role: string };
+type Status = "draft" | "circulated" | "signed";
+
+const isUuid = (s: string) => /^[0-9a-f-]{36}$/i.test(s);
+
+// Debounces writing/publishing % edits so a real Block isn't hit with a write
+// (and a "Split Sheet Updated" email) on every keystroke.
+const PCT_DEBOUNCE_MS = 800;
 
 export function SplitSheetPanel({ block }: { block: Block }) {
-  const [status, setStatus] = useState(block.splits?.status ?? "draft");
-  const [rows, setRows] = useState<Row[]>(block.splits?.contributors ?? []);
+  const realBlock = supabaseConfigured && isUuid(block.id);
+
+  const [status, setStatus] = useState<Status>(block.splits?.status ?? "draft");
+  const [rows, setRows] = useState<Row[]>(
+    (block.splits?.contributors ?? []).map((r) => {
+      const p = getPerson(r.id);
+      return {
+        id: r.id,
+        name: p?.name ?? "Member",
+        avatar: p?.avatar ?? "",
+        role: r.role,
+        writing: r.writing,
+        publishing: r.publishing,
+        signed: r.signed,
+      };
+    })
+  );
+  const [members, setMembers] = useState<Candidate[]>(
+    block.team.map((id) => {
+      const p = getPerson(id);
+      return { id, name: p?.name ?? "Member", avatar: p?.avatar ?? "", role: p?.role ?? "Contributor" };
+    })
+  );
   const [adding, setAdding] = useState(false);
+  const [sheetId, setSheetId] = useState<string | null>(null);
+
+  // Server → client sync for a real Block (initial load + on realtime events).
+  async function refresh() {
+    const view = await getSplitSheetAction(block.slug);
+    if (!view) return;
+    setSheetId(view.sheetId);
+    setStatus(view.status);
+    setRows(
+      view.entries.map((e) => ({
+        id: e.id,
+        name: e.name,
+        avatar: e.avatar ?? "",
+        role: e.role,
+        writing: e.writing,
+        publishing: e.publishing,
+        signed: e.signed,
+      }))
+    );
+    setMembers(
+      view.members.map((m: SplitMemberView) => ({
+        id: m.id,
+        name: m.name,
+        avatar: m.avatar ?? "",
+        role: m.role,
+      }))
+    );
+  }
+
+  useEffect(() => {
+    if (!realBlock) return;
+    refresh();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [realBlock, block.slug]);
+
+  // Any change to this Block's split sheet/entries (by us or another member)
+  // re-syncs the whole view — simplest way to keep everyone's screen live.
+  useRealtimeTable<Record<string, unknown>>(
+    "split_sheet_entries",
+    () => refresh(),
+    sheetId ? `split_sheet_id=eq.${sheetId}` : undefined,
+    "*",
+    realBlock && !!sheetId
+  );
+  useRealtimeTable<Record<string, unknown>>(
+    "split_sheets",
+    () => refresh(),
+    sheetId ? `id=eq.${sheetId}` : undefined,
+    "UPDATE",
+    realBlock && !!sheetId
+  );
 
   const writingTotal = rows.reduce((n, r) => n + (r.writing || 0), 0);
   const publishingTotal = rows.reduce((n, r) => n + (r.publishing || 0), 0);
@@ -36,35 +136,59 @@ export function SplitSheetPanel({ block }: { block: Block }) {
 
   // Team members not yet on the sheet — candidates to add.
   const candidates = useMemo(
-    () => block.team.filter((id) => !rows.some((r) => r.id === id)),
-    [block.team, rows]
+    () => members.filter((m) => !rows.some((r) => r.id === m.id)),
+    [members, rows]
   );
 
+  const pctTimers = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
+
   function patch(id: string, field: "writing" | "publishing", value: number) {
-    setRows((prev) =>
-      prev.map((r) =>
-        r.id === id ? { ...r, [field]: Math.max(0, Math.min(100, value)) } : r
-      )
+    const clamped = Math.max(0, Math.min(100, value));
+    setRows((prev) => prev.map((r) => (r.id === id ? { ...r, [field]: clamped } : r)));
+
+    if (!realBlock) return;
+    const key = `${id}:${field}`;
+    const existing = pctTimers.current.get(key);
+    if (existing) clearTimeout(existing);
+    pctTimers.current.set(
+      key,
+      setTimeout(() => {
+        updateSplitEntryPctAction(block.slug, id, { [field]: clamped }).catch(() => {});
+      }, PCT_DEBOUNCE_MS)
     );
   }
 
   function toggleSign(id: string) {
-    setRows((prev) =>
-      prev.map((r) => (r.id === id ? { ...r, signed: !r.signed } : r))
-    );
+    setRows((prev) => prev.map((r) => (r.id === id ? { ...r, signed: !r.signed } : r)));
+    if (realBlock) signSplitEntryAction(block.slug, id).catch(() => {});
   }
 
   function addContributor(id: string) {
-    const p = getPerson(id);
+    const p = realBlock ? candidates.find((c) => c.id === id) : getPerson(id);
     setRows((prev) => [
       ...prev,
-      { id, role: p?.role ?? "Contributor", writing: 0, publishing: 0, signed: false },
+      {
+        id,
+        name: p?.name ?? "Member",
+        avatar: p?.avatar ?? "",
+        role: p?.role ?? "Contributor",
+        writing: 0,
+        publishing: 0,
+        signed: false,
+      },
     ]);
     setAdding(false);
+    if (realBlock) addSplitEntryAction(block.slug, id).then(refresh).catch(() => {});
   }
 
   function removeRow(id: string) {
     setRows((prev) => prev.filter((r) => r.id !== id));
+    if (realBlock) removeSplitEntryAction(block.slug, id).catch(() => {});
+  }
+
+  function changeStatus(next: Status) {
+    setStatus(next);
+    if (realBlock && sheetId) setSplitSheetStatusAction(block.slug, sheetId, next).catch(() => {});
   }
 
   const statusTone =
@@ -126,63 +250,59 @@ export function SplitSheetPanel({ block }: { block: Block }) {
           </div>
 
           <ul className="divide-y divide-line">
-            {rows.map((r) => {
-              const p = getPerson(r.id);
-              if (!p) return null;
-              return (
-                <li
-                  key={r.id}
-                  className="grid grid-cols-[1fr_110px_110px_92px_36px] items-center gap-2 px-5 py-3 group"
+            {rows.map((r) => (
+              <li
+                key={r.id}
+                className="grid grid-cols-[1fr_110px_110px_92px_36px] items-center gap-2 px-5 py-3 group"
+              >
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <Avatar src={r.avatar} name={r.name} size={30} />
+                  <div className="min-w-0">
+                    <p className="text-[12.5px] font-medium text-ink truncate">
+                      {r.name}
+                    </p>
+                    <p className="text-[10.5px] text-muted truncate">{r.role}</p>
+                  </div>
+                </div>
+
+                <SplitInput
+                  value={r.writing}
+                  onChange={(v) => patch(r.id, "writing", v)}
+                  disabled={status === "signed"}
+                />
+                <SplitInput
+                  value={r.publishing}
+                  onChange={(v) => patch(r.id, "publishing", v)}
+                  disabled={status === "signed"}
+                />
+
+                <div className="flex justify-center">
+                  {r.signed ? (
+                    <Badge tone="success">
+                      <Check size={9} /> Signed
+                    </Badge>
+                  ) : status === "circulated" ? (
+                    <button
+                      onClick={() => toggleSign(r.id)}
+                      className="inline-flex items-center gap-1 h-6 px-2 rounded-md border border-line text-[10.5px] text-ink hover:bg-surface-2 transition-colors"
+                    >
+                      <PenLine size={9} /> Sign
+                    </button>
+                  ) : (
+                    <span className="text-[10.5px] text-muted">—</span>
+                  )}
+                </div>
+
+                <button
+                  onClick={() => removeRow(r.id)}
+                  disabled={status === "signed"}
+                  className="opacity-0 group-hover:opacity-100 transition-opacity h-6 w-6 rounded-md flex items-center justify-center text-muted hover:text-danger disabled:hidden"
+                  aria-label="Remove"
                 >
-                  <div className="flex items-center gap-2.5 min-w-0">
-                    <Avatar src={p.avatar} name={p.name} size={30} />
-                    <div className="min-w-0">
-                      <p className="text-[12.5px] font-medium text-ink truncate">
-                        {p.name}
-                      </p>
-                      <p className="text-[10.5px] text-muted truncate">{r.role}</p>
-                    </div>
-                  </div>
-
-                  <SplitInput
-                    value={r.writing}
-                    onChange={(v) => patch(r.id, "writing", v)}
-                    disabled={status === "signed"}
-                  />
-                  <SplitInput
-                    value={r.publishing}
-                    onChange={(v) => patch(r.id, "publishing", v)}
-                    disabled={status === "signed"}
-                  />
-
-                  <div className="flex justify-center">
-                    {r.signed ? (
-                      <Badge tone="success">
-                        <Check size={9} /> Signed
-                      </Badge>
-                    ) : status === "circulated" ? (
-                      <button
-                        onClick={() => toggleSign(r.id)}
-                        className="inline-flex items-center gap-1 h-6 px-2 rounded-md border border-line text-[10.5px] text-ink hover:bg-surface-2 transition-colors"
-                      >
-                        <PenLine size={9} /> Sign
-                      </button>
-                    ) : (
-                      <span className="text-[10.5px] text-muted">—</span>
-                    )}
-                  </div>
-
-                  <button
-                    onClick={() => removeRow(r.id)}
-                    disabled={status === "signed"}
-                    className="opacity-0 group-hover:opacity-100 transition-opacity h-6 w-6 rounded-md flex items-center justify-center text-muted hover:text-danger disabled:hidden"
-                    aria-label="Remove"
-                  >
-                    <X size={12} />
-                  </button>
-                </li>
-              );
-            })}
+                  <X size={12} />
+                </button>
+              </li>
+            ))}
           </ul>
 
           {/* totals */}
@@ -203,20 +323,16 @@ export function SplitSheetPanel({ block }: { block: Block }) {
         <Card className="p-4">
           <SectionLabel>Add from team</SectionLabel>
           <div className="mt-3 flex flex-wrap gap-2">
-            {candidates.map((id) => {
-              const p = getPerson(id);
-              if (!p) return null;
-              return (
-                <button
-                  key={id}
-                  onClick={() => addContributor(id)}
-                  className="inline-flex items-center gap-2 h-8 pl-1 pr-3 rounded-full border border-line hover:border-line-strong hover:bg-surface-2 transition-all"
-                >
-                  <Avatar src={p.avatar} name={p.name} size={22} />
-                  <span className="text-[12px] text-ink">{p.name}</span>
-                </button>
-              );
-            })}
+            {candidates.map((c) => (
+              <button
+                key={c.id}
+                onClick={() => addContributor(c.id)}
+                className="inline-flex items-center gap-2 h-8 pl-1 pr-3 rounded-full border border-line hover:border-line-strong hover:bg-surface-2 transition-all"
+              >
+                <Avatar src={c.avatar} name={c.name} size={22} />
+                <span className="text-[12px] text-ink">{c.name}</span>
+              </button>
+            ))}
           </div>
         </Card>
       )}
@@ -241,7 +357,7 @@ export function SplitSheetPanel({ block }: { block: Block }) {
               variant="primary"
               size="md"
               disabled={!balanced}
-              onClick={() => setStatus("circulated")}
+              onClick={() => changeStatus("circulated")}
             >
               <Send size={12} /> Circulate for sign-off
             </Button>
@@ -251,7 +367,7 @@ export function SplitSheetPanel({ block }: { block: Block }) {
               variant="primary"
               size="md"
               disabled={!allSigned}
-              onClick={() => setStatus("signed")}
+              onClick={() => changeStatus("signed")}
             >
               <ShieldCheck size={12} /> Finalize agreement
             </Button>

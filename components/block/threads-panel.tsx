@@ -9,6 +9,7 @@ import {
   Send,
   Smile,
   Square,
+  X,
 } from "lucide-react";
 import { Avatar } from "@/components/ui/primitives";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -318,6 +319,7 @@ export function ThreadsPanel({ block }: { block: Block }) {
   // ── Voice notes ───────────────────────────────────────────────────────────
   const recorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
+  const cancelledRef = useRef(false);
   const [recording, setRecording] = useState(false);
   const [recSecs, setRecSecs] = useState(0);
   const [recError, setRecError] = useState<string | null>(null);
@@ -407,6 +409,12 @@ export function ThreadsPanel({ block }: { block: Block }) {
     }
   }
 
+  // Discards the in-progress recording — no message is posted.
+  function cancelVoiceNote() {
+    cancelledRef.current = true;
+    recorderRef.current?.stop();
+  }
+
   async function toggleVoiceNote() {
     setRecError(null);
     if (recording) {
@@ -421,15 +429,18 @@ export function ThreadsPanel({ block }: { block: Block }) {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       const rec = new MediaRecorder(stream);
       chunksRef.current = [];
+      cancelledRef.current = false;
       rec.ondataavailable = (e) => {
         if (e.data.size > 0) chunksRef.current.push(e.data);
       };
       rec.onstop = async () => {
         const type = rec.mimeType || "audio/webm";
+        const cancelled = cancelledRef.current;
+        const durationSecs = recSecs;
         const blob = new Blob(chunksRef.current, { type });
         stream.getTracks().forEach((t) => t.stop());
         setRecording(false);
-        if (blob.size === 0) return;
+        if (cancelled || blob.size === 0) return;
         const url = URL.createObjectURL(blob);
         const tempId = `voice-${Date.now()}`;
         setMessages((prev) => [
@@ -455,6 +466,7 @@ export function ThreadsPanel({ block }: { block: Block }) {
           const fd = new FormData();
           fd.append("file", file);
           fd.append("kind", "audio");
+          fd.append("durationSeconds", String(durationSecs));
           const res = await sendMediaMessageAction(
             channelId,
             block.slug,
@@ -594,6 +606,16 @@ export function ThreadsPanel({ block }: { block: Block }) {
                   </span>
                 )}
               </button>
+              {recording && (
+                <button
+                  type="button"
+                  onClick={cancelVoiceNote}
+                  aria-label="Cancel recording"
+                  className="rounded-md p-1.5 text-muted transition-colors hover:bg-surface-2 hover:text-danger"
+                >
+                  <X size={13} />
+                </button>
+              )}
               {/* Emoji picker */}
               <div className="relative">
                 <button

@@ -7,6 +7,10 @@ import {
 } from "@/lib/supabase/server";
 import { supabaseConfigured } from "@/lib/env";
 import { getCreatorIdByHandle } from "@/services/creator-profiles.service";
+import { getBlockBySlug, listBlockMembers } from "@/services/blocks.service";
+import { getProfile } from "@/services/profiles.service";
+import { emailQualifiedRecipients } from "@/lib/notify";
+import { blockJoinEmail } from "@/lib/email-templates";
 
 type SendInput = {
   recipientHandle: string;
@@ -36,6 +40,36 @@ async function authedClient() {
   const token = session?.access_token;
   if (!token) return { user, supabase: null, cookieClient };
   return { user, supabase: createSupabaseAuthedClient(token), cookieClient };
+}
+
+// Emails every OTHER existing accepted member of the Block that `joinerId`
+// just joined (in-app rows already exist — see accept_block_request). Never
+// throws: this runs after the join itself already succeeded.
+async function notifyBlockJoin(
+  supabase: ReturnType<typeof createSupabaseAuthedClient>,
+  blockSlug: string,
+  joinerId: string
+) {
+  try {
+    const block = await getBlockBySlug(supabase, blockSlug);
+    if (!block) return;
+    const joiner = await getProfile(supabase, joinerId).catch(() => null);
+    const creatorName = joiner?.display_name || joiner?.handle || "A collaborator";
+
+    const members = await listBlockMembers(supabase, block.id);
+    const recipientIds = members
+      .filter((m) => m.status === "accepted" && m.user_id !== joinerId)
+      .map((m) => m.user_id);
+
+    await emailQualifiedRecipients(recipientIds, {
+      blockId: block.id,
+      kind: "block_member_joined",
+      buildEmail: () =>
+        blockJoinEmail({ creatorName, blockTitle: block.title, blockSlug: block.slug }),
+    });
+  } catch (e) {
+    console.error("notifyBlockJoin failed:", e);
+  }
 }
 
 // Send a Block Request. The SECURITY DEFINER RPC records the pending request and
@@ -114,6 +148,13 @@ export async function acceptBlockRequestAction(
       throw error;
     }
     const slug = typeof data === "string" ? data : String(data ?? "");
+
+    // Email side of the "Block Join" notification — the in-app bell row for
+    // every existing member was already inserted inside accept_block_request
+    // itself (0029_notify_members_on_join.sql; regular users have no INSERT
+    // policy on notifications, so that had to happen in the RPC). This just
+    // decides who among them also gets the "<name> joined your Block" email.
+    await notifyBlockJoin(supabase, slug, user.id);
 
     revalidatePath("/blocks");
     revalidatePath("/notifications");

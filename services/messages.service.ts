@@ -45,6 +45,22 @@ export async function createChannel(
   return data as Channel;
 }
 
+// The Block a channel belongs to — used to fan out activity notifications for
+// a plain chat message, which only ever carries a channel_id from the client.
+export async function getBlockByChannelId(
+  supabase: DB,
+  channelId: UUID
+): Promise<{ id: UUID; slug: string; title: string } | null> {
+  const { data, error } = await supabase
+    .from("channels")
+    .select("block:blocks(id, slug, title)")
+    .eq("id", channelId)
+    .maybeSingle();
+  if (error) throw error;
+  const row = data as { block: { id: UUID; slug: string; title: string } | null } | null;
+  return row?.block ?? null;
+}
+
 export async function listMessages(
   supabase: DB,
   channelId: UUID,

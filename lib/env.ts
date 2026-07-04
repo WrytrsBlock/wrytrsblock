@@ -15,3 +15,14 @@ export const supabaseConfigured = Boolean(
 export const supabaseServiceConfigured = Boolean(
   SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY
 );
+
+// Email (Resend) — used to send activity-notification emails. Optional: when
+// unset, email sending no-ops (logs only) so the app runs fully without it.
+export const RESEND_API_KEY = process.env.RESEND_API_KEY ?? "";
+export const RESEND_FROM_EMAIL =
+  process.env.RESEND_FROM_EMAIL ?? "WrytrsBlock <notifications@wrytrsblock.com>";
+
+export const resendConfigured = Boolean(RESEND_API_KEY);
+
+export const SITE_URL =
+  process.env.NEXT_PUBLIC_SITE_URL ?? "https://www.wrytrsblock.com";

@@ -4,14 +4,17 @@ import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import {
   AtSign,
+  AudioLines,
   Bell,
   BellOff,
   Check,
   GitBranch,
   MessageSquare,
+  PieChart,
   Trash2,
   Upload,
   UserPlus,
+  Users,
   X,
   type LucideIcon,
 } from "lucide-react";
@@ -40,6 +43,9 @@ const KIND: Record<string, { icon: LucideIcon; tone: string }> = {
   mention: { icon: AtSign, tone: "text-accent bg-accent/10 border-accent/30" },
   message: { icon: MessageSquare, tone: "text-accent bg-accent/10 border-accent/30" },
   upload: { icon: Upload, tone: "text-success bg-success/10 border-success/30" },
+  voice_note: { icon: AudioLines, tone: "text-accent bg-accent/10 border-accent/30" },
+  block_member_joined: { icon: Users, tone: "text-success bg-success/10 border-success/30" },
+  split_sheet_updated: { icon: PieChart, tone: "text-warning bg-warning/10 border-warning/30" },
 };
 
 function toNotif(n: NotificationView): Notif {

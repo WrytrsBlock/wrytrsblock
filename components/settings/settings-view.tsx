@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import {
   ArrowUpDown,
   AtSign,
+  AudioLines,
   Bell,
   BookOpen,
   ChevronDown,
@@ -19,12 +20,15 @@ import {
   LogOut,
   Mail,
   MapPin,
+  MessageSquare,
   PartyPopper,
   Pencil,
+  PieChart,
   Shield,
   Store,
   Trash2,
   Upload,
+  UserPlus,
   type LucideIcon,
 } from "lucide-react";
 import { Button, Input } from "@/components/ui/primitives";
@@ -32,6 +36,11 @@ import { cn } from "@/lib/cn";
 import { supabaseConfigured } from "@/lib/env";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { deleteAccountAction } from "@/app/actions/account";
+import {
+  getMyNotificationSettingsAction,
+  updateNotificationSettingAction,
+  type NotificationSettingKey,
+} from "@/app/actions/notification-settings";
 
 export function SettingsView({ email }: { email: string }) {
   return (
@@ -81,6 +90,10 @@ export function SettingsView({ email }: { email: string }) {
           desc="Receive the above as emails too"
         />
       </Group>
+
+      {/* 2b — Block activity notifications (chat, uploads, voice notes, joins,
+          split sheet updates) — real per-user preferences, not localStorage. */}
+      <ActivityNotificationsGroup />
 
       {/* 3 — Privacy */}
       <Group title="Privacy" desc="Control how creators discover you.">
@@ -325,6 +338,116 @@ function ToggleRow({
           className={cn(
             "absolute left-0.5 top-1/2 h-5 w-5 -translate-y-1/2 rounded-full bg-white shadow-sm transition-transform",
             on && "translate-x-[18px]"
+          )}
+        />
+      </button>
+    </div>
+  );
+}
+
+// ── Activity notifications (real, server-backed — see notification_settings)
+type ActivitySettings = Record<NotificationSettingKey, boolean>;
+
+function ActivityNotificationsGroup() {
+  const [settings, setSettings] = useState<ActivitySettings | null>(null);
+
+  useEffect(() => {
+    getMyNotificationSettingsAction().then(setSettings);
+  }, []);
+
+  function set(key: NotificationSettingKey, value: boolean) {
+    setSettings((s) => (s ? { ...s, [key]: value } : s));
+    updateNotificationSettingAction(key, value).catch(() => {});
+  }
+
+  if (!settings) return null;
+
+  return (
+    <Group
+      title="Activity Notifications"
+      desc="Emails for chat messages, uploads, voice notes, new members, and split sheet changes."
+    >
+      <RemoteToggleRow
+        icon={Mail}
+        label="Email Notifications"
+        desc="Master switch for all activity emails below"
+        checked={settings.email_notifications_enabled}
+        onChange={(v) => set("email_notifications_enabled", v)}
+      />
+      <RemoteToggleRow
+        icon={MessageSquare}
+        label="Chat Messages"
+        desc="New messages in your Blocks"
+        checked={settings.email_chat_messages}
+        onChange={(v) => set("email_chat_messages", v)}
+      />
+      <RemoteToggleRow
+        icon={Upload}
+        label="File Uploads"
+        desc="New files shared in your Blocks"
+        checked={settings.email_file_uploads}
+        onChange={(v) => set("email_file_uploads", v)}
+      />
+      <RemoteToggleRow
+        icon={AudioLines}
+        label="Voice Notes"
+        desc="New voice notes in your Blocks"
+        checked={settings.email_voice_notes}
+        onChange={(v) => set("email_voice_notes", v)}
+      />
+      <RemoteToggleRow
+        icon={UserPlus}
+        label="Block Members"
+        desc="When someone joins a Block you're in"
+        checked={settings.email_block_members}
+        onChange={(v) => set("email_block_members", v)}
+      />
+      <RemoteToggleRow
+        icon={PieChart}
+        label="Split Sheet Updates"
+        desc="When splits change on a Block you're in"
+        checked={settings.email_split_updates}
+        onChange={(v) => set("email_split_updates", v)}
+      />
+    </Group>
+  );
+}
+
+function RemoteToggleRow({
+  icon,
+  label,
+  desc,
+  checked,
+  onChange,
+}: {
+  icon: LucideIcon;
+  label: string;
+  desc?: string;
+  checked: boolean;
+  onChange: (v: boolean) => void;
+}) {
+  return (
+    <div className={ROW}>
+      <RowIcon icon={icon} />
+      <span className="flex-1 min-w-0">
+        <span className="block text-[13.5px] font-medium text-ink">{label}</span>
+        {desc && <span className="block text-[12px] text-muted mt-0.5">{desc}</span>}
+      </span>
+      <button
+        type="button"
+        role="switch"
+        aria-checked={checked}
+        aria-label={label}
+        onClick={() => onChange(!checked)}
+        className={cn(
+          "relative ml-1 h-6 w-11 shrink-0 rounded-full border transition-colors",
+          checked ? "bg-accent border-accent" : "bg-surface-3 border-line-strong"
+        )}
+      >
+        <span
+          className={cn(
+            "absolute left-0.5 top-1/2 h-5 w-5 -translate-y-1/2 rounded-full bg-white shadow-sm transition-transform",
+            checked && "translate-x-[18px]"
           )}
         />
       </button>
