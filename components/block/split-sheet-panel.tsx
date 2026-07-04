@@ -206,82 +206,90 @@ export function SplitSheetPanel({ block }: { block: Block }) {
         )}
       </div>
 
-      <Card className="p-4">
-        <Label htmlFor="split-project-title">Song / project title</Label>
-        <Input
-          id="split-project-title"
-          value={projectTitle}
-          onChange={(e) => onProjectTitleChange(e.target.value)}
-          placeholder={block.title}
-        />
-      </Card>
+      <Card className="p-6 space-y-6">
+        {/* Song / project title */}
+        <div>
+          <Label htmlFor="split-project-title">Song / project title</Label>
+          <Input
+            id="split-project-title"
+            value={projectTitle}
+            onChange={(e) => onProjectTitleChange(e.target.value)}
+            placeholder={block.title}
+          />
+        </div>
 
-      {/* Live percentage tracker */}
-      <Card className="p-4 space-y-2.5">
-        <div className="flex items-center justify-between">
-          <span className="text-[12px] font-medium text-ink">Total ownership split</span>
-          <span
-            className={cn(
-              "text-[13px] font-mono font-semibold tabular-nums",
-              balanced ? "text-success" : total > 100 ? "text-danger" : "text-warning"
-            )}
+        {/* Live percentage tracker */}
+        <div className="space-y-2.5 pt-6 border-t border-line">
+          <div className="flex items-center justify-between">
+            <span className="text-[12px] font-medium text-ink">Total ownership split</span>
+            <span
+              className={cn(
+                "text-[13px] font-mono font-semibold tabular-nums",
+                balanced ? "text-success" : total > 100 ? "text-danger" : "text-warning"
+              )}
+            >
+              {total}%
+            </span>
+          </div>
+          <Progress
+            value={total}
+            tone={balanced ? "success" : total > 100 ? "warning" : "accent"}
+          />
+          {!balanced && entries.length > 0 && (
+            <div className="flex items-center gap-1.5 text-[11.5px] text-warning">
+              <AlertTriangle size={12} />
+              {total > 100
+                ? `Splits are ${(total - 100).toFixed(1)}% over 100% — adjust before generating.`
+                : `Splits are ${(100 - total).toFixed(1)}% short of 100% — adjust before generating.`}
+            </div>
+          )}
+          {balanced && entries.length > 0 && (
+            <div className="flex items-center gap-1.5 text-[11.5px] text-success">
+              <CheckCircle2 size={12} /> Splits total 100% — ready to generate.
+            </div>
+          )}
+        </div>
+
+        {/* Contributors */}
+        {loaded && (
+          <div className="pt-6 border-t border-line space-y-6">
+            {entries.map((entry, i) => (
+              <div
+                key={entry.id}
+                className={cn(i > 0 && "pt-6 border-t border-line")}
+              >
+                <ContributorSection
+                  index={i}
+                  entry={entry}
+                  onChange={(field, value) => patchField(entry.id, field, value)}
+                  onRemove={() => removeContributor(entry.id)}
+                />
+              </div>
+            ))}
+
+            <Button variant="outline" size="md" onClick={addContributor}>
+              <Plus size={12} /> Add Contributor
+            </Button>
+          </div>
+        )}
+
+        {/* Generate */}
+        <div className="flex items-center justify-end pt-6 border-t border-line">
+          <Button
+            variant="primary"
+            size="md"
+            disabled={!canGenerate}
+            onClick={() => setView("generated")}
           >
-            {total}%
-          </span>
+            <FileSignature size={12} /> Generate Split Sheet
+          </Button>
         </div>
-        <Progress
-          value={total}
-          tone={balanced ? "success" : total > 100 ? "warning" : "accent"}
-        />
-        {!balanced && entries.length > 0 && (
-          <div className="flex items-center gap-1.5 text-[11.5px] text-warning">
-            <AlertTriangle size={12} />
-            {total > 100
-              ? `Splits are ${(total - 100).toFixed(1)}% over 100% — adjust before generating.`
-              : `Splits are ${(100 - total).toFixed(1)}% short of 100% — adjust before generating.`}
-          </div>
-        )}
-        {balanced && entries.length > 0 && (
-          <div className="flex items-center gap-1.5 text-[11.5px] text-success">
-            <CheckCircle2 size={12} /> Splits total 100% — ready to generate.
-          </div>
-        )}
       </Card>
-
-      {/* Contributor cards */}
-      {loaded && (
-        <div className="space-y-3">
-          {entries.map((entry, i) => (
-            <ContributorCard
-              key={entry.id}
-              index={i}
-              entry={entry}
-              onChange={(field, value) => patchField(entry.id, field, value)}
-              onRemove={() => removeContributor(entry.id)}
-            />
-          ))}
-        </div>
-      )}
-
-      <Button variant="outline" size="md" onClick={addContributor}>
-        <Plus size={12} /> Add Contributor
-      </Button>
-
-      <div className="flex items-center justify-end pt-2">
-        <Button
-          variant="primary"
-          size="md"
-          disabled={!canGenerate}
-          onClick={() => setView("generated")}
-        >
-          <FileSignature size={12} /> Generate Split Sheet
-        </Button>
-      </div>
     </div>
   );
 }
 
-function ContributorCard({
+function ContributorSection({
   index,
   entry,
   onChange,
@@ -293,7 +301,7 @@ function ContributorCard({
   onRemove: () => void;
 }) {
   return (
-    <Card className="p-4 space-y-4">
+    <div className="space-y-4">
       <div className="flex items-center justify-between">
         <Badge tone="soft">Contributor {index + 1}</Badge>
         <button
@@ -391,7 +399,7 @@ function ContributorCard({
           className="w-full resize-none rounded-lg bg-surface-2 border border-line px-3 py-2 text-[13px] text-ink placeholder:text-muted/70 transition-colors focus:outline-none focus:border-accent/50 focus:bg-surface"
         />
       </Field>
-    </Card>
+    </div>
   );
 }
 
