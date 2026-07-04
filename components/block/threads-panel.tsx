@@ -42,6 +42,9 @@ type ChatMessage = {
   // Media that arrived over realtime/history and still needs a signed URL
   // resolved from its storage path before it can be played/shown.
   media?: { path: string; name: string; isImage: boolean; isAudio: boolean };
+  // The upload/send failed server-side — shown instead of silently vanishing
+  // on the next refresh (it was never persisted).
+  failed?: boolean;
 };
 
 type Author = { name: string; avatar: string };
@@ -405,6 +408,10 @@ export function ThreadsPanel({ block }: { block: Block }) {
         setMessages((prev) =>
           prev.map((x) => (x.id === tempId ? { ...x, id: res.id } : x))
         );
+      } else {
+        setMessages((prev) =>
+          prev.map((x) => (x.id === tempId ? { ...x, failed: true } : x))
+        );
       }
     }
   }
@@ -476,6 +483,10 @@ export function ThreadsPanel({ block }: { block: Block }) {
             setMessages((prev) =>
               prev.map((x) => (x.id === tempId ? { ...x, id: res.id } : x))
             );
+          } else {
+            setMessages((prev) =>
+              prev.map((x) => (x.id === tempId ? { ...x, failed: true } : x))
+            );
           }
         }
       };
@@ -546,6 +557,11 @@ export function ThreadsPanel({ block }: { block: Block }) {
                     <span className="truncate">{m.attachment.name}</span>
                   </a>
                 ))}
+              {m.failed && (
+                <p className="mt-1 text-[11px] text-danger">
+                  Failed to send — check your connection and try again.
+                </p>
+              )}
             </div>
           </div>
         ))}

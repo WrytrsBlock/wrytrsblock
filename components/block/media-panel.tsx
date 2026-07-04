@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   AudioLines,
   FileText,
@@ -23,9 +23,14 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { cn } from "@/lib/cn";
 import { detectKind, formatBytes } from "@/lib/media";
 import { supabaseConfigured } from "@/lib/env";
-import { uploadMediaAction } from "@/app/actions/media";
+import { useUser } from "@/hooks/use-user";
+import { useSupabase } from "@/hooks/use-supabase";
+import { useRealtimeTable } from "@/hooks/use-realtime";
+import { uploadMediaAction, listBlockMediaAction } from "@/app/actions/media";
 import { isEstablishedBlock, type Block, type FileAsset } from "@/lib/mock";
 import type { MediaKind } from "@/types";
+
+const MEDIA_BUCKET = "block-media";
 
 type UploadStatus = "uploading" | "done" | "error";
 
@@ -54,6 +59,18 @@ const extraMedia: FileAsset[] = [
   { id: "x6", name: "press-release-draft.pdf", kind: "pdf", size: "84 KB", updated: "2d ago" },
 ];
 
+const isUuid = (s: string) => /^[0-9a-f-]{36}$/i.test(s);
+
+function timeAgo(iso: string): string {
+  const ms = Date.now() - new Date(iso).getTime();
+  const m = Math.max(0, Math.floor(ms / 60000));
+  if (m < 1) return "now";
+  if (m < 60) return `${m}m ago`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h}h ago`;
+  return `${Math.floor(h / 24)}d ago`;
+}
+
 export function MediaPanel({
   block,
   title = "Media",
@@ -63,13 +80,86 @@ export function MediaPanel({
   title?: string;
   subtitle?: string;
 }) {
-  // Established Blocks get the richer demo set; fresh Blocks start empty.
+  const realBlock = supabaseConfigured && isUuid(block.id);
+  const { user } = useUser();
+  const supabase = useSupabase();
+  const currentUserId = user?.id ?? null;
+
+  // Established (demo) Blocks get the richer seeded set; a real Block loads
+  // its actual persisted uploads below (including files/voice notes shared
+  // over chat — both paths write to the same media_assets table).
   const [assets, setAssets] = useState<Asset[]>(
-    isEstablishedBlock(block) ? [...block.files, ...extraMedia] : []
+    !realBlock && isEstablishedBlock(block) ? [...block.files, ...extraMedia] : []
   );
   const [dragging, setDragging] = useState(false);
   const [filter, setFilter] = useState<"All" | FileAsset["kind"]>("All");
   const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (!realBlock) return;
+    let cancelled = false;
+    listBlockMediaAction(block.slug).then((items) => {
+      if (cancelled) return;
+      setAssets(
+        items.map((m) => ({
+          id: m.id,
+          name: m.name,
+          kind: m.kind,
+          size: formatBytes(m.sizeBytes ?? 0),
+          updated: timeAgo(m.createdAt),
+          cover: m.kind === "image" ? m.url ?? undefined : undefined,
+          status: "done",
+        }))
+      );
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [realBlock, block.slug]);
+
+  // Every other member's uploads (Files tab or chat attachment/voice note)
+  // land here live, same as they'd appear in chat.
+  useRealtimeTable<{
+    id: string;
+    name: string;
+    kind: MediaKind;
+    size_bytes: number | null;
+    storage_path: string;
+    uploaded_by: string | null;
+    created_at: string;
+  }>(
+    "media_assets",
+    async (payload) => {
+      if (payload.eventType !== "INSERT") return;
+      const row = payload.new;
+      if (row.uploaded_by === currentUserId) return; // ours — already shown optimistically
+      let cover: string | undefined;
+      if (supabase && row.kind === "image") {
+        const { data } = await supabase.storage
+          .from(MEDIA_BUCKET)
+          .createSignedUrl(row.storage_path, 3600);
+        cover = data?.signedUrl;
+      }
+      setAssets((prev) => {
+        if (prev.some((a) => a.id === row.id)) return prev;
+        return [
+          {
+            id: row.id,
+            name: row.name,
+            kind: row.kind,
+            size: formatBytes(row.size_bytes ?? 0),
+            updated: timeAgo(row.created_at),
+            cover,
+            status: "done",
+          },
+          ...prev,
+        ];
+      });
+    },
+    `block_id=eq.${block.id}`,
+    "INSERT",
+    realBlock
+  );
 
   function patchAsset(id: string, patch: Partial<Asset>) {
     setAssets((prev) => prev.map((a) => (a.id === id ? { ...a, ...patch } : a)));
