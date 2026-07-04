@@ -15,6 +15,27 @@ export type PlayerTrack = {
   genre?: string;
 };
 
+// Home page placeholder — shown in the mini player before the visitor has
+// picked anything (see components/player/music-player-bar.tsx). Swap this out
+// once there's a real source (e.g. a getTrendingTracksAction/genre radio call
+// like getGenreRadioAction) for actual featured/trending creator tracks; every
+// call site already just wants a PlayerTrack[], so nothing else needs to change.
+export function getHomeDemoTracks(): PlayerTrack[] {
+  return [
+    {
+      id: "demo-home-1",
+      src: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3",
+      title: "Neon Rain (Demo)",
+      creatorName: "Sasha Reyes",
+      creatorHandle: "sashareyes",
+      creatorType: "Producer",
+      artwork:
+        "https://images.unsplash.com/photo-1490971588422-52f6262a237a?auto=format&fit=crop&w=300&q=80",
+      genre: "Pop",
+    },
+  ];
+}
+
 // Up to `limit` directly-playable audio tracks from a creator's showcase items,
 // tagged with that creator's identity + primary genre.
 export function tracksFromFeatured(
