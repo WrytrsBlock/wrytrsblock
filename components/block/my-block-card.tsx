@@ -1,14 +1,22 @@
+"use client";
+
+import { useRef, useState } from "react";
 import Link from "next/link";
 import {
   ArrowUpRight,
   CalendarClock,
   CalendarPlus,
+  Camera,
   Inbox,
+  Loader2,
   Play,
   Star,
   Users,
 } from "lucide-react";
 import { cn } from "@/lib/cn";
+import { supabaseConfigured } from "@/lib/env";
+import { IMAGE_ACCEPT, uploadToAvatars, validateImageFile } from "@/lib/upload-image";
+import { updateBlockCoverAction } from "@/app/actions/blocks";
 import { BlockCover } from "@/components/block/block-cover";
 import {
   formatPartyDate,
@@ -16,6 +24,8 @@ import {
   partyStatusLabel,
 } from "@/lib/party";
 import type { Block, Person } from "@/lib/mock";
+
+const isUuid = (s: string) => /^[0-9a-f-]{36}$/i.test(s);
 
 // A My Blocks card in the same premium visual language as the Block Market
 // creator cards: full-bleed cover, frosted-glass gradient band, large title,
@@ -74,19 +84,76 @@ export function MyBlockCard({
     : block.status;
   const priceLabel = block.price ? `From $${block.price}` : "Free";
 
+  const realBlock = supabaseConfigured && isUuid(block.id);
+  const [cover, setCover] = useState(block.cover);
+  const [coverUploading, setCoverUploading] = useState(false);
+  const coverInput = useRef<HTMLInputElement>(null);
+
+  async function onCoverFile(file: File) {
+    const invalid = validateImageFile(file);
+    if (invalid) return; // no space for an inline error on a card; fail quietly
+
+    if (!realBlock) {
+      setCover(URL.createObjectURL(file));
+      return;
+    }
+
+    setCoverUploading(true);
+    try {
+      const url = await uploadToAvatars(file, "block-cover");
+      if (!url) return;
+      const res = await updateBlockCoverAction(block.slug, url);
+      if (res.ok) setCover(url);
+    } catch (e) {
+      console.error("Block cover upload failed:", e);
+    } finally {
+      setCoverUploading(false);
+    }
+  }
+
   return (
     <article
       className="group relative aspect-[4/5] rounded-[20px] overflow-hidden glass-tile glass-hover animate-fade-up"
       style={{ animationDelay: `${Math.min(index, 10) * 40}ms` }}
     >
       {/* Full-bleed cover — branded placeholder when missing or it fails to load */}
-      <BlockCover src={block.cover} type={block.blockType} />
+      <BlockCover src={cover} type={block.blockType} />
 
       {/* Whole card opens the Block (preserves existing behavior) */}
       <Link
         href={openHref}
         aria-label={block.title}
         className="absolute inset-0 z-0"
+      />
+
+      {/* Change cover — right on the card, no need to open Settings. Sits above
+          the card's Link so a click here doesn't navigate. */}
+      <button
+        type="button"
+        onClick={(e) => {
+          e.preventDefault();
+          coverInput.current?.click();
+        }}
+        aria-label="Change cover image"
+        className="absolute top-2 left-1/2 z-20 -translate-x-1/2 inline-flex h-7 items-center gap-1.5 rounded-full border border-white/20 bg-black/55 px-2.5 text-[10.5px] font-medium text-white opacity-0 backdrop-blur-md transition-opacity group-hover:opacity-100"
+      >
+        {coverUploading ? (
+          <Loader2 size={12} className="animate-spin" />
+        ) : (
+          <Camera size={12} />
+        )}
+        {coverUploading ? "Uploading…" : "Change cover"}
+      </button>
+      <input
+        ref={coverInput}
+        type="file"
+        accept={IMAGE_ACCEPT}
+        className="hidden"
+        onChange={(e) => {
+          const f = e.target.files?.[0];
+          if (f) void onCoverFile(f);
+          e.target.value = "";
+        }}
       />
 
       {/* Status badge — pinned top-right. An unanswered invite reads as Pending
@@ -117,11 +184,12 @@ export function MyBlockCard({
         </span>
       )}
 
-      {/* Translucent gradient, low on the card — lowered + see-through so more
-          of the cover shows. Title/meta on the left, a square type-aware CTA on
-          the right. pointer-events-none so taps fall through to the card link;
-          the title and CTA re-enable their own clicks. */}
-      <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 flex items-end justify-between gap-2.5 bg-gradient-to-t from-black/75 via-black/28 to-transparent px-3.5 pb-3 pt-14 md:px-4">
+      {/* Translucent gradient, low on the card — halved opacity vs. before so
+          the cover shows through clearly rather than reading as a solid band.
+          Title/meta on the left, a square type-aware CTA on the right.
+          pointer-events-none so taps fall through to the card link; the title
+          and CTA re-enable their own clicks. */}
+      <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 flex items-end justify-between gap-2.5 bg-gradient-to-t from-black/38 via-black/14 to-transparent px-3.5 pb-3 pt-14 md:px-4">
         <div className="min-w-0">
           {/* Block type */}
           <span className="block truncate text-[10px] font-bold uppercase tracking-[0.12em] text-white/75 drop-shadow-[0_1px_3px_rgb(0_0_0/0.6)]">
