@@ -240,15 +240,40 @@ export interface BlockMember {
   joined_at: ISODate;
 }
 
-// ---------- Collaboration Block: Split Sheets ----------
+// ---------- Collaboration Block: Split Sheet Generator ----------
 
+// Deprecated — the Split Sheet Generator (2026) replaced the draft →
+// circulated → signed in-app workflow with edit-then-generate. The `status`
+// column still exists in the DB but is no longer read anywhere.
 export type SplitSheetStatus = "draft" | "circulated" | "signed";
+
+export const SPLIT_SHEET_ROLES = [
+  "Producer",
+  "Songwriter",
+  "Artist",
+  "Engineer",
+  "Musician",
+  "Other",
+] as const;
+export type SplitSheetRole = (typeof SPLIT_SHEET_ROLES)[number];
+
+export const SPLIT_SHEET_PROS = [
+  "SOCAN",
+  "ASCAP",
+  "BMI",
+  "SESAC",
+  "Other",
+  "None",
+] as const;
+export type SplitSheetPro = (typeof SPLIT_SHEET_PROS)[number];
 
 export interface SplitSheet {
   id: UUID;
   block_id: UUID;
   status: SplitSheetStatus;
+  project_title: string | null;
   created_at: ISODate;
+  updated_at: ISODate;
 }
 
 export interface SplitSheetEntry {
@@ -256,9 +281,17 @@ export interface SplitSheetEntry {
   split_sheet_id: UUID;
   user_id: UUID | null;
   role: string;
-  writing_pct: number; // 0–100
-  publishing_pct: number; // 0–100
+  ownership_pct: number; // 0–100
+  legal_name: string | null;
+  artist_name: string | null;
+  email: string | null;
+  phone: string | null;
+  publishing_company: string | null;
+  pro: string | null;
+  ipi_cae: string | null;
+  notes: string | null;
   signed_at: ISODate | null;
+  updated_at: ISODate;
 }
 
 // ---------- Deliverables (both Block types) ----------

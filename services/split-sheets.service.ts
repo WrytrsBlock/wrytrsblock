@@ -1,4 +1,4 @@
-import type { SplitSheet, SplitSheetEntry, SplitSheetStatus, UUID } from "@/types";
+import type { SplitSheet, SplitSheetEntry, UUID } from "@/types";
 import type { DB } from "./types";
 
 export async function ensureSplitSheet(
@@ -44,45 +44,47 @@ export async function getSplitSheetWithEntries(
   return { sheet: sheet as SplitSheet, entries: (entries as SplitSheetEntry[]) ?? [] };
 }
 
+// A blank contributor card — filled in afterward. Not tied to a platform
+// account: split sheets routinely include people (mastering engineers,
+// sample writers) who aren't WrytrsBlock users, so every contact/legal field
+// is free text rather than pulled from a member profile.
 export async function addSplitEntry(
   supabase: DB,
-  input: { splitSheetId: UUID; userId: UUID; role: string }
+  splitSheetId: UUID
 ): Promise<SplitSheetEntry> {
   const { data, error } = await supabase
     .from("split_sheet_entries")
-    .insert({
-      split_sheet_id: input.splitSheetId,
-      user_id: input.userId,
-      role: input.role,
-    })
+    .insert({ split_sheet_id: splitSheetId })
     .select("*")
     .single();
   if (error) throw error;
   return data as SplitSheetEntry;
 }
 
-export async function updateSplitEntryPct(
+export type SplitEntryPatch = Partial<
+  Pick<
+    SplitSheetEntry,
+    | "legal_name"
+    | "artist_name"
+    | "email"
+    | "phone"
+    | "role"
+    | "publishing_company"
+    | "pro"
+    | "ipi_cae"
+    | "ownership_pct"
+    | "notes"
+  >
+>;
+
+export async function updateSplitEntry(
   supabase: DB,
   entryId: UUID,
-  patch: Partial<Pick<SplitSheetEntry, "writing_pct" | "publishing_pct">>
+  patch: SplitEntryPatch
 ): Promise<SplitSheetEntry> {
   const { data, error } = await supabase
     .from("split_sheet_entries")
     .update(patch)
-    .eq("id", entryId)
-    .select("*")
-    .single();
-  if (error) throw error;
-  return data as SplitSheetEntry;
-}
-
-export async function signSplitEntry(
-  supabase: DB,
-  entryId: UUID
-): Promise<SplitSheetEntry> {
-  const { data, error } = await supabase
-    .from("split_sheet_entries")
-    .update({ signed_at: new Date().toISOString() })
     .eq("id", entryId)
     .select("*")
     .single();
@@ -95,14 +97,14 @@ export async function removeSplitEntry(supabase: DB, entryId: UUID): Promise<voi
   if (error) throw error;
 }
 
-export async function setSplitSheetStatus(
+export async function updateSplitSheetProjectTitle(
   supabase: DB,
   splitSheetId: UUID,
-  status: SplitSheetStatus
+  projectTitle: string
 ): Promise<SplitSheet> {
   const { data, error } = await supabase
     .from("split_sheets")
-    .update({ status })
+    .update({ project_title: projectTitle })
     .eq("id", splitSheetId)
     .select("*")
     .single();

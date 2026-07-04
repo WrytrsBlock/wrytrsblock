@@ -2,49 +2,44 @@
 
 import { createSupabaseServerClient, getAuthedServerClient } from "@/lib/supabase/server";
 import { supabaseConfigured } from "@/lib/env";
-import { getBlockBySlug, listBlockMembers } from "@/services/blocks.service";
+import { getBlockBySlug } from "@/services/blocks.service";
 import { getProfile } from "@/services/profiles.service";
 import {
   addSplitEntry,
   ensureSplitSheet,
   getSplitSheetWithEntries,
   removeSplitEntry,
-  setSplitSheetStatus,
-  signSplitEntry,
-  updateSplitEntryPct,
+  updateSplitEntry,
+  updateSplitSheetProjectTitle,
+  type SplitEntryPatch,
 } from "@/services/split-sheets.service";
 import { notifyBlockActivity } from "@/lib/notify";
 import { splitSheetEmail } from "@/lib/email-templates";
-import type { SplitSheetStatus } from "@/types";
 
 export type SplitEntryView = {
   id: string;
   userId: string | null;
+  legalName: string;
+  artistName: string;
+  email: string;
+  phone: string;
   role: string;
-  writing: number;
-  publishing: number;
-  signed: boolean;
-  name: string;
-  avatar: string | null;
+  publishingCompany: string;
+  pro: string;
+  ipiCae: string;
+  ownershipPct: number;
+  notes: string;
 };
-
-export type SplitMemberView = { id: string; name: string; avatar: string | null; role: string };
 
 export type SplitSheetView = {
   sheetId: string;
-  status: SplitSheetStatus;
+  blockTitle: string;
+  projectTitle: string;
+  updatedAt: string;
   entries: SplitEntryView[];
-  // Every accepted Block member (not just candidates) — the client derives
-  // "who's not on the sheet yet" itself, same as it does for the demo/local
-  // data, so add/remove stay in sync without a refetch.
-  members: SplitMemberView[];
 };
 
 export type SplitResult = { ok: true } | { ok: false; error: string };
-
-function avatarFor(id: string) {
-  return `https://api.dicebear.com/9.x/notionists/svg?seed=${id}&backgroundColor=transparent`;
-}
 
 function msg(e: unknown): string {
   return e instanceof Error ? e.message : "Something went wrong.";
@@ -94,38 +89,25 @@ export async function getSplitSheetAction(
     const withEntries = await getSplitSheetWithEntries(supabase, block.id);
     const entries = withEntries?.entries ?? [];
 
-    const members = await listBlockMembers(supabase, block.id);
-    const profileById = new Map(
-      members.map((m) => [
-        m.user_id,
-        {
-          name: m.profile?.display_name || m.profile?.handle || "Member",
-          avatar: m.profile?.avatar_url ?? avatarFor(m.user_id),
-        },
-      ])
-    );
-
-    const memberViews: SplitMemberView[] = members.map((m) => ({
-      id: m.user_id,
-      name: profileById.get(m.user_id)?.name ?? "Member",
-      avatar: profileById.get(m.user_id)?.avatar ?? null,
-      role: m.profile?.role || "Contributor",
-    }));
-
     return {
       sheetId: sheet.id,
-      status: sheet.status,
+      blockTitle: block.title,
+      projectTitle: sheet.project_title ?? "",
+      updatedAt: sheet.updated_at,
       entries: entries.map((e) => ({
         id: e.id,
         userId: e.user_id,
+        legalName: e.legal_name ?? "",
+        artistName: e.artist_name ?? "",
+        email: e.email ?? "",
+        phone: e.phone ?? "",
         role: e.role,
-        writing: Number(e.writing_pct),
-        publishing: Number(e.publishing_pct),
-        signed: !!e.signed_at,
-        name: (e.user_id && profileById.get(e.user_id)?.name) || "Member",
-        avatar: (e.user_id && profileById.get(e.user_id)?.avatar) ?? null,
+        publishingCompany: e.publishing_company ?? "",
+        pro: e.pro ?? "",
+        ipiCae: e.ipi_cae ?? "",
+        ownershipPct: Number(e.ownership_pct),
+        notes: e.notes ?? "",
       })),
-      members: memberViews,
     };
   } catch (e) {
     console.error("getSplitSheetAction failed:", e);
@@ -133,24 +115,15 @@ export async function getSplitSheetAction(
   }
 }
 
-export async function addSplitEntryAction(
-  blockSlug: string,
-  memberId: string
-): Promise<SplitResult> {
+export async function addSplitEntryAction(blockSlug: string): Promise<SplitResult> {
   if (!supabaseConfigured) return { ok: true };
   try {
     const supabase = createSupabaseServerClient();
     const block = await getBlockBySlug(supabase, blockSlug);
     if (!block) return { ok: false, error: "Block not found." };
     const sheet = await ensureSplitSheet(supabase, block.id);
-    const members = await listBlockMembers(supabase, block.id);
-    const member = members.find((m) => m.user_id === memberId);
 
-    await addSplitEntry(supabase, {
-      splitSheetId: sheet.id,
-      userId: memberId,
-      role: member?.profile?.role || "Contributor",
-    });
+    await addSplitEntry(supabase, sheet.id);
     await notifySplitSheetChanged(blockSlug);
     return { ok: true };
   } catch (e) {
@@ -158,18 +131,42 @@ export async function addSplitEntryAction(
   }
 }
 
-export async function updateSplitEntryPctAction(
+export type SplitEntryFieldPatch = Partial<{
+  legalName: string;
+  artistName: string;
+  email: string;
+  phone: string;
+  role: string;
+  publishingCompany: string;
+  pro: string;
+  ipiCae: string;
+  ownershipPct: number;
+  notes: string;
+}>;
+
+export async function updateSplitEntryAction(
   blockSlug: string,
   entryId: string,
-  patch: { writing?: number; publishing?: number }
+  patch: SplitEntryFieldPatch
 ): Promise<SplitResult> {
   if (!supabaseConfigured) return { ok: true };
   try {
     const supabase = createSupabaseServerClient();
-    await updateSplitEntryPct(supabase, entryId, {
-      ...(patch.writing !== undefined ? { writing_pct: patch.writing } : {}),
-      ...(patch.publishing !== undefined ? { publishing_pct: patch.publishing } : {}),
-    });
+    const dbPatch: SplitEntryPatch = {
+      ...(patch.legalName !== undefined ? { legal_name: patch.legalName } : {}),
+      ...(patch.artistName !== undefined ? { artist_name: patch.artistName } : {}),
+      ...(patch.email !== undefined ? { email: patch.email } : {}),
+      ...(patch.phone !== undefined ? { phone: patch.phone } : {}),
+      ...(patch.role !== undefined ? { role: patch.role } : {}),
+      ...(patch.publishingCompany !== undefined
+        ? { publishing_company: patch.publishingCompany }
+        : {}),
+      ...(patch.pro !== undefined ? { pro: patch.pro } : {}),
+      ...(patch.ipiCae !== undefined ? { ipi_cae: patch.ipiCae } : {}),
+      ...(patch.ownershipPct !== undefined ? { ownership_pct: patch.ownershipPct } : {}),
+      ...(patch.notes !== undefined ? { notes: patch.notes } : {}),
+    };
+    await updateSplitEntry(supabase, entryId, dbPatch);
     await notifySplitSheetChanged(blockSlug);
     return { ok: true };
   } catch (e) {
@@ -192,30 +189,15 @@ export async function removeSplitEntryAction(
   }
 }
 
-export async function signSplitEntryAction(
-  blockSlug: string,
-  entryId: string
-): Promise<SplitResult> {
-  if (!supabaseConfigured) return { ok: true };
-  try {
-    const supabase = createSupabaseServerClient();
-    await signSplitEntry(supabase, entryId);
-    await notifySplitSheetChanged(blockSlug);
-    return { ok: true };
-  } catch (e) {
-    return { ok: false, error: msg(e) };
-  }
-}
-
-export async function setSplitSheetStatusAction(
+export async function updateSplitSheetProjectTitleAction(
   blockSlug: string,
   sheetId: string,
-  status: SplitSheetStatus
+  projectTitle: string
 ): Promise<SplitResult> {
   if (!supabaseConfigured) return { ok: true };
   try {
     const supabase = createSupabaseServerClient();
-    await setSplitSheetStatus(supabase, sheetId, status);
+    await updateSplitSheetProjectTitle(supabase, sheetId, projectTitle);
     await notifySplitSheetChanged(blockSlug);
     return { ok: true };
   } catch (e) {
