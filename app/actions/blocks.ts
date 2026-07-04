@@ -7,6 +7,7 @@ import {
 } from "@/lib/supabase/server";
 import { supabaseConfigured } from "@/lib/env";
 import { slugify } from "@/lib/cn";
+import { getBlockBySlug, updateBlock } from "@/services/blocks.service";
 import type {
   BlockCategory,
   BlockKind,
@@ -161,6 +162,37 @@ export async function deleteBlockAction(
     return {
       ok: false,
       error: e instanceof Error ? e.message : "Couldn't delete this Block.",
+    };
+  }
+}
+
+export type UpdateCoverResult = { ok: true } | { ok: false; error: string };
+
+// Sets the Block's cover image (already uploaded to Storage — this just
+// persists the resulting URL). Any Block member may change it, matching the
+// "blocks update by member" RLS policy — same permissive, no-owner-gate model
+// as the rest of the Block's shared surfaces (chat, files, split sheet).
+export async function updateBlockCoverAction(
+  blockSlug: string,
+  coverUrl: string
+): Promise<UpdateCoverResult> {
+  if (!supabaseConfigured) return { ok: true };
+  try {
+    const supabase = createSupabaseServerClient();
+    const block = await getBlockBySlug(supabase, blockSlug);
+    if (!block) return { ok: false, error: "Block not found." };
+
+    await updateBlock(supabase, block.id, { cover_url: coverUrl });
+
+    revalidatePath(`/blocks/${blockSlug}`);
+    revalidatePath("/blocks");
+    revalidatePath("/marketplace");
+    return { ok: true };
+  } catch (e) {
+    console.error("updateBlockCoverAction failed:", e);
+    return {
+      ok: false,
+      error: e instanceof Error ? e.message : "Couldn't update the cover image.",
     };
   }
 }

@@ -36,11 +36,12 @@ export function validateImageFile(file: File): string | null {
 }
 
 // Upload an image to the public "avatars" bucket under the signed-in user's
-// folder and return its public URL. `prefix` distinguishes avatar vs banner.
-// Throws on failure (validation or storage) so callers can surface the error.
+// folder and return its public URL. `prefix` distinguishes avatar vs banner vs
+// a Block cover. Throws on failure (validation or storage) so callers can
+// surface the error.
 export async function uploadToAvatars(
   file: File,
-  prefix: "avatar" | "banner" | "portfolio"
+  prefix: "avatar" | "banner" | "portfolio" | "block-cover"
 ): Promise<string | null> {
   // Defense-in-depth: validate here too, in case a caller skipped it.
   const invalid = validateImageFile(file);

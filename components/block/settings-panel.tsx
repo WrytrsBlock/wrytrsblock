@@ -1,7 +1,17 @@
 "use client";
 
-import { useState } from "react";
-import { AlertTriangle, Check, Globe, Lock, Users } from "lucide-react";
+import { useRef, useState } from "react";
+import { useRouter } from "next/navigation";
+import {
+  AlertTriangle,
+  Check,
+  CheckCircle2,
+  Globe,
+  ImagePlus,
+  Loader2,
+  Lock,
+  Users,
+} from "lucide-react";
 import {
   Badge,
   Button,
@@ -11,8 +21,18 @@ import {
   SectionLabel,
 } from "@/components/ui/primitives";
 import { cn } from "@/lib/cn";
+import { supabaseConfigured } from "@/lib/env";
+import {
+  IMAGE_ACCEPT,
+  IMAGE_FORMATS_HINT,
+  uploadToAvatars,
+  validateImageFile,
+} from "@/lib/upload-image";
+import { updateBlockCoverAction } from "@/app/actions/blocks";
 import { DeleteBlockButton } from "@/components/block/delete-block-button";
 import { getPerson, type Block } from "@/lib/mock";
+
+const isUuid = (s: string) => /^[0-9a-f-]{36}$/i.test(s);
 
 const visibilities = [
   { id: "private", label: "Private", desc: "Only invited collaborators", icon: Lock },
@@ -33,7 +53,55 @@ export function SettingsPanel({
   block: Block;
   isOwner?: boolean;
 }) {
+  const router = useRouter();
+  const realBlock = supabaseConfigured && isUuid(block.id);
   const [visibility, setVisibility] = useState<string>("workspace");
+
+  const [cover, setCover] = useState(block.cover);
+  const [coverUploading, setCoverUploading] = useState(false);
+  const [coverSaved, setCoverSaved] = useState(false);
+  const [coverError, setCoverError] = useState<string | null>(null);
+  const coverInput = useRef<HTMLInputElement>(null);
+
+  async function onCoverFile(file: File) {
+    setCoverError(null);
+    setCoverSaved(false);
+
+    const invalid = validateImageFile(file);
+    if (invalid) {
+      setCoverError(invalid);
+      return;
+    }
+
+    // Demo/local Block — preview only, nothing to persist to.
+    if (!realBlock) {
+      setCover(URL.createObjectURL(file));
+      return;
+    }
+
+    setCoverUploading(true);
+    try {
+      const url = await uploadToAvatars(file, "block-cover");
+      if (!url) {
+        setCoverError("Upload didn't complete. Please try again.");
+        return;
+      }
+      const res = await updateBlockCoverAction(block.slug, url);
+      if (res.ok) {
+        setCover(url);
+        setCoverSaved(true);
+        window.setTimeout(() => setCoverSaved(false), 2400);
+        router.refresh();
+      } else {
+        setCoverError(res.error);
+      }
+    } catch (e) {
+      console.error("Block cover upload failed:", e);
+      setCoverError(e instanceof Error ? e.message : "Upload failed. Please try again.");
+    } finally {
+      setCoverUploading(false);
+    }
+  }
 
   return (
     <div className="px-8 py-7 max-w-[860px] space-y-6 animate-fade-up">
@@ -50,6 +118,67 @@ export function SettingsPanel({
       {/* Identity */}
       <Card className="p-6">
         <SectionLabel>Identity</SectionLabel>
+        <div className="mt-4 space-y-4">
+          <div>
+            <Label>Cover image</Label>
+            <button
+              type="button"
+              onClick={() => coverInput.current?.click()}
+              className="relative block w-full h-36 rounded-2xl overflow-hidden border border-line bg-surface-2 group"
+            >
+              {cover ? (
+                <>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={cover} alt="" className="h-full w-full object-cover" />
+                  <span className="absolute inset-0 flex items-center justify-center gap-2 text-white text-[12.5px] font-medium bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <ImagePlus size={15} />
+                    {coverUploading ? "Uploading…" : "Change cover image"}
+                  </span>
+                </>
+              ) : (
+                <span className="absolute inset-0 bg-grad-accent opacity-90 flex flex-col items-center justify-center gap-1.5 text-white">
+                  <ImagePlus size={20} strokeWidth={1.75} />
+                  <span className="text-[12.5px] font-semibold">
+                    {coverUploading ? "Uploading…" : "Upload cover image"}
+                  </span>
+                  <span className="text-[10.5px] text-white/75">
+                    Make this Block stand out in My Blocks
+                  </span>
+                </span>
+              )}
+
+              {coverUploading && (
+                <span className="absolute inset-0 flex items-center justify-center gap-2 bg-black/55 text-white text-[12.5px] font-medium">
+                  <Loader2 size={15} className="animate-spin" /> Uploading…
+                </span>
+              )}
+              {coverSaved && !coverUploading && (
+                <span className="absolute inset-0 flex items-center justify-center gap-2 bg-success/35 text-white text-[12.5px] font-semibold">
+                  <CheckCircle2 size={16} /> Cover saved
+                </span>
+              )}
+            </button>
+            <input
+              ref={coverInput}
+              type="file"
+              accept={IMAGE_ACCEPT}
+              className="hidden"
+              onChange={(e) => {
+                const f = e.target.files?.[0];
+                if (f) void onCoverFile(f);
+                e.target.value = "";
+              }}
+            />
+            {coverError ? (
+              <p className="mt-1.5 text-[11.5px] text-danger">{coverError}</p>
+            ) : (
+              <p className="mt-1.5 text-[11px] text-muted/70">
+                Shown on this Block's card in My Blocks and the marketplace.{" "}
+                {IMAGE_FORMATS_HINT}
+              </p>
+            )}
+          </div>
+        </div>
         <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="md:col-span-2">
             <Label htmlFor="title">Title</Label>
