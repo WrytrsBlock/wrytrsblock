@@ -6,9 +6,11 @@ import { createPortal } from "react-dom";
 import {
   ChevronDown,
   Headphones,
+  LayoutGrid,
   Play,
   Plus,
   Search,
+  Sparkles,
   SlidersHorizontal,
   X,
 } from "lucide-react";
@@ -16,6 +18,7 @@ import { blockMatchForCreator, matchTier } from "@/lib/block-match";
 import { cn } from "@/lib/cn";
 import { type CreatorProfile, type Person } from "@/lib/mock";
 import { FeaturedCreator } from "@/components/marketplace/featured-creator";
+import { DiscoveryFeed } from "@/components/marketplace/discovery-feed";
 import {
   isVideoType,
   pickFeatured,
@@ -27,6 +30,7 @@ import { openNewBlock } from "@/lib/ui-events";
 import { CREATOR_TYPES, INTERESTS } from "@/lib/onboarding";
 
 type Creator = { person: Person; profile: CreatorProfile };
+type ViewMode = "grid" | "discovery";
 
 // Unique, sorted, non-empty values for a filter group.
 const uniqSorted = (arr: string[]) =>
@@ -187,6 +191,50 @@ function FilterSelect({
   );
 }
 
+// Grid ↔ Discovery — a two-segment pill, always reachable from either mode.
+function ModeToggle({
+  mode,
+  onChange,
+  className,
+}: {
+  mode: ViewMode;
+  onChange: (m: ViewMode) => void;
+  className?: string;
+}) {
+  return (
+    <div className={className}>
+      <div className="inline-flex items-center gap-0.5 rounded-full border border-white/20 bg-black/40 p-1 backdrop-blur-md">
+        <button
+          type="button"
+          onClick={() => onChange("grid")}
+          aria-pressed={mode === "grid"}
+          className={cn(
+            "inline-flex h-8 items-center gap-1.5 rounded-full px-3.5 text-[12px] font-semibold transition-colors",
+            mode === "grid"
+              ? "bg-white text-black"
+              : "text-white/70 hover:text-white"
+          )}
+        >
+          <LayoutGrid size={13} /> Grid
+        </button>
+        <button
+          type="button"
+          onClick={() => onChange("discovery")}
+          aria-pressed={mode === "discovery"}
+          className={cn(
+            "inline-flex h-8 items-center gap-1.5 rounded-full px-3.5 text-[12px] font-semibold transition-colors",
+            mode === "discovery"
+              ? "bg-white text-black"
+              : "text-white/70 hover:text-white"
+          )}
+        >
+          <Sparkles size={13} /> Discovery
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export function CreatorMarketplace({
   creators,
   featured,
@@ -194,6 +242,10 @@ export function CreatorMarketplace({
   creators: Creator[];
   featured?: Creator;
 }) {
+  // Grid ↔ Discovery — a view preference, not a filter, so it lives alongside
+  // (never resets) query/type/location/genre/etc. below. Switching modes never
+  // touches this state, so search + filters carry over exactly either way.
+  const [mode, setMode] = useState<ViewMode>("grid");
   const [query, setQuery] = useState("");
   // Primary filters (always visible).
   const [type, setType] = useState("All");
@@ -295,8 +347,24 @@ export function CreatorMarketplace({
     experience,
   ]);
 
+  if (mode === "discovery") {
+    return (
+      <div className="relative h-full">
+        <ModeToggle
+          mode={mode}
+          onChange={setMode}
+          className="absolute inset-x-0 top-[calc(env(safe-area-inset-top)+0.75rem)] z-30 flex justify-center"
+        />
+        <DiscoveryFeed creators={filtered} />
+      </div>
+    );
+  }
+
   return (
-    <div className="space-y-4">
+    <div className="page-fluid pb-16 pt-[calc(env(safe-area-inset-top)+2rem)] md:pt-[calc(env(safe-area-inset-top)+2.5rem)] animate-fade-up">
+      <div className="space-y-4">
+        <ModeToggle mode={mode} onChange={setMode} className="flex justify-center" />
+
       {/* Search — this page's single search experience: the same centered
           liquid-glass pill as the global bar, but it live-filters the grid. */}
       <div className="flex justify-center">
@@ -450,6 +518,7 @@ export function CreatorMarketplace({
           />,
           document.body
         )}
+      </div>
     </div>
   );
 }

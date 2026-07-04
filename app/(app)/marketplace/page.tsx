@@ -15,12 +15,10 @@ export default async function MarketplacePage() {
     <div className="flex-1 min-h-0 overflow-y-auto">
       {/* No global <TopBar/> pill here — the marketplace's own live search IS
           this page's single search experience, styled as the same centered
-          glass pill. */}
-      <div className="page-fluid pb-16 animate-fade-up pt-[calc(env(safe-area-inset-top)+2rem)] md:pt-[calc(env(safe-area-inset-top)+2.5rem)]">
-        {/* Search bar sits top-center; the "Block Market" title renders
-            underneath it inside the component (matches My Blocks / Profile). */}
-        <CreatorMarketplace creators={ranked} />
-      </div>
+          glass pill. Padding/height are owned by CreatorMarketplace itself now
+          (it differs between Grid — a normal scrolling page — and Discovery —
+          an edge-to-edge full-height swipe feed). */}
+      <CreatorMarketplace creators={ranked} />
     </div>
   );
 }
