@@ -172,6 +172,9 @@ export interface CreatorProfileRow {
   rating: number;
   reviews: number;
   is_published: boolean;
+  // When the 24h "Ready to start your first Block?" follow-up email was
+  // sent — null means not yet sent. See supabase/migrations/0034.
+  follow_up_sent_at: ISODate | null;
   created_at: ISODate;
   updated_at: ISODate;
 }

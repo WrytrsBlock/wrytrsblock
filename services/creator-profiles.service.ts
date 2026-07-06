@@ -40,6 +40,29 @@ export async function countPublishedCreatorProfiles(supabase: DB): Promise<numbe
   return count ?? 0;
 }
 
+// Atomically claims every published creator whose profile turned 24h old and
+// hasn't gotten the follow-up email yet, in one UPDATE ... WHERE
+// follow_up_sent_at IS NULL ... RETURNING statement. This is what makes the
+// cron job safe under overlapping runs: Postgres locks matching rows for the
+// duration of the UPDATE, so if two invocations race, the second one's WHERE
+// clause re-evaluates after the first commits and no longer matches — it can
+// only ever claim a row once. Must be called with a service-role client
+// (bypasses RLS; this runs with no signed-in user).
+export async function claimDueFollowUpCreators(
+  supabase: DB,
+  cutoffIso: string
+): Promise<Pick<CreatorProfileRow, "id" | "display_name">[]> {
+  const { data, error } = await supabase
+    .from("creator_profiles")
+    .update({ follow_up_sent_at: new Date().toISOString() })
+    .eq("is_published", true)
+    .is("follow_up_sent_at", null)
+    .lte("created_at", cutoffIso)
+    .select("id, display_name");
+  if (error) throw error;
+  return (data as Pick<CreatorProfileRow, "id" | "display_name">[]) ?? [];
+}
+
 export async function getCreatorProfileByHandle(
   supabase: DB,
   handle: string

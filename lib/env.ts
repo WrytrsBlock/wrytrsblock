@@ -38,3 +38,10 @@ export const SITE_URL =
 // RESEND_API_KEY).
 export const OPENAI_API_KEY = process.env.OPENAI_API_KEY ?? "";
 export const openaiConfigured = Boolean(OPENAI_API_KEY);
+
+// Vercel sends `Authorization: Bearer $CRON_SECRET` on requests it triggers
+// itself via vercel.json's `crons` config. When set, app/api/cron/* routes
+// reject any request whose header doesn't match, so the endpoint can't be
+// hit by anyone who finds the URL. Optional — unset just means those routes
+// run unauthenticated (fine for local dev, not recommended in production).
+export const CRON_SECRET = process.env.CRON_SECRET ?? "";

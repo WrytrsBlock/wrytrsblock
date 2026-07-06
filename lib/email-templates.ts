@@ -258,3 +258,40 @@ export function newCreatorAdminEmail(input: {
     }),
   };
 }
+
+// 24h automated follow-up — sent once, by app/api/cron/follow-up-emails, to
+// every creator whose profile turned a day old without a second visit.
+const FIRST_BLOCK_STEPS = [
+  "Add or update your profile photo",
+  "Browse the Block Market",
+  "Start your first Block with another creator",
+];
+
+export function firstBlockFollowUpEmail(input: { name: string }): EmailContent {
+  const firstName = input.name?.trim().split(/\s+/)[0] || "there";
+  const stepsHtml = `
+    <div style="margin:4px 0 4px;">
+      ${FIRST_BLOCK_STEPS.map(
+        (step, i) => `
+        <p style="margin:0 0 10px;font-size:14px;line-height:1.5;color:#3a3a3a;">
+          <span style="color:#161616;font-weight:700;">${i + 1}.</span>&nbsp; ${escapeHtml(step)}
+        </p>`
+      ).join("")}
+    </div>
+    <p style="margin:8px 0 0;font-size:14px;line-height:1.6;color:#3a3a3a;">
+      WrytrsBlock is built to help creators find each other, collaborate, and actually finish projects.
+    </p>`;
+  return {
+    subject: "Ready to start your first Block?",
+    html: layout({
+      heading: "Ready to start your first Block?",
+      lines: [
+        `Hey ${escapeHtml(firstName)},`,
+        "You joined WrytrsBlock yesterday — now it's time to start connecting.",
+        "Here are 3 things to do next:",
+      ],
+      extraHtml: stepsHtml,
+      button: { label: "Open WrytrsBlock", href: `${SITE_URL}/home` },
+    }),
+  };
+}

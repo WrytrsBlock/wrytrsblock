@@ -17,6 +17,10 @@ const PUBLIC_PATHS = [
   "/terms",
   "/privacy",
   "/community-guidelines",
+  // Vercel Cron calls these with no user session — they authenticate
+  // themselves via CRON_SECRET (see lib/env.ts), not cookies, so the
+  // sign-in redirect below must not intercept them.
+  "/api/cron",
 ];
 
 function isPublic(pathname: string) {
