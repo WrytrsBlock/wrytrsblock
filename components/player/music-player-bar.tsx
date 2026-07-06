@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -16,7 +16,8 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { openNewBlock } from "@/lib/ui-events";
-import { getHomeDemoTracks } from "@/lib/player";
+import { getMyFeaturedTrackAction } from "@/app/actions/player";
+import type { PlayerTrack } from "@/lib/player";
 import { useMusicPlayer } from "./music-player";
 
 function fmt(sec: number): string {
@@ -31,8 +32,9 @@ function fmt(sec: number): string {
 // and stays put as the user navigates. Global: it shows on any page once a
 // track is playing (started from e.g. a profile's Featured Tracks), so
 // playback keeps going seamlessly as the visitor browses. On the Home page
-// specifically, it also shows — with a demo track ready to press Play on —
-// even before anything has been picked, so Home always showcases music.
+// specifically, it also shows — with the signed-in listener's own featured
+// track ready to press Play on — even before anything else has been picked,
+// so Home showcases the listener's own music instead of sitting empty.
 export function MusicPlayerBar() {
   const {
     current,
@@ -53,11 +55,25 @@ export function MusicPlayerBar() {
   const pathname = usePathname();
   const trackRef = useRef<HTMLDivElement>(null);
   const [expanded, setExpanded] = useState(false);
+  const [myTrack, setMyTrack] = useState<PlayerTrack[]>([]);
 
-  // Home-only placeholder: swap getHomeDemoTracks() for a real
-  // featured/trending source later — everything below only cares that it's a
+  // Home-only: the signed-in listener's own featured track, fetched once
+  // nothing else is already playing. Everything below only cares that it's a
   // PlayerTrack[], not where it came from.
-  const demoTracks = !current && pathname === "/home" ? getHomeDemoTracks() : [];
+  const wantsOwnTrack = !current && pathname === "/home";
+
+  useEffect(() => {
+    if (!wantsOwnTrack) return;
+    let cancelled = false;
+    getMyFeaturedTrackAction().then((tracks) => {
+      if (!cancelled) setMyTrack(tracks);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [wantsOwnTrack]);
+
+  const demoTracks = wantsOwnTrack ? myTrack : [];
   const demo = demoTracks[0] ?? null;
 
   if (!current && !demo) return null;
