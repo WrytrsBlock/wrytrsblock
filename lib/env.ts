@@ -24,6 +24,11 @@ export const RESEND_FROM_EMAIL =
 
 export const resendConfigured = Boolean(RESEND_API_KEY);
 
+// Where the "new creator joined" internal notification goes. Optional: when
+// unset, that email is skipped (logged only) — signup itself never depends
+// on this being set.
+export const ADMIN_NOTIFICATION_EMAIL = process.env.ADMIN_NOTIFICATION_EMAIL ?? "";
+
 export const SITE_URL =
   process.env.NEXT_PUBLIC_SITE_URL ?? "https://www.wrytrsblock.com";
 

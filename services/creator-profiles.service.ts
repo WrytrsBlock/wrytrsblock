@@ -28,6 +28,18 @@ export async function listCreatorProfiles(
   return (data as CreatorProfileRow[]) ?? [];
 }
 
+// "Total registered creators" for the admin new-signup notification — counts
+// published, marketplace-visible creators (matches what listCreatorProfiles
+// surfaces), not every raw auth signup (many never finish onboarding).
+export async function countPublishedCreatorProfiles(supabase: DB): Promise<number> {
+  const { count, error } = await supabase
+    .from("creator_profiles")
+    .select("*", { count: "exact", head: true })
+    .eq("is_published", true);
+  if (error) throw error;
+  return count ?? 0;
+}
+
 export async function getCreatorProfileByHandle(
   supabase: DB,
   handle: string
