@@ -11,7 +11,7 @@ import {
   Square,
   X,
 } from "lucide-react";
-import { Avatar } from "@/components/ui/primitives";
+import { Avatar, SectionLabel } from "@/components/ui/primitives";
 import { EmptyState } from "@/components/ui/empty-state";
 import { type Block } from "@/lib/mock";
 import { useUser } from "@/hooks/use-user";
@@ -503,6 +503,16 @@ export function ThreadsPanel({ block }: { block: Block }) {
     // scroll inside the available flex space instead of overflowing under the
     // Block tabs / bottom nav on mobile; the composer is pinned (shrink-0).
     <div className="flex h-full min-h-0 flex-col">
+      {/* Pinned above the scrolling thread — chat opens scrolled to the
+          bottom, so a heading living inside the scroll area would never
+          actually be seen. Matches every other tab's SectionLabel + text-3xl
+          heading pattern (Team, Files, Split Sheet, Songwriter). */}
+      <div className="page-fluid pt-5 pb-4 shrink-0 border-b border-line">
+        <SectionLabel>Messages</SectionLabel>
+        <h2 className="mt-1.5 font-display text-3xl text-ink tracking-tight">
+          Chat
+        </h2>
+      </div>
       <div
         ref={scrollRef}
         className="page-fluid min-h-0 flex-1 space-y-4 overflow-y-auto py-6"
