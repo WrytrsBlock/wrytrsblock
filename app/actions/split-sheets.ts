@@ -4,17 +4,34 @@ import { createSupabaseServerClient, getAuthedServerClient } from "@/lib/supabas
 import { supabaseConfigured } from "@/lib/env";
 import { getBlockBySlug } from "@/services/blocks.service";
 import { getProfile } from "@/services/profiles.service";
+import { getSongwriterContributorsByBlock } from "@/services/songwriter.service";
 import {
   addSplitEntry,
   ensureSplitSheet,
   getSplitSheetWithEntries,
   removeSplitEntry,
+  seedSplitSheetEntriesFromContributors,
   updateSplitEntry,
   updateSplitSheetProjectTitle,
   type SplitEntryPatch,
 } from "@/services/split-sheets.service";
 import { notifyBlockActivity } from "@/lib/notify";
 import { splitSheetEmail } from "@/lib/email-templates";
+import { SPLIT_SHEET_ROLES } from "@/types";
+
+// Songwriter's Contributors roster uses its own suggested role vocabulary
+// (SONGWRITER_CONTRIBUTOR_ROLES) that isn't identical to this domain's
+// SPLIT_SHEET_ROLES — e.g. "Vocalist" has no exact match here — so a seeded
+// entry's role is mapped to the nearest split-sheet role instead of leaking
+// an option the Split Sheet UI's role dropdown can't represent/select.
+const CONTRIBUTOR_ROLE_TO_SPLIT_SHEET_ROLE: Record<string, string> = {
+  Vocalist: "Artist",
+};
+
+function toSplitSheetRole(role: string): string {
+  if ((SPLIT_SHEET_ROLES as readonly string[]).includes(role)) return role;
+  return CONTRIBUTOR_ROLE_TO_SPLIT_SHEET_ROLE[role] ?? "Other";
+}
 
 export type SplitEntryView = {
   id: string;
@@ -86,8 +103,33 @@ export async function getSplitSheetAction(
     if (!block) return null;
 
     const sheet = await ensureSplitSheet(supabase, block.id);
-    const withEntries = await getSplitSheetWithEntries(supabase, block.id);
-    const entries = withEntries?.entries ?? [];
+    let withEntries = await getSplitSheetWithEntries(supabase, block.id);
+    let entries = withEntries?.entries ?? [];
+
+    // A brand-new sheet with a Songwriter Contributors roster already set on
+    // this Block gets pre-filled from it — so contributor info is never
+    // entered twice — instead of the client's "one blank card" fallback.
+    if (entries.length === 0) {
+      const contributors = await getSongwriterContributorsByBlock(supabase, block.id);
+      if (contributors.length > 0) {
+        const seeded = await seedSplitSheetEntriesFromContributors(
+          supabase,
+          sheet.id,
+          contributors.map((c) => ({
+            userId: c.user_id,
+            role: toSplitSheetRole(c.role),
+            displayName: c.display_name,
+          }))
+        );
+        // The common case gets every seeded row back directly from the
+        // upsert with no extra round-trip; only re-fetch if this call lost a
+        // concurrent seeding race and inserted nothing itself.
+        entries =
+          seeded.length > 0
+            ? seeded
+            : (await getSplitSheetWithEntries(supabase, block.id))?.entries ?? [];
+      }
+    }
 
     return {
       sheetId: sheet.id,

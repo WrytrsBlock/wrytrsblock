@@ -7,6 +7,7 @@ import {
   Inbox,
   LayoutDashboard,
   MessagesSquare,
+  Music2,
   PieChart,
   Settings2,
   Users,
@@ -24,6 +25,7 @@ export type BlockTabId =
   | "team"
   | "files"
   | "splits"
+  | "songwriter"
   | "messages"
   | "tasks"
   | "requests"
@@ -35,6 +37,7 @@ export type BlockTabId =
 const COLLAB_TABS: Tab[] = [
   { id: "messages", label: "Chat", icon: MessagesSquare },
   { id: "team", label: "Team", icon: Users },
+  { id: "songwriter", label: "Songwriter", icon: Music2 },
   { id: "files", label: "Files", icon: Folder },
   { id: "splits", label: "Splits", icon: PieChart },
   { id: "settings", label: "Settings", icon: Settings2 },

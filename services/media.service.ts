@@ -58,6 +58,19 @@ export async function uploadMedia(
   return data as MediaAsset;
 }
 
+export async function getMediaAssetById(
+  supabase: DB,
+  id: UUID
+): Promise<MediaAsset | null> {
+  const { data, error } = await supabase
+    .from("media_assets")
+    .select("*")
+    .eq("id", id)
+    .maybeSingle();
+  if (error) throw error;
+  return (data as MediaAsset | null) ?? null;
+}
+
 export function getPublicMediaUrl(supabase: DB, storagePath: string): string {
   const { data } = supabase.storage
     .from(MEDIA_BUCKET)

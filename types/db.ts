@@ -294,6 +294,143 @@ export interface SplitSheetEntry {
   updated_at: ISODate;
 }
 
+// ---------- Collaboration Block: Songwriter ----------
+
+export type SongwriterSectionKind =
+  | "intro"
+  | "verse"
+  | "pre_chorus"
+  | "chorus_hook"
+  | "bridge"
+  | "outro"
+  | "custom";
+
+export const SONGWRITER_SECTION_KINDS: SongwriterSectionKind[] = [
+  "intro",
+  "verse",
+  "pre_chorus",
+  "chorus_hook",
+  "bridge",
+  "outro",
+  "custom",
+];
+
+export const SONGWRITER_SECTION_LABELS: Record<SongwriterSectionKind, string> = {
+  intro: "Intro",
+  verse: "Verse",
+  pre_chorus: "Pre-Chorus",
+  chorus_hook: "Chorus / Hook",
+  bridge: "Bridge",
+  outro: "Outro",
+  custom: "Custom",
+};
+
+export type SongwriterStatus =
+  | "idea"
+  | "writing"
+  | "rewriting"
+  | "demo"
+  | "recording"
+  | "finished";
+
+export const SONGWRITER_STATUSES: SongwriterStatus[] = [
+  "idea",
+  "writing",
+  "rewriting",
+  "demo",
+  "recording",
+  "finished",
+];
+
+export const SONGWRITER_STATUS_LABELS: Record<SongwriterStatus, string> = {
+  idea: "Idea",
+  writing: "Writing",
+  rewriting: "Rewriting",
+  demo: "Demo",
+  recording: "Recording",
+  finished: "Finished",
+};
+
+// Suggested role vocabulary for the Contributors picker. Plain text at the
+// DB layer (not an enum) so a row can flow straight into
+// split_sheet_entries.role with no conversion.
+export const SONGWRITER_CONTRIBUTOR_ROLES = [
+  "Songwriter",
+  "Producer",
+  "Vocalist",
+  "Engineer",
+  "Musician",
+  "Other",
+] as const;
+export type SongwriterContributorRole = (typeof SONGWRITER_CONTRIBUTOR_ROLES)[number];
+
+export interface SongwriterDoc {
+  id: UUID;
+  block_id: UUID;
+  status: SongwriterStatus;
+  bpm: number | null;
+  key: string | null;
+  genre: string | null;
+  instrumental_id: UUID | null;
+  created_at: ISODate;
+  updated_at: ISODate;
+}
+
+export interface SongwriterSection {
+  id: UUID;
+  doc_id: UUID;
+  kind: SongwriterSectionKind;
+  label: string | null;
+  lyrics: string;
+  position: number;
+  created_by: UUID | null;
+  created_at: ISODate;
+  updated_at: ISODate;
+}
+
+export interface SongwriterLoopMarker {
+  id: UUID;
+  doc_id: UUID;
+  name: string;
+  start_seconds: number;
+  end_seconds: number;
+  created_by: UUID | null;
+  created_at: ISODate;
+}
+
+export interface SongwriterComment {
+  id: UUID;
+  doc_id: UUID;
+  section_id: UUID;
+  parent_comment_id: UUID | null;
+  line_index: number;
+  quoted_text: string | null;
+  body: string;
+  author_id: UUID | null;
+  resolved: boolean;
+  resolved_by: UUID | null;
+  resolved_at: ISODate | null;
+  created_at: ISODate;
+  updated_at: ISODate;
+}
+
+export interface SongwriterContributor {
+  id: UUID;
+  doc_id: UUID;
+  user_id: UUID | null;
+  display_name: string | null;
+  role: string;
+  created_at: ISODate;
+}
+
+export interface SongwriterSectionRevision {
+  id: UUID;
+  section_id: UUID;
+  lyrics: string;
+  edited_by: UUID | null;
+  created_at: ISODate;
+}
+
 // ---------- Deliverables (both Block types) ----------
 
 export type DeliverableStatus = "pending" | "submitted" | "approved";

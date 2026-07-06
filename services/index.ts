@@ -12,6 +12,7 @@ export * from "./media.service";
 export * from "./notifications.service";
 export * from "./notification-settings.service";
 export * from "./split-sheets.service";
+export * from "./songwriter.service";
 export * from "./activity.service";
 export * from "./workspace-state.service";
 export * from "./service-blocks.service";

@@ -13,6 +13,7 @@ import { PartyOverviewPanel } from "@/components/block/party-overview-panel";
 import { ServiceDetailsPanel } from "@/components/block/service-details-panel";
 import { RequestsPanel } from "@/components/block/requests-panel";
 import { SplitSheetPanel } from "@/components/block/split-sheet-panel";
+import { SongwriterPanel } from "@/components/block/songwriter/songwriter-panel";
 import { MediaPanel } from "@/components/block/media-panel";
 import { ThreadsPanel } from "@/components/block/threads-panel";
 import { TeamPanel } from "@/components/block/team-panel";
@@ -56,6 +57,8 @@ function renderPanel(
       );
     case "splits":
       return <SplitSheetPanel block={block} />;
+    case "songwriter":
+      return <SongwriterPanel block={block} members={members} />;
     case "messages":
       return <ThreadsPanel block={block} />;
     case "requests":
@@ -103,8 +106,10 @@ export default async function BlockPage({
     ? (searchParams.tab as BlockTabId)
     : defaultTabForType(block.blockType);
 
-  // Messages owns its own scroll; every other tab scrolls the content area.
-  const fullHeight = tab === "messages";
+  // Messages and Songwriter own their own scroll (Songwriter pins its player
+  // + header above a scrolling section list); every other tab scrolls the
+  // content area.
+  const fullHeight = tab === "messages" || tab === "songwriter";
 
   return (
     // The whole Block is wrapped in a single contained, softly-lit frame on

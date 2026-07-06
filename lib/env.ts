@@ -26,3 +26,10 @@ export const resendConfigured = Boolean(RESEND_API_KEY);
 
 export const SITE_URL =
   process.env.NEXT_PUBLIC_SITE_URL ?? "https://www.wrytrsblock.com";
+
+// OpenAI — used by the Songwriter "✨ Inspire" assistant (Responses API).
+// Optional: when unset, Inspire shows a friendly "not available yet" message
+// instead of erroring, so the app runs fully without it (mirrors
+// RESEND_API_KEY).
+export const OPENAI_API_KEY = process.env.OPENAI_API_KEY ?? "";
+export const openaiConfigured = Boolean(OPENAI_API_KEY);
