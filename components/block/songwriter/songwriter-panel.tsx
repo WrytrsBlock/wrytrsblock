@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { MessageCircle } from "lucide-react";
+import { MessageCircle, Music2 } from "lucide-react";
 import { Dialog } from "@/components/ui/dialog";
 import { SectionLabel } from "@/components/ui/primitives";
 import { cn } from "@/lib/cn";
@@ -560,9 +560,11 @@ export function SongwriterPanel({
       <div className="page-fluid pt-5 pb-4 space-y-4 border-b border-line shrink-0">
         <div className="flex items-start justify-between gap-4">
           <div>
-            <SectionLabel>Songwriter</SectionLabel>
-            <h2 className="mt-1 font-display text-2xl text-ink tracking-tight">
-              {block.title}
+            <SectionLabel className="flex items-center gap-2">
+              <Music2 size={11} className="text-accent" /> {block.title}
+            </SectionLabel>
+            <h2 className="mt-1.5 font-display text-3xl text-ink tracking-tight">
+              Songwriter
             </h2>
           </div>
           {docId && <PresenceRow docId={docId} />}
