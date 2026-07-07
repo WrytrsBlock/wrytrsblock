@@ -21,6 +21,7 @@ import { MutualCreators } from "@/components/creator/mutual-creators";
 import { tracksForCreator } from "@/lib/mock";
 import { mutualCreators } from "@/lib/network";
 import { heroImageFor, realAvatar } from "@/lib/creator-image";
+import { sanitizeWebsiteUrl } from "@/lib/safe-url";
 import {
   getBlockRelationship,
   getCreator,
@@ -50,7 +51,7 @@ function socialUrl(platform: string, value: string): string {
     case "linkedin":
       return `https://linkedin.com/in/${v}`;
     case "website":
-      return value.startsWith("http") ? value : `https://${value}`;
+      return sanitizeWebsiteUrl(value) ?? "#";
     default:
       return "#";
   }

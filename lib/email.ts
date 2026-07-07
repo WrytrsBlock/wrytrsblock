@@ -14,7 +14,7 @@ export async function sendEmail(input: {
   html: string;
 }): Promise<{ ok: boolean }> {
   if (!resend) {
-    console.log(`[email] not configured — would send "${input.subject}" to ${input.to}`);
+    console.log(`[email] not configured — would send "${input.subject}" (recipient redacted)`);
     return { ok: false };
   }
   try {

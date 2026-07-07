@@ -2,6 +2,7 @@
 
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { OPENAI_API_KEY, openaiConfigured, supabaseConfigured } from "@/lib/env";
+import { checkRateLimit } from "@/lib/rate-limit";
 import type { SongwriterStatus } from "@/types";
 
 export type InspireMode =
@@ -59,6 +60,10 @@ export async function inspireAction(
     if (!user) {
       return { ok: false, error: SIGN_IN_REQUIRED };
     }
+    // Each call hits the paid OpenAI API — cap per-user usage so a signed-in
+    // account can't be used to run up the bill via repeated calls.
+    const rl = await checkRateLimit("songwriter-inspire", user.id, 20, "1 h");
+    if (!rl.ok) return { ok: false, error: rl.error };
   }
 
   try {

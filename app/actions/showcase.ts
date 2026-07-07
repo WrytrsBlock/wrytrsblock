@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { supabaseConfigured } from "@/lib/env";
 import { upsertCreatorProfile } from "@/services/creator-profiles.service";
+import { sanitizeUrl } from "@/lib/safe-url";
 import type { FeaturedContentItem } from "@/types";
 
 export type ShowcaseResult = { ok: true } | { ok: false; error: string };
@@ -26,11 +27,11 @@ export async function updateShowcaseAction(
     const clean: FeaturedContentItem[] = items.slice(0, 9).map((i) => ({
       id: i.id,
       type: i.type,
-      url: (i.url ?? "").trim(),
+      url: sanitizeUrl(i.url) ?? "",
       ...(i.scope === "demo" ? { scope: "demo" as const } : {}),
       ...(i.title?.trim() ? { title: i.title.trim() } : {}),
       ...(i.subtitle?.trim() ? { subtitle: i.subtitle.trim() } : {}),
-      ...(i.thumbnail?.trim() ? { thumbnail: i.thumbnail.trim() } : {}),
+      ...(sanitizeUrl(i.thumbnail) ? { thumbnail: sanitizeUrl(i.thumbnail)! } : {}),
       ...(i.body?.trim() ? { body: i.body.trim() } : {}),
       ...(i.pinned ? { pinned: true } : {}),
       ...(i.featured ? { featured: true } : {}),

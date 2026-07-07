@@ -11,6 +11,7 @@ import { getBlockBySlug, listBlockMembers } from "@/services/blocks.service";
 import { getProfile } from "@/services/profiles.service";
 import { emailQualifiedRecipients } from "@/lib/notify";
 import { blockJoinEmail } from "@/lib/email-templates";
+import { checkRateLimit } from "@/lib/rate-limit";
 
 type SendInput = {
   recipientHandle: string;
@@ -89,6 +90,12 @@ export async function sendBlockRequestAction(
     if (!user) return { ok: false, error: "You need to be signed in." };
     if (!supabase)
       return { ok: false, error: "Your session expired — please sign in again." };
+
+    // Block Requests double as an unsolicited-contact/email vector — cap how
+    // many a single account can send per hour so it can't be used to spam
+    // every creator in the marketplace.
+    const rl = await checkRateLimit("send-block-request", user.id, 10, "1 h");
+    if (!rl.ok) return { ok: false, error: rl.error };
 
     const handle = input.recipientHandle.trim().replace(/^@/, "");
     const recipientId = await getCreatorIdByHandle(cookieClient, handle).catch(

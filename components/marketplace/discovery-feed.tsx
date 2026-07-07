@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { Avatar } from "@/components/ui/primitives";
 import { cn } from "@/lib/cn";
+import { sanitizeUrl } from "@/lib/safe-url";
 import { openNewBlock } from "@/lib/ui-events";
 import { cardCoverFor } from "@/lib/creator-image";
 import {
@@ -382,9 +383,12 @@ function AudioMedia({ item, active }: { item: FeaturedContentItem; active: boole
 
 // Featured collaboration (an Active Block a creator wants to show off).
 function CollabCard({ item }: { item: FeaturedContentItem }) {
+  const href = sanitizeUrl(item.url) ?? "#";
+  const internal = href.startsWith("/") && !href.startsWith("//");
   return (
     <Link
-      href={item.url || "#"}
+      href={href}
+      {...(internal ? {} : { target: "_blank", rel: "noreferrer" })}
       className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-gradient-to-br from-[#33457E] to-[#1B2647] px-8 text-center"
     >
       <span className="flex h-16 w-16 items-center justify-center rounded-2xl bg-white/10 text-white">
@@ -405,7 +409,7 @@ function ExternalContentCard({ item }: { item: FeaturedContentItem }) {
   const Icon = meta.Icon;
   return (
     <a
-      href={item.url}
+      href={sanitizeUrl(item.url) ?? "#"}
       target="_blank"
       rel="noreferrer"
       className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-gradient-to-br from-[#33457E] to-[#1B2647] px-8 text-center"

@@ -6,11 +6,12 @@ import { ArrowLeft, ArrowRight, Mail } from "lucide-react";
 import { Button, Input, Label } from "@/components/ui/primitives";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { supabaseConfigured } from "@/lib/env";
+import { sanitizeRedirectPath } from "@/lib/safe-url";
 
 export function SignInForm() {
   const router = useRouter();
   const params = useSearchParams();
-  const next = params.get("next") || "/home";
+  const next = sanitizeRedirectPath(params.get("next"));
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");

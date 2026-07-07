@@ -25,8 +25,15 @@ export const MAX_IMAGE_BYTES = 5 * 1024 * 1024; // 5MB
 export function validateImageFile(file: File): string | null {
   const type = file.type.toLowerCase();
   const extOk = /\.(jpe?g|png|webp)$/i.test(file.name);
-  const typeOk = (ACCEPTED_IMAGE_TYPES as readonly string[]).includes(type);
-  if (!typeOk && !extOk) {
+  // When the browser reports a MIME type, it must actually be an accepted
+  // image type — a mismatched type (e.g. text/html, image/svg+xml) must not
+  // pass just because the filename was renamed to end in .png. Only fall
+  // back to the extension alone when the type is genuinely blank (some
+  // pickers/drag-drop sources leave it empty for legitimate files).
+  const typeOk = type
+    ? (ACCEPTED_IMAGE_TYPES as readonly string[]).includes(type)
+    : extOk;
+  if (!typeOk) {
     return "Please upload a JPG, PNG, or WEBP image.";
   }
   if (file.size > MAX_IMAGE_BYTES) {
@@ -79,9 +86,10 @@ export const MAX_AUDIO_BYTES = 30 * 1024 * 1024; // 30MB
 // Validate a selected audio file. Lenient detection (MIME *or* extension) so we
 // don't reject valid files whose MIME the browser left blank.
 export function validateAudioFile(file: File): string | null {
+  const type = file.type.toLowerCase();
   const extOk = /\.(mp3|wav|m4a|aac|ogg|flac)$/i.test(file.name);
-  const typeOk = file.type.toLowerCase().startsWith("audio/");
-  if (!typeOk && !extOk) {
+  const typeOk = type ? type.startsWith("audio/") : extOk;
+  if (!typeOk) {
     return "Please upload an MP3, WAV, M4A, AAC, OGG, or FLAC file.";
   }
   if (file.size > MAX_AUDIO_BYTES) {
@@ -125,9 +133,10 @@ export const VIDEO_FORMATS_HINT = "MP4, WebM, MOV, or M4V · up to 100MB";
 export const MAX_VIDEO_BYTES = 100 * 1024 * 1024; // 100MB
 
 export function validateVideoFile(file: File): string | null {
+  const type = file.type.toLowerCase();
   const extOk = /\.(mp4|webm|mov|m4v)$/i.test(file.name);
-  const typeOk = file.type.toLowerCase().startsWith("video/");
-  if (!typeOk && !extOk) {
+  const typeOk = type ? type.startsWith("video/") : extOk;
+  if (!typeOk) {
     return "Please upload an MP4, WebM, MOV, or M4V file.";
   }
   if (file.size > MAX_VIDEO_BYTES) {

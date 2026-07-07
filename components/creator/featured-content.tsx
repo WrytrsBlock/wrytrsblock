@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ArrowUpRight, Headphones, Play, Plus, Star } from "lucide-react";
 import { cn } from "@/lib/cn";
+import { sanitizeUrl } from "@/lib/safe-url";
 import {
   contentMeta,
   isDirectAudio,
@@ -119,7 +120,7 @@ function FeaturedHero({ item }: { item: FeaturedContentItem }) {
           <p className="text-[14px] font-semibold text-ink truncate">{title}</p>
         </div>
         <a
-          href={item.url}
+          href={sanitizeUrl(item.url) ?? "#"}
           target="_blank"
           rel="noreferrer"
           className="shrink-0 inline-flex items-center justify-center gap-1.5 h-9 px-3.5 rounded-lg text-[12.5px] font-medium text-ink bg-white/[0.06] border border-white/12 hover:bg-white/[0.1] hover:border-white/20 transition-colors"
@@ -174,7 +175,7 @@ function LinkMedia({ item }: { item: FeaturedContentItem }) {
           : `Open ${meta.badge}`;
   return (
     <a
-      href={item.url}
+      href={sanitizeUrl(item.url) ?? "#"}
       target="_blank"
       rel="noreferrer"
       className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-gradient-to-br from-white/[0.07] to-white/[0.01] hover:from-white/[0.1] transition-colors"
@@ -208,7 +209,7 @@ function AudioMedia({ item }: { item: FeaturedContentItem }) {
         <audio controls src={item.url} className="w-full max-w-sm" />
       ) : (
         <a
-          href={item.url}
+          href={sanitizeUrl(item.url) ?? "#"}
           target="_blank"
           rel="noreferrer"
           className="inline-flex items-center gap-1.5 text-[12.5px] font-semibold text-accent"
@@ -229,7 +230,7 @@ function GalleryCard({ item }: { item: FeaturedContentItem }) {
 
   return (
     <a
-      href={item.url}
+      href={sanitizeUrl(item.url) ?? "#"}
       target="_blank"
       rel="noreferrer"
       aria-label={title}

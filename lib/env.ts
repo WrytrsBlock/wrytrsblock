@@ -45,3 +45,16 @@ export const openaiConfigured = Boolean(OPENAI_API_KEY);
 // hit by anyone who finds the URL. Optional — unset just means those routes
 // run unauthenticated (fine for local dev, not recommended in production).
 export const CRON_SECRET = process.env.CRON_SECRET ?? "";
+
+// Upstash Redis — backs rate limiting on abuse-prone server actions (sending
+// Block Requests, the paid OpenAI-backed Inspire assistant). Optional: when
+// unset, lib/rate-limit.ts's checkRateLimit() always allows the call through
+// (mirrors the RESEND_API_KEY/OPENAI_API_KEY "no-op until configured"
+// pattern) — so local dev and a deploy that hasn't provisioned Upstash yet
+// both keep working, just without the throttle.
+export const UPSTASH_REDIS_REST_URL = process.env.UPSTASH_REDIS_REST_URL ?? "";
+export const UPSTASH_REDIS_REST_TOKEN =
+  process.env.UPSTASH_REDIS_REST_TOKEN ?? "";
+export const rateLimitConfigured = Boolean(
+  UPSTASH_REDIS_REST_URL && UPSTASH_REDIS_REST_TOKEN
+);

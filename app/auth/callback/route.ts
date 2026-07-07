@@ -1,11 +1,15 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { supabaseConfigured } from "@/lib/env";
+import { sanitizeRedirectPath } from "@/lib/safe-url";
 
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get("code");
-  const next = searchParams.get("next") ?? "/home";
+  // Only ever a same-origin relative path — an absolute/attacker-controlled
+  // value here (e.g. "@evil.com/x") would otherwise become an open redirect
+  // once concatenated onto `origin` below.
+  const next = sanitizeRedirectPath(searchParams.get("next"));
 
   // The auth provider can hand back an error instead of a code — most commonly
   // an expired or already-used password-reset / magic link (error_code=

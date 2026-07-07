@@ -30,6 +30,7 @@ import {
   X,
 } from "lucide-react";
 import { cn } from "@/lib/cn";
+import { sanitizeUrl } from "@/lib/safe-url";
 import { Avatar } from "@/components/ui/primitives";
 import { MediaPlayer } from "@/components/creator/media-player";
 import { BlockShowcase } from "@/components/creator/block-showcase";
@@ -377,8 +378,12 @@ function MediaGallery({ items }: { items: FeaturedContentItem[] }) {
       {items.map((it) => {
         const thumb = tileThumb(it);
         const playable = VIDEO(it) || it.type === "audio" || it.type === "song";
-        const href = it.url || it.thumbnail || "#";
-        const internal = href.startsWith("/");
+        const rawHref = it.url || it.thumbnail || "#";
+        // Reject protocol-relative URLs ("//evil.com") from the "internal"
+        // bucket — startsWith("/") alone matches them too, which would skip
+        // target="_blank"/rel="noreferrer" below for an external destination.
+        const internal = rawHref.startsWith("/") && !rawHref.startsWith("//");
+        const href = sanitizeUrl(rawHref) ?? "#";
         return (
           <a
             key={it.id}
@@ -589,7 +594,7 @@ function DemosManager({
                 )}
                 {external && (
                   <a
-                    href={external}
+                    href={sanitizeUrl(external) ?? "#"}
                     target="_blank"
                     rel="noreferrer"
                     className="mt-2 inline-flex items-center gap-1.5 text-[12.5px] font-medium text-[#A9BEFF] hover:text-white"
@@ -905,7 +910,7 @@ function VideosManager({
                   <video controls src={url} className="mt-2.5 w-full rounded-xl" />
                 ) : (
                   <a
-                    href={v.url}
+                    href={sanitizeUrl(v.url) ?? "#"}
                     target="_blank"
                     rel="noreferrer"
                     className="mt-2 inline-flex items-center gap-1.5 text-[12.5px] font-medium text-[#A9BEFF] hover:text-white"

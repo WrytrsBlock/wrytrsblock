@@ -23,6 +23,7 @@ import {
   X,
 } from "lucide-react";
 import { cn } from "@/lib/cn";
+import { sanitizeUrl } from "@/lib/safe-url";
 import {
   CONTENT_TYPES,
   contentMeta,
@@ -480,7 +481,10 @@ function Lightbox({
   const meta = contentMeta(item.type);
   const title = itemTitle(item);
   const ytId = isVideoType(item.type) ? youtubeId(item.url) : null;
-  const internal = item.url?.startsWith("/");
+  // A leading "/" alone also matches protocol-relative URLs ("//evil.com"),
+  // which browsers resolve to an external origin — exclude those so they
+  // still get target="_blank" + rel="noreferrer" below.
+  const internal = Boolean(item.url) && item.url.startsWith("/") && !item.url.startsWith("//");
 
   return (
     <Overlay onClose={onClose}>
@@ -616,9 +620,10 @@ function OpenLink({
     "inline-flex items-center gap-1.5 rounded-lg bg-accent font-semibold text-white transition-colors hover:bg-accent/90",
     compact ? "h-9 px-3.5 text-[12.5px]" : "h-10 px-5 text-[13px]"
   );
+  const safeUrl = sanitizeUrl(url) ?? "#";
   return (
     <a
-      href={url}
+      href={safeUrl}
       {...(internal ? {} : { target: "_blank", rel: "noreferrer" })}
       style={{ color: "#FFFFFF" }}
       className={cls}

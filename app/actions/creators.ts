@@ -9,6 +9,7 @@ import {
   unsaveCreator,
   upsertCreatorProfile,
 } from "@/services/creator-profiles.service";
+import { sanitizeWebsiteUrl } from "@/lib/safe-url";
 import type { FeaturedContentItem } from "@/types";
 
 export type ToggleSaveResult = { ok: boolean; error?: string };
@@ -141,7 +142,7 @@ export async function updateCreatorProfileAction(
     if (input.socials !== undefined) {
       socialsUpdate = Object.fromEntries(
         Object.entries(input.socials)
-          .map(([k, v]) => [k, (v ?? "").trim()] as const)
+          .map(([k, v]) => [k, sanitizeWebsiteUrl(v) ?? ""] as const)
           .filter(([, v]) => v.length > 0)
       );
     } else if (input.youtube !== undefined) {
@@ -149,7 +150,7 @@ export async function updateCreatorProfileAction(
         () => null
       );
       const socials = { ...(current?.socials ?? {}) };
-      const yt = input.youtube.trim();
+      const yt = sanitizeWebsiteUrl(input.youtube);
       if (yt) socials.youtube = yt;
       else delete socials.youtube;
       socialsUpdate = socials;
@@ -168,7 +169,7 @@ export async function updateCreatorProfileAction(
     const displayName =
       input.displayName !== undefined ? input.displayName.trim() : undefined;
     const website =
-      input.website !== undefined ? input.website.trim() : undefined;
+      input.website !== undefined ? sanitizeWebsiteUrl(input.website) ?? "" : undefined;
 
     const { row, dropped } = await upsertProfileResilient(supabase, {
       id: user.id,
