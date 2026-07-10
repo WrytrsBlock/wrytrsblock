@@ -11,6 +11,7 @@ import type {
   UUID,
 } from "@/types";
 import type { DB } from "./types";
+import { getProfiles } from "./profiles.service";
 
 export async function listBlocksForWorkspace(
   supabase: DB,
@@ -158,19 +159,32 @@ export type BlockMemberWithProfile = BlockMember & {
   } | null;
 };
 
+// Two separate queries rather than a PostgREST embed (`profile:profiles(...)`)
+// — block_members.user_id references auth.users, not public.profiles, so
+// PostgREST has no FK path to embed profiles directly and errors with
+// PGRST200 ("no matches were found") on every call.
 export async function listBlockMembers(
   supabase: DB,
   blockId: UUID
 ): Promise<BlockMemberWithProfile[]> {
   const { data, error } = await supabase
     .from("block_members")
-    .select(
-      "*, profile:profiles(id, display_name, handle, role, avatar_url)"
-    )
+    .select("*")
     .eq("block_id", blockId)
     .order("joined_at", { ascending: true });
   if (error) throw error;
-  return (data as BlockMemberWithProfile[]) ?? [];
+  const members = (data as BlockMemberWithProfile[]) ?? [];
+  if (members.length === 0) return members;
+
+  const profiles = await getProfiles(
+    supabase,
+    members.map((m) => m.user_id)
+  );
+  const profileById = new Map(profiles.map((p) => [p.id, p]));
+  return members.map((m) => ({
+    ...m,
+    profile: profileById.get(m.user_id) ?? null,
+  }));
 }
 
 // The signed-in user's membership on a Block (for the invite banner / gating).
