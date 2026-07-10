@@ -9,8 +9,8 @@ import { supabaseConfigured } from "@/lib/env";
 import { getCreatorIdByHandle } from "@/services/creator-profiles.service";
 import { getBlockBySlug, listBlockMembers } from "@/services/blocks.service";
 import { getProfile } from "@/services/profiles.service";
-import { emailQualifiedRecipients } from "@/lib/notify";
-import { blockJoinEmail } from "@/lib/email-templates";
+import { emailQualifiedRecipients, emailDirectRecipient } from "@/lib/notify";
+import { blockJoinEmail, blockRequestEmail } from "@/lib/email-templates";
 import { checkRateLimit } from "@/lib/rate-limit";
 
 type SendInput = {
@@ -121,6 +121,22 @@ export async function sendBlockRequestAction(
       if (error.code === "22023" || /yourself/i.test(error.message ?? ""))
         return { ok: false, error: "You can't start a Block with yourself." };
       throw error;
+    }
+
+    // Email side of the "Block Request" notification — the in-app bell row
+    // for the recipient is already inserted inside send_block_request itself
+    // (0022_pending_block_on_send.sql). This is best-effort: the request
+    // itself has already succeeded above regardless of email delivery.
+    try {
+      const requester = await getProfile(supabase, user.id).catch(() => null);
+      const requesterName = requester?.display_name || requester?.handle || "A creator";
+      await emailDirectRecipient(recipientId, {
+        kind: "block_request",
+        buildEmail: () =>
+          blockRequestEmail({ requesterName, blockTitle, introMessage }),
+      });
+    } catch (e) {
+      console.error("emailDirectRecipient (block_request) failed:", e);
     }
 
     revalidatePath("/notifications");

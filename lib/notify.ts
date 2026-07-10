@@ -12,7 +12,8 @@ export type ActivityKind =
   | "upload"
   | "voice_note"
   | "block_member_joined"
-  | "split_sheet_updated";
+  | "split_sheet_updated"
+  | "block_request";
 
 const SETTINGS_COLUMN: Record<ActivityKind, string> = {
   message: "email_chat_messages",
@@ -20,6 +21,7 @@ const SETTINGS_COLUMN: Record<ActivityKind, string> = {
   voice_note: "email_voice_notes",
   block_member_joined: "email_block_members",
   split_sheet_updated: "email_split_updates",
+  block_request: "email_block_requests",
 };
 
 // A block_viewers heartbeat older than this is treated as "not actively
@@ -128,6 +130,42 @@ export async function emailQualifiedRecipients(
     );
   } catch (e) {
     console.error("[notify] emailQualifiedRecipients threw:", e);
+  }
+}
+
+// For a notification addressed to one specific person who isn't (yet) a
+// Block member — a Block Request — so the block_viewers active-viewer
+// suppression in emailQualifiedRecipients doesn't apply (they have no access
+// to view the Block before accepting). Just checks their notification_settings
+// row for this activity kind and sends directly. Never throws.
+export async function emailDirectRecipient(
+  recipientId: string,
+  input: { kind: ActivityKind; buildEmail: () => EmailContent }
+): Promise<void> {
+  const service = createSupabaseServiceClient();
+  if (!service) return; // no service-role key configured — in-app only for now
+
+  try {
+    const column = SETTINGS_COLUMN[input.kind];
+    const { data: settings } = (await service
+      .from("notification_settings")
+      .select(`email_notifications_enabled, ${column}`)
+      .eq("user_id", recipientId)
+      .maybeSingle()) as unknown as { data: SettingsRow | null };
+
+    if (settings) {
+      if (settings.email_notifications_enabled === false) return;
+      if (settings[column] === false) return;
+    } // no row (shouldn't happen — seeded on signup): default on
+
+    const { data } = await service.auth.admin.getUserById(recipientId);
+    const address = data.user?.email;
+    if (!address) return;
+
+    const email = input.buildEmail();
+    await sendEmail({ to: address, subject: email.subject, html: email.html });
+  } catch (e) {
+    console.error("[notify] emailDirectRecipient failed:", e);
   }
 }
 

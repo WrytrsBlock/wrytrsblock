@@ -13,18 +13,18 @@ import {
   upsertCreatorProfile,
 } from "@/services/creator-profiles.service";
 import { sendEmail } from "@/lib/email";
-import { newCreatorAdminEmail, welcomeCreatorEmail } from "@/lib/email-templates";
+import { newCreatorAdminEmail } from "@/lib/email-templates";
 import type { DB } from "@/services/types";
 
-// Best-effort — fires once a creator's profile is actually published (the
-// real "joined WrytrsBlock" moment: full name/creator type/city/country are
-// all known by then, and a signup that never finished onboarding was never
-// counted as a Creator). Awaited by the caller — matches this codebase's
-// existing notify-then-await convention (e.g. notifyFileUpload,
-// notifySplitSheetChanged) rather than firing-and-forgetting, since an
-// unawaited call risks being cut off mid-flight once a serverless function
-// returns. Both emails are independently try/caught so a failure in one
-// (or in the creator-count lookup) can never surface as an onboarding error.
+// Best-effort — fires once a creator's profile is actually published (full
+// creator-type/city/country are only known by then). The welcome email
+// already went out at raw signup time (app/actions/signup-notify.ts), so
+// this only re-alerts the admin — now with the full picture instead of the
+// signup-moment's name/email-only version. Awaited by the caller — matches
+// this codebase's existing notify-then-await convention (e.g.
+// notifyFileUpload, notifySplitSheetChanged) rather than firing-and-forgetting,
+// since an unawaited call risks being cut off mid-flight once a serverless
+// function returns.
 async function notifyNewCreator(
   supabase: DB,
   input: {
@@ -35,40 +35,27 @@ async function notifyNewCreator(
     country: string | null;
   }
 ) {
-  const welcome = welcomeCreatorEmail({ name: input.fullName });
-  const welcomePromise = sendEmail({
-    to: input.userEmail,
-    subject: welcome.subject,
-    html: welcome.html,
-  }).catch((e) => {
-    console.error("[onboarding] welcome email failed:", e);
-  });
-
-  const adminPromise = (async () => {
-    if (!ADMIN_NOTIFICATION_EMAIL) return;
+  if (!ADMIN_NOTIFICATION_EMAIL) return;
+  try {
+    let totalCreators: number | null = null;
     try {
-      let totalCreators: number | null = null;
-      try {
-        totalCreators = await countPublishedCreatorProfiles(supabase);
-      } catch (e) {
-        console.error("[onboarding] creator count failed:", e);
-      }
-      const admin = newCreatorAdminEmail({
-        fullName: input.fullName,
-        email: input.userEmail,
-        creatorType: input.creatorType,
-        city: input.city,
-        country: input.country,
-        signupAt: new Date().toISOString(),
-        totalCreators,
-      });
-      await sendEmail({ to: ADMIN_NOTIFICATION_EMAIL, subject: admin.subject, html: admin.html });
+      totalCreators = await countPublishedCreatorProfiles(supabase);
     } catch (e) {
-      console.error("[onboarding] admin notification email failed:", e);
+      console.error("[onboarding] creator count failed:", e);
     }
-  })();
-
-  await Promise.all([welcomePromise, adminPromise]);
+    const admin = newCreatorAdminEmail({
+      fullName: input.fullName,
+      email: input.userEmail,
+      creatorType: input.creatorType,
+      city: input.city,
+      country: input.country,
+      signupAt: new Date().toISOString(),
+      totalCreators,
+    });
+    await sendEmail({ to: ADMIN_NOTIFICATION_EMAIL, subject: admin.subject, html: admin.html });
+  } catch (e) {
+    console.error("[onboarding] admin notification email failed:", e);
+  }
 }
 
 // Persists the completed onboarding profile. In demo mode (no Supabase) the flow

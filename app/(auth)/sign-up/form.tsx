@@ -6,6 +6,7 @@ import { ArrowRight } from "lucide-react";
 import { Button, Input, Label } from "@/components/ui/primitives";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { supabaseConfigured } from "@/lib/env";
+import { notifySignupAction } from "@/app/actions/signup-notify";
 
 export function SignUpForm() {
   const router = useRouter();
@@ -61,6 +62,15 @@ export function SignUpForm() {
       );
       setLoading(false);
       return;
+    }
+
+    // Welcome + admin-alert emails fire right here, at the moment the account
+    // actually exists — best-effort and awaited (matches this codebase's
+    // notify-then-await convention) so it isn't cut off by the redirect below.
+    if (data.user) {
+      await notifySignupAction(data.user.id).catch((e) => {
+        console.error("notifySignupAction failed:", e);
+      });
     }
 
     // Account created — go straight to creator onboarding either way. If email

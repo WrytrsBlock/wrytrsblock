@@ -2,6 +2,8 @@ import { SITE_URL } from "@/lib/env";
 
 export type EmailContent = { subject: string; html: string };
 
+const LOGO_URL = `${SITE_URL}/brand/wrytrsblock-symbol.png`;
+
 export function blockUrl(slug: string, tab?: "files" | "splits"): string {
   return `${SITE_URL}/blocks/${slug}${tab ? `?tab=${tab}` : ""}`;
 }
@@ -35,14 +37,40 @@ function formatSignupDateTime(iso: string): string {
   }
 }
 
-// Shared layout — plain, email-client-safe inline styles (no external CSS).
-// Single-column, max-width card with generous padding: renders correctly at
-// any width without media queries, so it's responsive on both desktop and
-// mobile mail clients by construction. `extraHtml` is an escape hatch for a
-// template that needs more than plain paragraphs (a checklist, a data table)
-// without every template having to reimplement the card/header chrome.
-// `button` is optional — a template with nothing to link to (e.g. an internal
-// notification with no admin dashboard yet) can omit it entirely.
+// Dark-mode support: inline styles are the default (light) look, which every
+// email client renders correctly. The <style> block's `!important` class
+// rules are the progressive enhancement — clients that honor
+// `prefers-color-scheme` (Apple/iOS Mail, Outlook.com, newer Gmail apps) swap
+// to the dark palette; clients that don't just keep the light inline styles.
+// This is why every colored element below carries BOTH an inline style and a
+// wb-* class rather than one or the other.
+const DARK_MODE_STYLE = `
+  body, .wb-bg { background:#f5f5f4 !important; }
+  .wb-card { background:#ffffff !important; border-color:#e7e5e4 !important; }
+  .wb-heading, .wb-value { color:#161616 !important; }
+  .wb-text { color:#3a3a3a !important; }
+  .wb-muted { color:#8b8b8b !important; }
+  .wb-divider { border-top-color:#e7e5e4 !important; }
+  .wb-btn { background:#161616 !important; color:#ffffff !important; }
+  @media (prefers-color-scheme: dark) {
+    body, .wb-bg { background:#0b0b0b !important; }
+    .wb-card { background:#171717 !important; border-color:#2b2b2b !important; }
+    .wb-heading, .wb-value { color:#f5f5f4 !important; }
+    .wb-text { color:#d4d4d4 !important; }
+    .wb-muted { color:#9a9a9a !important; }
+    .wb-divider { border-top-color:#2b2b2b !important; }
+    .wb-btn { background:#f5f5f4 !important; color:#161616 !important; }
+  }
+`;
+
+// Shared layout — a full HTML document (not just a fragment) so the
+// color-scheme meta tags and the dark-mode <style> block above actually take
+// effect. Single-column, max-width card with generous padding: responsive by
+// construction at any width, no layout media queries needed. `extraHtml` is
+// an escape hatch for a template that needs more than plain paragraphs (a
+// checklist, a data table) without every template reimplementing the card
+// chrome. `button` is optional — a template with nothing to link to (e.g. an
+// internal notification with no admin dashboard yet) can omit it entirely.
 function layout(opts: {
   heading: string;
   lines: string[];
@@ -52,26 +80,50 @@ function layout(opts: {
   const paragraphs = opts.lines
     .map(
       (l) =>
-        `<p style="margin:0 0 12px;font-size:14px;line-height:1.6;color:#3a3a3a;">${l}</p>`
+        `<p class="wb-text" style="margin:0 0 12px;font-size:14px;line-height:1.6;color:#3a3a3a;">${l}</p>`
     )
     .join("");
   const button = opts.button
     ? `
     <a href="${opts.button.href}"
+       class="wb-btn"
        style="display:inline-block;margin-top:12px;padding:11px 20px;background:#161616;color:#ffffff;text-decoration:none;border-radius:10px;font-size:13.5px;font-weight:600;">
       ${opts.button.label}
     </a>`
     : "";
   return `
-<div style="background:#f5f5f4;padding:32px 16px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;">
-  <div style="max-width:480px;margin:0 auto;background:#ffffff;border-radius:16px;padding:32px;border:1px solid #e7e5e4;">
-    <p style="margin:0 0 20px;font-size:13px;font-weight:600;letter-spacing:0.04em;text-transform:uppercase;color:#8b8b8b;">WrytrsBlock</p>
-    <h1 style="margin:0 0 16px;font-size:19px;line-height:1.35;color:#161616;">${opts.heading}</h1>
-    ${paragraphs}
-    ${opts.extraHtml ?? ""}
-    ${button}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="color-scheme" content="light dark" />
+<meta name="supported-color-schemes" content="light dark" />
+<title>${opts.heading}</title>
+<style>${DARK_MODE_STYLE}</style>
+</head>
+<body style="margin:0;padding:0;background:#f5f5f4;">
+  <div class="wb-bg" style="background:#f5f5f4;padding:32px 16px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;">
+    <div class="wb-card" style="max-width:480px;margin:0 auto;background:#ffffff;border-radius:16px;padding:32px;border:1px solid #e7e5e4;">
+      <table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 0 20px;">
+        <tr>
+          <td style="padding-right:8px;vertical-align:middle;">
+            <img src="${LOGO_URL}" width="24" height="24" alt="WrytrsBlock"
+                 style="display:block;border-radius:6px;" />
+          </td>
+          <td class="wb-muted" style="vertical-align:middle;font-size:13px;font-weight:600;letter-spacing:0.04em;text-transform:uppercase;color:#8b8b8b;">
+            WrytrsBlock
+          </td>
+        </tr>
+      </table>
+      <h1 class="wb-heading" style="margin:0 0 16px;font-size:19px;line-height:1.35;color:#161616;">${opts.heading}</h1>
+      ${paragraphs}
+      ${opts.extraHtml ?? ""}
+      ${button}
+    </div>
   </div>
-</div>`.trim();
+</body>
+</html>`.trim();
 }
 
 export function chatMessageEmail(input: {
@@ -171,6 +223,34 @@ export function splitSheetEmail(input: {
   };
 }
 
+// A Block Request is addressed to one specific creator, before they've joined
+// anything — so unlike the other activity emails, this doesn't go through
+// notifyBlockActivity's block-membership fan-out (there's no Block they're a
+// member of yet). See lib/notify.ts's emailDirectRecipient.
+export function blockRequestEmail(input: {
+  requesterName: string;
+  blockTitle: string;
+  introMessage: string;
+}): EmailContent {
+  const preview =
+    input.introMessage.length > 200
+      ? input.introMessage.slice(0, 200) + "…"
+      : input.introMessage;
+  return {
+    subject: `${input.requesterName} sent you a Block Request`,
+    html: layout({
+      heading: `${input.requesterName} wants to start a Block with you`,
+      lines: [
+        `<strong>${input.requesterName}</strong> invited you to collaborate on "${escapeHtml(
+          input.blockTitle
+        )}":`,
+        `<em>${escapeHtml(preview)}</em>`,
+      ],
+      button: { label: "View Request", href: `${SITE_URL}/notifications` },
+    }),
+  };
+}
+
 // ---------- Signup ----------
 
 const WELCOME_CHECKLIST = [
@@ -187,7 +267,7 @@ export function welcomeCreatorEmail(input: { name: string }): EmailContent {
     <div style="margin:4px 0 20px;">
       ${WELCOME_CHECKLIST.map(
         (item) => `
-        <p style="margin:0 0 10px;font-size:14px;line-height:1.5;color:#3a3a3a;">
+        <p class="wb-text" style="margin:0 0 10px;font-size:14px;line-height:1.5;color:#3a3a3a;">
           <span style="color:#16a34a;font-weight:700;">✓</span>&nbsp; ${escapeHtml(item)}
         </p>`
       ).join("")}
@@ -206,7 +286,50 @@ export function welcomeCreatorEmail(input: { name: string }): EmailContent {
   };
 }
 
-// Internal notification — not sent to the creator. `totalCreators` and
+function adminInfoTable(rows: [string, string][]): string {
+  return `
+    <div class="wb-card" style="margin:4px 0 4px;border:1px solid #e7e5e4;border-radius:12px;overflow:hidden;">
+      ${rows
+        .map(
+          ([label, value], i) => `
+        <div class="${i > 0 ? "wb-divider" : ""}" style="display:flex;justify-content:space-between;gap:16px;padding:10px 14px;${
+          i > 0 ? "border-top:1px solid #e7e5e4;" : ""
+        }">
+          <span class="wb-muted" style="font-size:12.5px;color:#8b8b8b;">${label}</span>
+          <span class="wb-value" style="font-size:12.5px;color:#161616;font-weight:600;text-align:right;">${escapeHtml(value)}</span>
+        </div>`
+        )
+        .join("")}
+    </div>`;
+}
+
+// Fires immediately when supabase.auth.signUp() succeeds (see
+// app/actions/signup-notify.ts), before onboarding/creator-type/location are
+// known — so this intentionally only has name, email, and signup time. The
+// fuller newCreatorAdminEmail below fires again once onboarding completes.
+export function newSignupAdminEmail(input: {
+  fullName: string;
+  email: string;
+  signupAt: string;
+}): EmailContent {
+  const tableHtml = adminInfoTable([
+    ["Full name", input.fullName || "—"],
+    ["Email", input.email],
+    ["Signed up", formatSignupDateTime(input.signupAt)],
+  ]);
+  return {
+    subject: "🆕 New Signup on WrytrsBlock",
+    html: layout({
+      heading: "🆕 New Signup on WrytrsBlock",
+      lines: ["Creator type and location aren't known yet — they'll show up in the follow-up email once onboarding is complete."],
+      extraHtml: tableHtml,
+    }),
+  };
+}
+
+// Internal notification — not sent to the creator. Fires once onboarding
+// completes (full name/creator type/city/country all known by then — see
+// app/actions/onboarding.ts's notifyNewCreator). `totalCreators` and
 // `adminDashboardUrl` are both optional since neither is guaranteed to be
 // available (the count query can fail without blocking signup, and there's
 // no admin dashboard yet); omitting either just drops that row/button rather
@@ -232,26 +355,12 @@ export function newCreatorAdminEmail(input: {
   if (input.totalCreators != null) {
     rows.push(["Total registered creators", String(input.totalCreators)]);
   }
-  const tableHtml = `
-    <div style="margin:4px 0 4px;border:1px solid #e7e5e4;border-radius:12px;overflow:hidden;">
-      ${rows
-        .map(
-          ([label, value], i) => `
-        <div style="display:flex;justify-content:space-between;gap:16px;padding:10px 14px;${
-          i > 0 ? "border-top:1px solid #e7e5e4;" : ""
-        }">
-          <span style="font-size:12.5px;color:#8b8b8b;">${label}</span>
-          <span style="font-size:12.5px;color:#161616;font-weight:600;text-align:right;">${escapeHtml(value)}</span>
-        </div>`
-        )
-        .join("")}
-    </div>`;
   return {
     subject: "🎉 New Creator Joined WrytrsBlock",
     html: layout({
       heading: "🎉 New Creator Joined WrytrsBlock",
       lines: [],
-      extraHtml: tableHtml,
+      extraHtml: adminInfoTable(rows),
       button: input.adminDashboardUrl
         ? { label: "Open Admin Dashboard", href: input.adminDashboardUrl }
         : undefined,
@@ -273,12 +382,12 @@ export function firstBlockFollowUpEmail(input: { name: string }): EmailContent {
     <div style="margin:4px 0 4px;">
       ${FIRST_BLOCK_STEPS.map(
         (step, i) => `
-        <p style="margin:0 0 10px;font-size:14px;line-height:1.5;color:#3a3a3a;">
-          <span style="color:#161616;font-weight:700;">${i + 1}.</span>&nbsp; ${escapeHtml(step)}
+        <p class="wb-text" style="margin:0 0 10px;font-size:14px;line-height:1.5;color:#3a3a3a;">
+          <span class="wb-heading" style="color:#161616;font-weight:700;">${i + 1}.</span>&nbsp; ${escapeHtml(step)}
         </p>`
       ).join("")}
     </div>
-    <p style="margin:8px 0 0;font-size:14px;line-height:1.6;color:#3a3a3a;">
+    <p class="wb-text" style="margin:8px 0 0;font-size:14px;line-height:1.6;color:#3a3a3a;">
       WrytrsBlock is built to help creators find each other, collaborate, and actually finish projects.
     </p>`;
   return {
