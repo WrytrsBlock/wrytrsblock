@@ -745,17 +745,15 @@ function CreatorCard({
       <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 flex items-end justify-between gap-2 bg-gradient-to-t from-black/70 via-black/25 to-transparent px-3 pb-3 pt-12">
         <div className="min-w-0">
           <Link href={href} className="pointer-events-auto block">
-            <h3 className="truncate font-display text-[18.5px] md:text-[19.5px] leading-tight tracking-tight text-white drop-shadow-[0_1px_4px_rgb(0_0_0/0.5)]">
+            <h3 className="truncate font-display text-[15px] md:text-[17px] leading-tight tracking-tight text-white drop-shadow-[0_1px_4px_rgb(0_0_0/0.5)]">
               {person.name}
             </h3>
           </Link>
-          {/* Primary skill — now as prominent as the name (bright + same base
-              size) so a creator's craft reads at a glance. */}
-          <p className="mt-0.5 truncate text-[16px] md:text-[17px] font-semibold leading-tight text-white drop-shadow-[0_1px_3px_rgb(0_0_0/0.65)]">
+          <p className="mt-0.5 truncate text-[13px] md:text-[15px] font-semibold leading-tight text-white drop-shadow-[0_1px_3px_rgb(0_0_0/0.65)]">
             {role}
           </p>
           <p
-            className="mt-0.5 truncate text-[11px] text-white/65 drop-shadow-[0_1px_3px_rgb(0_0_0/0.6)]"
+            className="mt-0.5 truncate text-[10px] text-white/65 drop-shadow-[0_1px_3px_rgb(0_0_0/0.6)]"
             title={`Block Match estimates how well ${person.name} fits you — based on their creator type, creative interests, experience, location, and collaboration preferences. ${matchTier(match).label}.`}
           >
             {match}% Block Match

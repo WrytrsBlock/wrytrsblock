@@ -212,11 +212,10 @@ function CreatorMini({
         <span className="lg-pill lg-pill-g absolute left-2 top-2">Available</span>
       )}
       <div className="absolute inset-x-0 bottom-0 p-2.5">
-        <p className="truncate font-display text-[16.5px] font-semibold leading-tight text-white drop-shadow">
+        <p className="truncate font-display text-[13.5px] font-semibold leading-tight text-white drop-shadow">
           {person.name}
         </p>
-        {/* Primary skill — as prominent as the name (same base size + bright). */}
-        <p className="mt-0.5 truncate text-[14.5px] font-semibold leading-tight text-white drop-shadow-[0_1px_3px_rgb(0_0_0/0.65)]">
+        <p className="mt-0.5 truncate text-[12px] font-semibold leading-tight text-white drop-shadow-[0_1px_3px_rgb(0_0_0/0.65)]">
           {role}
         </p>
         <p className="mt-0.5 truncate text-[10px] text-white/60">
