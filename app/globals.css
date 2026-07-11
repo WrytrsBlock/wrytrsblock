@@ -67,12 +67,6 @@
     -moz-osx-font-smoothing: grayscale;
     text-rendering: optimizeLegibility;
     letter-spacing: -0.005em;
-    /* Mobile Safari auto-boosts small text for readability unless told not
-       to — invisible in any Chromium-based testing, but it silently enlarges
-       every px-based size on a real iPhone and was defeating the mobile
-       sizing work above it. */
-    -webkit-text-size-adjust: 100%;
-    text-size-adjust: 100%;
   }
 
   /* Cinematic film grain on body */
