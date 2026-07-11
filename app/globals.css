@@ -69,6 +69,18 @@
     letter-spacing: -0.005em;
   }
 
+  /* iOS renders a standalone/home-screen PWA with a more aggressive text-size
+     boost than the same page in a regular Safari tab, making everything look
+     "zoomed in" only when launched from the Home Screen icon. Scoped to
+     display-mode: standalone only, so regular Safari is untouched. */
+  @media all and (display-mode: standalone) {
+    html,
+    body {
+      -webkit-text-size-adjust: 100%;
+      text-size-adjust: 100%;
+    }
+  }
+
   /* Cinematic film grain on body */
   body::before {
     content: "";
