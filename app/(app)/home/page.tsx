@@ -102,7 +102,10 @@ export default async function HomePage() {
       <TopBar />
       <div className="flex-1 min-h-0 overflow-y-auto">
         <div className="page-fluid pb-16 animate-fade-up">
-          <p className="pt-5 text-[13px] font-medium text-white/50">
+          <p className="pt-5 text-[13px] font-bold text-red-500">
+            DEPLOY TEST 1
+          </p>
+          <p className="text-[13px] font-medium text-white/50">
             {greeting()}, {firstName}
           </p>
 
