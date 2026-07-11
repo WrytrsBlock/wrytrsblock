@@ -117,12 +117,12 @@ export default async function LandingPage() {
               </span>
               {/* Inline sign-in — opens a modal on the landing page itself, no
                   navigation. Visible on mobile and desktop. */}
-              <LandingSignInButton className="inline-flex items-center h-8 px-3 sm:px-3.5 rounded-lg border border-white/20 bg-white/5 backdrop-blur-sm text-[12.5px] font-medium text-white/90 hover:bg-white/15 hover:text-white transition-colors">
+              <LandingSignInButton className="inline-flex shrink-0 items-center whitespace-nowrap h-8 px-3 sm:px-3.5 rounded-lg border border-white/20 bg-white/5 backdrop-blur-sm text-[12.5px] font-medium text-white/90 hover:bg-white/15 hover:text-white transition-colors">
                 Sign in
               </LandingSignInButton>
               <Link
                 href="/sign-up"
-                className="inline-flex items-center gap-1.5 h-8 px-3 sm:px-3.5 rounded-lg bg-white text-black text-[12.5px] font-semibold hover:bg-white/90 transition-colors shadow-soft"
+                className="inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap h-8 px-3 sm:px-3.5 rounded-lg bg-white text-black text-[12.5px] font-semibold hover:bg-white/90 transition-colors shadow-soft"
               >
                 Get started <ArrowRight size={13} />
               </Link>
