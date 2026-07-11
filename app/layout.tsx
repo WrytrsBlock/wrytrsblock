@@ -51,6 +51,12 @@ export const viewport: Viewport = {
   themeColor: "#07080D",
   width: "device-width",
   initialScale: 1,
+  // A standalone iOS Home Screen app has no browser chrome to reset zoom
+  // from, so without an explicit max it can permanently bake in whatever
+  // zoom level Safari happened to have active at install time. Locking the
+  // scale keeps the standalone app identical to a fresh Safari tab.
+  maximumScale: 1,
+  userScalable: false,
   // Enable env(safe-area-inset-*) on notched devices and let the on-screen
   // keyboard resize the content area (Android Chrome) so modals adapt.
   viewportFit: "cover",
