@@ -362,11 +362,9 @@ export function CreatorMarketplace({
 
   return (
     <div className="page-fluid pb-16 pt-[calc(env(safe-area-inset-top)+2rem)] md:pt-[calc(env(safe-area-inset-top)+2.5rem)] animate-fade-up">
-      {/* Own (tighter) margin rather than the space-y-4 below — this toggle
-          is a later addition and shouldn't push the search bar/heading down
-          as far as a regular section gap would. */}
-      <ModeToggle mode={mode} onChange={setMode} className="mb-2 flex justify-center" />
       <div className="space-y-4">
+        <ModeToggle mode={mode} onChange={setMode} className="flex justify-center" />
+
       {/* Search — this page's single search experience: the same centered
           liquid-glass pill as the global bar, but it live-filters the grid. */}
       <div className="flex justify-center">
@@ -745,15 +743,17 @@ function CreatorCard({
       <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 flex items-end justify-between gap-2 bg-gradient-to-t from-black/70 via-black/25 to-transparent px-3 pb-3 pt-12">
         <div className="min-w-0">
           <Link href={href} className="pointer-events-auto block">
-            <h3 className="truncate font-display text-[15px] md:text-[17px] leading-tight tracking-tight text-white drop-shadow-[0_1px_4px_rgb(0_0_0/0.5)]">
+            <h3 className="truncate font-display text-[18.5px] md:text-[19.5px] leading-tight tracking-tight text-white drop-shadow-[0_1px_4px_rgb(0_0_0/0.5)]">
               {person.name}
             </h3>
           </Link>
-          <p className="mt-0.5 truncate text-[13px] md:text-[15px] font-semibold leading-tight text-white drop-shadow-[0_1px_3px_rgb(0_0_0/0.65)]">
+          {/* Primary skill — now as prominent as the name (bright + same base
+              size) so a creator's craft reads at a glance. */}
+          <p className="mt-0.5 truncate text-[16px] md:text-[17px] font-semibold leading-tight text-white drop-shadow-[0_1px_3px_rgb(0_0_0/0.65)]">
             {role}
           </p>
           <p
-            className="mt-0.5 truncate text-[10px] text-white/65 drop-shadow-[0_1px_3px_rgb(0_0_0/0.6)]"
+            className="mt-0.5 truncate text-[11px] text-white/65 drop-shadow-[0_1px_3px_rgb(0_0_0/0.6)]"
             title={`Block Match estimates how well ${person.name} fits you — based on their creator type, creative interests, experience, location, and collaboration preferences. ${matchTier(match).label}.`}
           >
             {match}% Block Match
