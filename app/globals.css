@@ -67,12 +67,6 @@
     -moz-osx-font-smoothing: grayscale;
     text-rendering: optimizeLegibility;
     letter-spacing: -0.005em;
-    /* Mobile Safari auto-boosts small text for readability unless told not
-       to — invisible in any Chromium-based testing, but it silently enlarges
-       every px-based size on a real iPhone and was defeating the mobile
-       sizing work above it. */
-    -webkit-text-size-adjust: 100%;
-    text-size-adjust: 100%;
   }
 
   /* Cinematic film grain on body */
@@ -406,6 +400,7 @@
     background:
       radial-gradient(900px 540px at 12% 12%, #23386f 0%, transparent 60%),
       radial-gradient(830px 500px at 90% 28%, #4a2160 0%, transparent 58%),
+      radial-gradient(900px 580px at 55% 100%, #0e4f46 0%, transparent 60%),
       #07080d;
   }
   .lg-amb-profile {

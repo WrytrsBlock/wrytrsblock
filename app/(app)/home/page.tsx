@@ -102,10 +102,7 @@ export default async function HomePage() {
       <TopBar />
       <div className="flex-1 min-h-0 overflow-y-auto">
         <div className="page-fluid pb-16 animate-fade-up">
-          <p className="pt-5 text-[13px] font-bold text-red-500">
-            DEPLOY TEST 1
-          </p>
-          <p className="text-[13px] font-medium text-white/50">
+          <p className="pt-5 text-[13px] font-medium text-white/50">
             {greeting()}, {firstName}
           </p>
 
@@ -215,10 +212,11 @@ function CreatorMini({
         <span className="lg-pill lg-pill-g absolute left-2 top-2">Available</span>
       )}
       <div className="absolute inset-x-0 bottom-0 p-2.5">
-        <p className="truncate font-display text-[13.5px] font-semibold leading-tight text-white drop-shadow">
+        <p className="truncate font-display text-[16.5px] font-semibold leading-tight text-white drop-shadow">
           {person.name}
         </p>
-        <p className="mt-0.5 truncate text-[12px] font-semibold leading-tight text-white drop-shadow-[0_1px_3px_rgb(0_0_0/0.65)]">
+        {/* Primary skill — as prominent as the name (same base size + bright). */}
+        <p className="mt-0.5 truncate text-[14.5px] font-semibold leading-tight text-white drop-shadow-[0_1px_3px_rgb(0_0_0/0.65)]">
           {role}
         </p>
         <p className="mt-0.5 truncate text-[10px] text-white/60">
