@@ -362,9 +362,11 @@ export function CreatorMarketplace({
 
   return (
     <div className="page-fluid pb-16 pt-[calc(env(safe-area-inset-top)+2rem)] md:pt-[calc(env(safe-area-inset-top)+2.5rem)] animate-fade-up">
+      {/* Own (tighter) margin rather than the space-y-4 below — this toggle
+          is a later addition and shouldn't push the search bar/heading down
+          as far as a regular section gap would. */}
+      <ModeToggle mode={mode} onChange={setMode} className="mb-2 flex justify-center" />
       <div className="space-y-4">
-        <ModeToggle mode={mode} onChange={setMode} className="flex justify-center" />
-
       {/* Search — this page's single search experience: the same centered
           liquid-glass pill as the global bar, but it live-filters the grid. */}
       <div className="flex justify-center">
