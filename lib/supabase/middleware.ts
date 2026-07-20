@@ -1,7 +1,8 @@
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { SUPABASE_ANON_KEY, SUPABASE_URL, supabaseConfigured } from "@/lib/env";
-import { isPublicBrowsePath } from "@/lib/public-routes";
+import { isPublicBrowsePath, matchProfileHandle } from "@/lib/public-routes";
+import { creatorHandleExists, notFoundResponse } from "@/lib/profile-not-found";
 
 const PUBLIC_PATHS = [
   "/sign-in",
@@ -83,6 +84,19 @@ export async function updateSession(request: NextRequest) {
     url.pathname = "/sign-in";
     url.searchParams.set("next", pathname);
     return NextResponse.redirect(url);
+  }
+
+  // Real 404 for a creator handle that doesn't exist (SEO fix — see
+  // lib/profile-not-found.ts for why this can't be done in the page itself).
+  // Anonymous only: a signed-in owner previewing their own unpublished
+  // profile must still see it, and that check would need their session, not
+  // just the anon-visible rows this fetch can see.
+  if (!user) {
+    const handle = matchProfileHandle(pathname);
+    if (handle) {
+      const exists = await creatorHandleExists(handle).catch(() => true);
+      if (!exists) return notFoundResponse(handle);
+    }
   }
 
   if (user && (pathname === "/sign-in" || pathname === "/sign-up")) {
