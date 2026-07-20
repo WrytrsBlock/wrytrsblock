@@ -2,9 +2,10 @@ import type { Metadata } from "next";
 import { LegalPage, Section, P, Bullets, Term } from "@/components/legal/legal-page";
 
 export const metadata: Metadata = {
-  title: "Community Guidelines · WrytrsBlock",
+  title: "Community Guidelines",
   description:
     "How creators treat each other on WrytrsBlock — collaborate in good faith, respect ownership, and keep Blocks and Block Parties safe.",
+  alternates: { canonical: "/community-guidelines" },
 };
 
 export default function CommunityGuidelinesPage() {

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import type { Metadata } from "next";
 import {
   ExternalLink,
   Globe,
@@ -30,6 +31,45 @@ import {
 } from "@/lib/data";
 
 export const dynamic = "force-dynamic";
+
+// Unique title/description per creator (name, roles, location, tagline/bio)
+// so no two profile pages share metadata — required for search engines to
+// treat each creator as a distinct, indexable result rather than duplicates.
+export async function generateMetadata({
+  params,
+}: {
+  params: { handle: string };
+}): Promise<Metadata> {
+  const data = await getCreator(params.handle);
+  if (!data) return { title: "Creator not found" };
+  const { person, profile } = data;
+
+  const roles = profile.roles.slice(0, 3).join(", ");
+  const title = roles ? `${person.name} — ${roles}` : person.name;
+  const description =
+    (profile.tagline || profile.bio || "").slice(0, 155) ||
+    `${person.name}'s creator profile on WrytrsBlock — discover their work and start a Block together.`;
+  const image = heroImageFor(person, profile) ?? realAvatar(person) ?? undefined;
+
+  return {
+    title,
+    description,
+    alternates: { canonical: `/profile/${person.handle}` },
+    openGraph: {
+      title: `${title} | WrytrsBlock`,
+      description,
+      url: `/profile/${person.handle}`,
+      type: "profile",
+      images: image ? [{ url: image, alt: person.name }] : undefined,
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: `${title} | WrytrsBlock`,
+      description,
+      images: image ? [image] : undefined,
+    },
+  };
+}
 
 const SOCIAL_LABEL: Record<string, string> = {
   instagram: "Instagram",

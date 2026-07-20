@@ -2,9 +2,10 @@ import type { Metadata } from "next";
 import { LegalPage, Section, P, Bullets, Term } from "@/components/legal/legal-page";
 
 export const metadata: Metadata = {
-  title: "Terms of Service · WrytrsBlock",
+  title: "Terms of Service",
   description:
     "The terms that govern your use of WrytrsBlock — Blocks, Service Blocks, Block Parties, Featured Content, and Creator Profiles.",
+  alternates: { canonical: "/terms" },
 };
 
 export default function TermsPage() {

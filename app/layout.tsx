@@ -1,19 +1,55 @@
 import "./globals.css";
 import type { Metadata, Viewport } from "next";
 import { ThemeProvider } from "@/components/theme-provider";
+import { SITE_URL } from "@/lib/env";
+
+const SITE_TITLE =
+  "WrytrsBlock | Find Creative Collaborators for Music, Film & Content";
+const SITE_DESCRIPTION =
+  "Find producers, singers, songwriters, engineers, photographers, videographers, filmmakers and creators. Discover talent, start a Block, collaborate on projects, share files, chat and create together on WrytrsBlock.";
 
 export const metadata: Metadata = {
   title: {
-    default: "WrytrsBlock — The Cr8tv Collectv",
-    template: "%s · WrytrsBlock",
+    default: SITE_TITLE,
+    template: "%s | WrytrsBlock",
   },
-  description:
-    "WrytrsBlock — THE CR8TV COLLECTV. Discover creators, collaborate on Blocks, and monetize the work you make together.",
-  // Absolute base for OG/Twitter image URLs — defaults to the production domain
-  // so social previews resolve correctly even when the env var isn't set.
-  metadataBase: new URL(
-    process.env.NEXT_PUBLIC_SITE_URL ?? "https://www.wrytrsblock.com"
-  ),
+  description: SITE_DESCRIPTION,
+  keywords: [
+    "creative collaboration",
+    "find a producer",
+    "find a songwriter",
+    "find a videographer",
+    "find a filmmaker",
+    "music collaboration platform",
+    "content creator collaboration",
+    "connect with musicians",
+    "connect with creators",
+    "split sheet generator",
+    "music industry networking",
+    "WrytrsBlock",
+  ],
+  authors: [{ name: "WrytrsBlock", url: SITE_URL }],
+  creator: "WrytrsBlock",
+  publisher: "WrytrsBlock",
+  applicationName: "WrytrsBlock",
+  // Absolute base for OG/Twitter image URLs and relative canonical/alternate
+  // URLs below — defaults to the production domain so both resolve correctly
+  // even when the env var isn't set.
+  metadataBase: new URL(SITE_URL),
+  alternates: {
+    canonical: "/",
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+      "max-video-preview": -1,
+    },
+  },
   // Icons (app/icon.png, app/apple-icon.png, app/favicon.ico) are auto-detected
   // by Next from the app/ directory — the WrytrsBlock W mark.
   manifest: "/manifest.webmanifest",
@@ -24,10 +60,10 @@ export const metadata: Metadata = {
   },
   openGraph: {
     type: "website",
+    locale: "en_US",
     siteName: "WrytrsBlock",
-    title: "WrytrsBlock — The Cr8tv Collectv",
-    description:
-      "Discover creators, collaborate on Blocks, and monetize the work you make together.",
+    title: SITE_TITLE,
+    description: SITE_DESCRIPTION,
     url: "/",
     images: [
       {
@@ -40,9 +76,8 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "WrytrsBlock — The Cr8tv Collectv",
-    description:
-      "Discover creators, collaborate on Blocks, and monetize the work you make together.",
+    title: SITE_TITLE,
+    description: SITE_DESCRIPTION,
     images: ["/og-image.png"],
   },
 };
@@ -69,6 +104,26 @@ const themeBootstrap = `
 })();
 `;
 
+// Schema.org structured data — Organization + WebSite. sameAs is left empty
+// since no official social profile URLs are configured yet; add them there
+// once they exist so Google can associate this Organization with those
+// profiles (Knowledge Panel eligibility).
+const organizationJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "Organization",
+  name: "WrytrsBlock",
+  url: SITE_URL,
+  logo: `${SITE_URL}/icon-512.png`,
+  sameAs: [] as string[],
+};
+
+const websiteJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "WebSite",
+  name: "WrytrsBlock",
+  url: SITE_URL,
+};
+
 export default function RootLayout({
   children,
 }: {
@@ -78,6 +133,14 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeBootstrap }} />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationJsonLd) }}
+        />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteJsonLd) }}
+        />
         <link
           rel="preconnect"
           href="https://fonts.googleapis.com"

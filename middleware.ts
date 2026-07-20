@@ -31,9 +31,12 @@ export const config = {
     /*
      * Match all request paths except:
      * - _next/static, _next/image, favicon
-     * - the PWA manifest (must be publicly fetchable)
+     * - the PWA manifest, sitemap, and robots file (must be publicly
+     *   fetchable — search crawlers never carry a session cookie, so if
+     *   these ran through updateSession() below they'd get redirected to
+     *   /sign-in instead of served, same as any other protected route)
      * - any file with a static extension (images, fonts, etc)
      */
-    "/((?!_next/static|_next/image|favicon.ico|manifest.webmanifest|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|woff2?|webmanifest)$).*)",
+    "/((?!_next/static|_next/image|favicon.ico|manifest.webmanifest|sitemap.xml|robots.txt|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|woff2?|webmanifest)$).*)",
   ],
 };

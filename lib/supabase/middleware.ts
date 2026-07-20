@@ -1,6 +1,7 @@
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { SUPABASE_ANON_KEY, SUPABASE_URL, supabaseConfigured } from "@/lib/env";
+import { isPublicBrowsePath } from "@/lib/public-routes";
 
 const PUBLIC_PATHS = [
   "/sign-in",
@@ -25,11 +26,25 @@ const PUBLIC_PATHS = [
 
 function isPublic(pathname: string) {
   if (pathname === "/") return true;
+  // Marketplace/Discovery and individual creator profiles are browsable
+  // read-only without a session (see lib/public-routes.ts) — everything else
+  // still requires sign-in.
+  if (isPublicBrowsePath(pathname)) return true;
   return PUBLIC_PATHS.some((p) => pathname.startsWith(p));
 }
 
+// Forward the request pathname to Server Components (the (app) shell layout
+// needs it to tell a signed-out "browsing the public Marketplace/profile
+// pages" request apart from one that should redirect to sign-in) — Next.js
+// layouts don't otherwise receive the current pathname as a prop.
+function withPathnameHeader(request: NextRequest) {
+  const headers = new Headers(request.headers);
+  headers.set("x-pathname", request.nextUrl.pathname);
+  return NextResponse.next({ request: { headers } });
+}
+
 export async function updateSession(request: NextRequest) {
-  let response = NextResponse.next({ request });
+  let response = withPathnameHeader(request);
 
   // If Supabase isn't configured (local dev w/o env), let everything through
   // and let pages fall back to mock data.
@@ -49,7 +64,7 @@ export async function updateSession(request: NextRequest) {
         cookiesToSet.forEach(({ name, value }) =>
           request.cookies.set(name, value)
         );
-        response = NextResponse.next({ request });
+        response = withPathnameHeader(request);
         cookiesToSet.forEach(({ name, value, options }) =>
           response.cookies.set(name, value, options)
         );

@@ -1,7 +1,21 @@
+import type { Metadata } from "next";
 import { CreatorMarketplace } from "@/components/marketplace/creator-marketplace";
 import { getCreators } from "@/lib/data";
 
 export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = {
+  title: "Block Market — Discover Creators",
+  description:
+    "Browse producers, singers, songwriters, engineers, photographers, videographers, filmmakers and creators. Find your next collaborator and start a Block on WrytrsBlock.",
+  alternates: { canonical: "/marketplace" },
+  openGraph: {
+    title: "Block Market — Discover Creators | WrytrsBlock",
+    description:
+      "Browse producers, singers, songwriters, engineers, photographers, videographers, filmmakers and creators on WrytrsBlock.",
+    url: "/marketplace",
+  },
+};
 
 export default async function MarketplacePage() {
   // Real creators from Supabase (or the local dev seed when unconfigured),

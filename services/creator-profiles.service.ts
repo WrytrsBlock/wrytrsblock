@@ -28,6 +28,21 @@ export async function listCreatorProfiles(
   return (data as CreatorProfileRow[]) ?? [];
 }
 
+// Handles of every published, publicly-viewable creator profile — the
+// dynamic portion of app/sitemap.ts (each maps to /profile/<handle>). Only
+// handle + updated_at are selected since that's all a sitemap entry needs.
+export async function listPublishedCreatorHandlesForSitemap(
+  supabase: DB
+): Promise<{ handle: string; updated_at: string }[]> {
+  const { data, error } = await supabase
+    .from("creator_profiles")
+    .select("handle, updated_at")
+    .eq("is_published", true)
+    .not("handle", "is", null);
+  if (error) throw error;
+  return (data as { handle: string; updated_at: string }[]) ?? [];
+}
+
 // "Total registered creators" for the admin new-signup notification — counts
 // published, marketplace-visible creators (matches what listCreatorProfiles
 // surfaces), not every raw auth signup (many never finish onboarding).

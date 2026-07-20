@@ -1,8 +1,16 @@
 import Link from "next/link";
 import { Suspense } from "react";
+import type { Metadata } from "next";
 import { SignInForm } from "./form";
 
 export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = {
+  title: "Sign In",
+  description:
+    "Sign in to WrytrsBlock to manage your creator profile, Blocks, and collaborations.",
+  alternates: { canonical: "/sign-in" },
+};
 
 export default function SignInPage() {
   return (

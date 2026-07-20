@@ -2,9 +2,10 @@ import type { Metadata } from "next";
 import { LegalPage, Section, P, Bullets, Term } from "@/components/legal/legal-page";
 
 export const metadata: Metadata = {
-  title: "Privacy Policy · WrytrsBlock",
+  title: "Privacy Policy",
   description:
     "How WrytrsBlock collects, uses, and protects your information — your Creator Profile, Featured Content, Blocks, messages, and account data.",
+  alternates: { canonical: "/privacy" },
 };
 
 export default function PrivacyPage() {

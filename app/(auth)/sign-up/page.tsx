@@ -1,5 +1,13 @@
 import Link from "next/link";
+import type { Metadata } from "next";
 import { SignUpForm } from "./form";
+
+export const metadata: Metadata = {
+  title: "Sign Up",
+  description:
+    "Create your WrytrsBlock creator profile — find collaborators, start a Block, and get paid for the work you make together.",
+  alternates: { canonical: "/sign-up" },
+};
 
 export default function SignUpPage() {
   return (
